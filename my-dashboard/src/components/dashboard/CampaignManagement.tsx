@@ -1,3 +1,4 @@
+import React, { useState } from "react";
 import {
   Plus,
   Search,
@@ -8,21 +9,16 @@ import {
   Calendar,
   CheckCircle2,
   Clock,
-  AlertCircle,
+  X,
+  Target,
+  FileText,
 } from "lucide-react";
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  Cell,
-} from "recharts";
 
 const CampaignManagement = () => {
-  // بيانات إحصائية سريعة بناءً على حالات الحملة في الـ ERD (Draft, Approved, Ongoing, etc.)
+  // التحكم في إظهار وإخفاء واجهة الإضافة
+  const [showCreateModal, setShowCreateModal] = useState(false);
+
+  // إحصائيات مستوحاة من حالات الحملة في الـ ERD
   const stats = [
     {
       label: "Total Campaigns",
@@ -44,7 +40,7 @@ const CampaignManagement = () => {
     },
   ];
 
-  // بيانات الحملات - الحقول مستوحاة مباشرة من جدول campaign في الـ ERD
+  // بيانات الحملات - الحقول مستوحاة من جدول campaign
   const campaigns = [
     {
       id: 1,
@@ -52,7 +48,7 @@ const CampaignManagement = () => {
       location: "Coastal Area",
       max_volunteers: 50,
       current_volunteers: 32,
-      status: "Ongoing", // campaign_status_enum
+      status: "Ongoing",
       start_date: "2026-05-15",
       category: "Environment",
     },
@@ -66,19 +62,9 @@ const CampaignManagement = () => {
       start_date: "2026-06-01",
       category: "Education",
     },
-    {
-      id: 3,
-      title: "Old Clothes Collection",
-      location: "Community Center",
-      max_volunteers: 100,
-      current_volunteers: 0,
-      status: "Draft",
-      start_date: "2026-07-10",
-      category: "Social",
-    },
   ];
 
-  const getStatusStyle = (status: string) => {
+  const getStatusStyle = (status) => {
     switch (status) {
       case "Ongoing":
         return "bg-green-100 text-green-700 border-green-200";
@@ -86,15 +72,13 @@ const CampaignManagement = () => {
         return "bg-blue-100 text-blue-700 border-blue-200";
       case "Draft":
         return "bg-gray-100 text-gray-700 border-gray-200";
-      case "Pending":
-        return "bg-orange-100 text-orange-700 border-orange-200";
       default:
         return "bg-slate-100 text-slate-700";
     }
   };
 
   return (
-    <div className="w-full space-y-8 animate-in fade-in duration-500">
+    <div className="w-full space-y-8 animate-in fade-in duration-500 relative">
       {/* Header Section */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
@@ -105,7 +89,10 @@ const CampaignManagement = () => {
             Organize, track, and manage all volunteer initiatives.
           </p>
         </div>
-        <button className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-2xl font-bold shadow-lg shadow-purple-200 transition-all active:scale-95">
+        <button
+          onClick={() => setShowCreateModal(true)}
+          className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-2xl font-bold shadow-lg shadow-purple-200 transition-all active:scale-95"
+        >
           <Plus size={20} />
           Create New Campaign
         </button>
@@ -136,34 +123,34 @@ const CampaignManagement = () => {
           />
           <input
             type="text"
-            placeholder="Search campaigns by title or location..."
-            className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-purple-500/20 outline-none transition-all"
+            placeholder="Search campaigns by title..."
+            className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-100 rounded-2xl outline-none"
           />
         </div>
-        <button className="flex items-center gap-2 px-5 py-3 border border-slate-200 rounded-2xl font-semibold text-slate-600 hover:bg-slate-50 transition-colors">
+        <button className="flex items-center gap-2 px-5 py-3 border border-slate-200 rounded-2xl font-semibold text-slate-600 hover:bg-slate-50">
           <Filter size={18} />
           Filters
         </button>
       </div>
 
-      {/* Campaigns Table - Data from ERD */}
+      {/* Campaigns Table */}
       <div className="bg-white rounded-[32px] border border-slate-100 shadow-sm overflow-hidden">
         <table className="w-full text-left border-collapse">
           <thead>
             <tr className="bg-slate-50/50 border-b border-slate-100">
-              <th className="p-6 text-sm font-bold text-slate-600 uppercase tracking-wider">
+              <th className="p-6 text-sm font-bold text-slate-600 uppercase">
                 Campaign Details
               </th>
-              <th className="p-6 text-sm font-bold text-slate-600 uppercase tracking-wider">
+              <th className="p-6 text-sm font-bold text-slate-600 uppercase">
                 Category
               </th>
-              <th className="p-6 text-sm font-bold text-slate-600 uppercase tracking-wider">
+              <th className="p-6 text-sm font-bold text-slate-600 uppercase">
                 Volunteers
               </th>
-              <th className="p-6 text-sm font-bold text-slate-600 uppercase tracking-wider">
+              <th className="p-6 text-sm font-bold text-slate-600 uppercase">
                 Status
               </th>
-              <th className="p-6 text-sm font-bold text-slate-600 uppercase tracking-wider text-center">
+              <th className="p-6 text-sm font-bold text-slate-600 uppercase text-center">
                 Actions
               </th>
             </tr>
@@ -176,7 +163,7 @@ const CampaignManagement = () => {
               >
                 <td className="p-6">
                   <div className="flex flex-col">
-                    <span className="font-bold text-slate-900 text-lg group-hover:text-purple-600 transition-colors">
+                    <span className="font-bold text-slate-900 text-lg group-hover:text-purple-600">
                       {camp.title}
                     </span>
                     <div className="flex items-center gap-2 text-slate-400 text-sm mt-1">
@@ -204,7 +191,7 @@ const CampaignManagement = () => {
                     </div>
                     <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
                       <div
-                        className="h-full bg-purple-500 rounded-full transition-all duration-1000"
+                        className="h-full bg-purple-500"
                         style={{
                           width: `${(camp.current_volunteers / camp.max_volunteers) * 100}%`,
                         }}
@@ -219,18 +206,148 @@ const CampaignManagement = () => {
                     {camp.status}
                   </span>
                 </td>
-                <td className="p-6">
-                  <div className="flex justify-center">
-                    <button className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl transition-all">
-                      <MoreHorizontal size={20} />
-                    </button>
-                  </div>
+                <td className="p-6 text-center">
+                  <button className="p-2 text-slate-400 hover:text-slate-600">
+                    <MoreHorizontal size={20} />
+                  </button>
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
+
+      {/* --- واجهة إضافة حملة جديدة (Modal) --- */}
+      {showCreateModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300">
+          <div className="bg-white w-full max-w-2xl rounded-[32px] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300">
+            {/* Modal Header */}
+            <div className="bg-purple-600 p-6 flex justify-between items-center text-white">
+              <div className="flex items-center gap-3">
+                <div className="bg-white/20 p-2 rounded-xl">
+                  <Target size={24} />
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold">Create New Campaign</h2>
+                  <p className="text-purple-100 text-xs">
+                    Fill in the details for the new volunteer initiative
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowCreateModal(false)}
+                className="hover:bg-white/20 p-2 rounded-full transition-colors"
+              >
+                <X size={24} />
+              </button>
+            </div>
+
+            {/* Modal Form */}
+            <form className="p-8 grid grid-cols-1 md:grid-cols-2 gap-6 max-h-[70vh] overflow-y-auto">
+              {/* Campaign Title */}
+              <div className="md:col-span-2 space-y-2">
+                <label className="text-sm font-bold text-slate-700 flex items-center gap-2">
+                  <FileText size={16} className="text-purple-500" /> Campaign
+                  Title
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g., Annual Tree Planting"
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-purple-500/20 outline-none transition-all"
+                />
+              </div>
+
+              {/* Description */}
+              <div className="md:col-span-2 space-y-2">
+                <label className="text-sm font-bold text-slate-700">
+                  Description
+                </label>
+                <textarea
+                  rows="3"
+                  placeholder="Describe the campaign goals..."
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-purple-500/20 outline-none transition-all resize-none"
+                ></textarea>
+              </div>
+
+              {/* Location */}
+              <div className="space-y-2">
+                <label className="text-sm font-bold text-slate-700 flex items-center gap-2">
+                  <MapPin size={16} className="text-purple-500" /> Location
+                </label>
+                <input
+                  type="text"
+                  placeholder="City or Campus"
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl outline-none"
+                />
+              </div>
+
+              {/* Category */}
+              <div className="space-y-2">
+                <label className="text-sm font-bold text-slate-700">
+                  Category
+                </label>
+                <select className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl outline-none appearance-none">
+                  <option>Select Category</option>
+                  <option>Environment</option>
+                  <option>Education</option>
+                  <option>Social Services</option>
+                </select>
+              </div>
+
+              {/* Start Date */}
+              <div className="space-y-2">
+                <label className="text-sm font-bold text-slate-700 flex items-center gap-2">
+                  <Calendar size={16} className="text-purple-500" /> Start Date
+                </label>
+                <input
+                  type="date"
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl outline-none"
+                />
+              </div>
+
+              {/* End Date */}
+              <div className="space-y-2">
+                <label className="text-sm font-bold text-slate-700 flex items-center gap-2">
+                  <Calendar size={16} className="text-purple-500" /> End Date
+                </label>
+                <input
+                  type="date"
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl outline-none"
+                />
+              </div>
+
+              {/* Max Volunteers */}
+              <div className="space-y-2">
+                <label className="text-sm font-bold text-slate-700 flex items-center gap-2">
+                  <Users size={16} className="text-purple-500" /> Max Volunteers
+                </label>
+                <input
+                  type="number"
+                  placeholder="50"
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl outline-none"
+                />
+              </div>
+
+              {/* Action Buttons */}
+              <div className="md:col-span-2 flex gap-4 mt-4 pt-6 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setShowCreateModal(false)}
+                  className="flex-1 px-6 py-4 border border-slate-200 text-slate-600 font-bold rounded-2xl hover:bg-slate-50 transition-all"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 px-6 py-4 bg-purple-600 text-white font-bold rounded-2xl hover:bg-purple-700 shadow-lg shadow-purple-200 transition-all"
+                >
+                  Create Campaign
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
