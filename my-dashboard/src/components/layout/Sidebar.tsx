@@ -1,89 +1,123 @@
-import { NavLink } from "react-router-dom"; // استيراد NavLink
+import { NavLink } from "react-router-dom";
 import {
-  LayoutDashboard,
+  LayoutGrid,
   Users,
-  ClipboardList,
   FileText,
-  UserCog,
+  Target,
   BarChart3,
   Settings,
   HelpCircle,
   LogOut,
+  CalendarCheck,
+  GraduationCap,
 } from "lucide-react";
 
 const Sidebar = () => {
-  // إضافة الـ path لكل عنصر ليتناسب مع Routes في App.tsx
-  const menuItems = [
-    { title: "Dashboard", icon: <LayoutDashboard size={20} />, path: "/" },
-    { title: "Clients", icon: <Users size={20} />, path: "/clients" },
-    {
-      title: "Campaign Management",
-      icon: <ClipboardList size={20} />,
-      path: "/campaigns",
-    },
+  // المسميات بناءً على ملفاتك الـ VS Code والـ ERD
+  const mainMenuItems = [
+    { title: "Dashboard", icon: <LayoutGrid size={20} />, path: "/" }, // من ملف ApplicationStatus.tsx
+    { title: "Students", icon: <GraduationCap size={20} />, path: "/students" }, // من جدول user/student في ERD
     {
       title: "Applications",
       icon: <FileText size={20} />,
       path: "/applications",
-    },
-    { title: "User Management", icon: <UserCog size={20} />, path: "/users" },
+    }, // من ملف ApplicationStatus.tsx
+    { title: "Campaigns", icon: <Target size={20} />, path: "/campaigns" }, // من ملف CampaignManagement.tsx
+    { title: "Volunteers", icon: <Users size={20} />, path: "/volunteers" }, // مسمى أساسي في مشروعك
     {
-      title: "Attendance & Progress",
-      icon: <BarChart3 size={20} />,
+      title: "Attendance",
+      icon: <CalendarCheck size={20} />,
       path: "/attendance",
-    },
+    }, // مضاف من جدول attendance في ERD
+    { title: "Reports", icon: <BarChart3 size={20} />, path: "/reports" }, // للتقارير والإحصائيات
   ];
 
+  const secondaryMenuItems = [
+    { title: "Settings", icon: <Settings size={20} />, path: "/settings" },
+    { title: "Help & Support", icon: <HelpCircle size={20} />, path: "/help" },
+  ];
+
+  // ألوان التصميم المطلوبة (البنفسجي والأبيض)
+  const activeLinkClass =
+    "relative w-full flex items-center gap-3 px-6 py-3 text-[#5D3FD3] font-semibold bg-[#F5F3FF] transition-all";
+  const inactiveLinkClass =
+    "w-full flex items-center gap-3 px-6 py-3 text-[#64748B] hover:text-[#5D3FD3] transition-all font-medium";
+
   return (
-    <aside className="w-64 h-full bg-white border-r border-gray-100 flex flex-col p-4 shrink-0">
-      {/* Logo Area */}
-      <div className="flex items-center gap-2 px-2 mb-10">
-        <div className="w-8 h-8 bg-purple-600 rounded-lg flex items-center justify-center text-white text-xl font-bold">
-          V
+    <aside className="w-64 h-[95vh] bg-white flex flex-col my-auto ml-4 rounded-[30px] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100 overflow-hidden">
+      {/* Header Area - Flowice Style Logo */}
+      <div className="flex items-center gap-3 px-6 py-8 mb-4 bg-[#5D3FD3] text-white">
+        <div className="bg-white/20 p-1.5 rounded-lg">
+          <div className="w-5 h-5 border-2 border-white rotate-45 flex items-center justify-center">
+            <div className="w-2 h-2 bg-white" />
+          </div>
         </div>
-        <span className="text-xl font-bold text-gray-800">VolunteerHub</span>
+        <span className="text-xl font-bold tracking-tight">Flowice</span>
       </div>
 
       {/* Main Menu */}
       <nav className="flex-1 space-y-1">
-        {menuItems.map((item, index) => (
+        {mainMenuItems.map((item, index) => (
           <NavLink
             key={index}
             to={item.path}
             className={({ isActive }) =>
-              `w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
-                isActive
-                  ? "bg-purple-50 text-purple-600 font-semibold"
-                  : "text-gray-950 hover:bg-gray-50"
-              }`
+              isActive ? activeLinkClass : inactiveLinkClass
             }
           >
-            {item.icon}
-            <span>{item.title}</span>
+            {({ isActive }) => (
+              <>
+                {/* الخط العامودي الجانبي البنفسجي */}
+                {isActive && (
+                  <div className="absolute left-0 w-1.5 h-7 bg-[#5D3FD3] rounded-r-full" />
+                )}
+                <span
+                  className={isActive ? "text-[#5D3FD3]" : "text-[#94A3B8]"}
+                >
+                  {item.icon}
+                </span>
+                <span className="text-[15px]">{item.title}</span>
+              </>
+            )}
           </NavLink>
         ))}
       </nav>
 
-      {/* Bottom Menu */}
-      <div className="pt-4 border-t border-gray-100 space-y-1">
-        <NavLink
-          to="/settings"
-          className={({ isActive }) =>
-            `w-full flex items-center gap-3 px-4 py-3 rounded-xl ${isActive ? "bg-purple-50 text-purple-600" : "text-gray-500 hover:bg-gray-50"}`
-          }
-        >
-          <Settings size={20} />
-          <span className="font-medium">Settings</span>
-        </NavLink>
+      {/* Secondary Menu */}
+      <div className="space-y-1 border-t border-gray-50 pt-4">
+        {secondaryMenuItems.map((item, index) => (
+          <NavLink
+            key={index}
+            to={item.path}
+            className={({ isActive }) =>
+              isActive ? activeLinkClass : inactiveLinkClass
+            }
+          >
+            {({ isActive }) => (
+              <>
+                {isActive && (
+                  <div className="absolute left-0 w-1.5 h-7 bg-[#5D3FD3] rounded-r-full" />
+                )}
+                <span
+                  className={isActive ? "text-[#5D3FD3]" : "text-[#94A3B8]"}
+                >
+                  {item.icon}
+                </span>
+                <span className="text-[15px]">{item.title}</span>
+              </>
+            )}
+          </NavLink>
+        ))}
+      </div>
 
-        <button className="w-full flex items-center gap-3 px-4 py-3 text-gray-500 hover:bg-gray-50 rounded-xl">
-          <HelpCircle size={20} />
-          <span className="font-medium">Help & Support</span>
-        </button>
-
-        <button className="w-full flex items-center gap-3 px-4 py-3 text-red-500 hover:bg-red-50 rounded-xl mt-4">
-          <LogOut size={20} />
-          <span className="font-medium">Log Out</span>
+      {/* Log Out Section */}
+      <div className="mt-auto pb-10 px-6">
+        <button className="flex items-center gap-3 text-[#64748B] hover:text-red-600 transition-all font-medium group">
+          <LogOut
+            size={20}
+            className="group-hover:translate-x-1 transition-transform"
+          />
+          <span className="text-[15px]">Log Out</span>
         </button>
       </div>
     </aside>
