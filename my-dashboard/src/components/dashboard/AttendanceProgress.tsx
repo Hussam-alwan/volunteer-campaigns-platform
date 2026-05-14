@@ -202,7 +202,7 @@ const AttendanceProgress = () => {
 
         <div className="bg-white p-8 rounded-[30px] border border-gray-100 shadow-sm">
           <h3 className="text-lg font-bold text-slate-900 mb-6 flex items-center gap-3">
-            <div className="w-1.5 h-6 bg-orange-400 rounded-full"></div>
+            <div className="w-1.5 h-6 bg-[#5D3FD3] rounded-full"></div>
             Campaign Completion Rate
           </h3>
           <div className="h-[300px] w-full">

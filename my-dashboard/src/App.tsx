@@ -2,8 +2,10 @@ import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Sidebar from "./components/layout/Sidebar";
 import Dashboard from "./pages/Dashboard";
 // 1. استيراد صفحة إدارة الحملات
+import StudentsPage from "./components/dashboard/StudentsPage";
 import CampaignManagement from "./components/dashboard/CampaignManagement";
 import AttendanceProgress from "./components/dashboard/AttendanceProgress";
+import Colleges from "./components/dashboard/Colleges";
 function App() {
   return (
     <Router>
@@ -21,6 +23,8 @@ function App() {
               element={<div>صفحة الطلبات قيد الإنشاء</div>}
             />
             <Route path="/attendance" element={<AttendanceProgress />} />
+            <Route path="/students" element={<StudentsPage />} />
+            <Route path="/colleges" element={<Colleges />} />
           </Routes>
         </main>
       </div>
