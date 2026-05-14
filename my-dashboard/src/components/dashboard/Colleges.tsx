@@ -107,19 +107,19 @@ const Colleges = () => {
                     </span>
                   </td>
                   <td className="px-8 py-6">
-                    {/* تم حذف الأيقونة هنا كما طلبت */}
                     <span className="font-bold text-slate-700 text-[15px] group-hover:text-[#5D3FD3] transition-colors">
                       {college.name}
                     </span>
                   </td>
                   <td className="px-8 py-6">
-                    <p className="text-slate-500 text-sm leading-relaxed max-w-xs">
+                    {/* تعديل لون الوصف إلى الأصفر (نص ذهبي/أصفر غامق لضمان القراءة) */}
+                    <p className="text-gray-400 text-sm leading-relaxed max-w-xs font-medium">
                       {college.description}
                     </p>
                   </td>
                   <td className="px-8 py-6">
-                    {/* لون زاهي هادئ (Indigo) للتاريخ */}
-                    <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-indigo-50 text-indigo-600 font-semibold text-xs border border-indigo-100/50">
+                    {/* تعديل لون Created At إلى الأخضر */}
+                    <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-green-50 text-green-600 font-semibold text-xs border border-green-100/50">
                       <Calendar size={14} />
                       {college.created_at}
                     </div>

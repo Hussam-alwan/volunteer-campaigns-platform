@@ -6,6 +6,7 @@ import StudentsPage from "./components/dashboard/StudentsPage";
 import CampaignManagement from "./components/dashboard/CampaignManagement";
 import AttendanceProgress from "./components/dashboard/AttendanceProgress";
 import Colleges from "./components/dashboard/Colleges";
+import Reports from "./components/dashboard/Reports";
 function App() {
   return (
     <Router>
@@ -25,6 +26,7 @@ function App() {
             <Route path="/attendance" element={<AttendanceProgress />} />
             <Route path="/students" element={<StudentsPage />} />
             <Route path="/colleges" element={<Colleges />} />
+            <Route path="/reports" element={<Reports />} />
           </Routes>
         </main>
       </div>
