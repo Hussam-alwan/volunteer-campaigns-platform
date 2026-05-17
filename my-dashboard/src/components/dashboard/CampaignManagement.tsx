@@ -1,5 +1,6 @@
 // src/pages/CampaignManagement.tsx
-import React, { useState, ChangeEvent, FormEvent } from "react";
+
+import React, { useState, type ChangeEvent, type FormEvent } from "react";
 import {
   Plus,
   Search,

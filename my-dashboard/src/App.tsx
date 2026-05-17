@@ -7,6 +7,7 @@ import CampaignManagement from "./components/dashboard/CampaignManagement";
 import AttendanceProgress from "./components/dashboard/AttendanceProgress";
 import Colleges from "./components/dashboard/Colleges";
 import Reports from "./components/dashboard/Reports";
+import ApplicationStatus from "./components/dashboard/ApplicationStatus";
 function App() {
   return (
     <Router>
