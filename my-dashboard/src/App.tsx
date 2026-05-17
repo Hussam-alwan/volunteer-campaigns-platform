@@ -4,6 +4,7 @@ import Dashboard from "./pages/Dashboard";
 // 1. استيراد صفحة إدارة الحملات
 import CampaignManagement from "./components/dashboard/CampaignManagement";
 import AttendanceProgress from "./components/dashboard/AttendanceProgress";
+import ApplicationStatus from "./components/dashboard/ApplicationStatus";
 function App() {
   return (
     <Router>
@@ -16,10 +17,7 @@ function App() {
             {/* 2. إضافة الراوت الخاص بـ Campaign Management */}
             <Route path="/campaigns" element={<CampaignManagement />} />
 
-            <Route
-              path="/applications"
-              element={<div>صفحة الطلبات قيد الإنشاء</div>}
-            />
+            <Route path="/applications" element={<ApplicationStatus />} />
             <Route path="/attendance" element={<AttendanceProgress />} />
           </Routes>
         </main>
