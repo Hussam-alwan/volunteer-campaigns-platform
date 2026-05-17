@@ -2,9 +2,11 @@ import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Sidebar from "./components/layout/Sidebar";
 import Dashboard from "./pages/Dashboard";
 // 1. استيراد صفحة إدارة الحملات
+import StudentsPage from "./components/dashboard/StudentsPage";
 import CampaignManagement from "./components/dashboard/CampaignManagement";
 import AttendanceProgress from "./components/dashboard/AttendanceProgress";
-import ApplicationStatus from "./components/dashboard/ApplicationStatus";
+import Colleges from "./components/dashboard/Colleges";
+import Reports from "./components/dashboard/Reports";
 function App() {
   return (
     <Router>
@@ -19,6 +21,9 @@ function App() {
 
             <Route path="/applications" element={<ApplicationStatus />} />
             <Route path="/attendance" element={<AttendanceProgress />} />
+            <Route path="/students" element={<StudentsPage />} />
+            <Route path="/colleges" element={<Colleges />} />
+            <Route path="/reports" element={<Reports />} />
           </Routes>
         </main>
       </div>
