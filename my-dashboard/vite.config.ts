@@ -1,9 +1,16 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
+import path from "path";
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
+  // اضافة الـ alias مشان نقدر نستخدم @ بدل ما نكتب المسار كامل
+  resolve: {
+    alias: {
+      "@": path.resolve(__dirname, "./src"),
+    },
+  },
   server: {
     proxy: {
       // الـ Proxy بيلقط أي طلب بيبدأ بـ /api-railway
