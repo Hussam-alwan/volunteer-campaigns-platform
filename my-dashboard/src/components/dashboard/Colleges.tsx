@@ -1,4 +1,6 @@
-import React, { useState } from "react";
+// src/pages/Colleges.tsx
+
+import React, { useState, type ChangeEvent, type FormEvent } from "react";
 import {
   Plus,
   Search,
@@ -10,30 +12,123 @@ import {
   School,
 } from "lucide-react";
 
-const Colleges = () => {
-  const primaryPurple = "#5D3FD3";
-  const [showCreateModal, setShowCreateModal] = useState(false);
+import collegesQueries from "../../API/Colleges/Collegesqueries";
+import collegesApis from "../../API/Colleges/Colleges.apis";
+import type {
+  ICollege,
+  ICreateCollegeInput,
+} from "../../API/Colleges/Colleges.interfaces";
 
-  const [colleges] = useState([
-    {
-      college_id: 1,
-      name: "College of Engineering",
-      description: "Focuses on various engineering disciplines and innovation.",
-      created_at: "2026-01-10",
-    },
-    {
-      college_id: 2,
-      name: "College of Science",
-      description: "Dedicated to biological, chemical, and physical research.",
-      created_at: "2026-02-15",
-    },
-    {
-      college_id: 3,
-      name: "College of Arts",
-      description: "Exploring human culture, history, and creative expression.",
-      created_at: "2026-03-05",
-    },
-  ]);
+const Colleges: React.FC = () => {
+  const primaryPurple = "#5D3FD3";
+
+  // 1. التحكم بحالة الـ Pagination المتوافقة مع الباك-إيند
+  const [pagination, setPagination] = useState({
+    pageIndex: 0, // السيرفرات تعتمد غالباً على 0 كأول صفحة
+    pageSize: 10,
+  });
+
+  // 2. جلب البيانات الاحترافي عبر TanStack Query بدون useEffect يدوي
+  const {
+    data: collegesResponse,
+    isLoading: loading,
+    isError: hasError,
+    refetch: fetchColleges,
+  } = collegesQueries.useGetAllColleges({
+    page: pagination.pageIndex,
+    size: pagination.pageSize,
+  });
+
+  // استخراج المصفوفة الفعلية للكليات من الرد المدعوم بالـ pageable
+  const colleges = collegesResponse?.content || [];
+
+  // 3. حالات النوافذ المنبثقة والتحكم بالعمليات
+  const [showCreateModal, setShowCreateModal] = useState<boolean>(false);
+  const [isEditMode, setIsEditMode] = useState<boolean>(false);
+  const [selectedCollegeId, setSelectedCollegeId] = useState<number | null>(
+    null,
+  );
+
+  // فورم الإنشاء والتعديل الموحد المربوط بالـ State
+  const [formData, setFormData] = useState<ICreateCollegeInput>({
+    name: "",
+    description: "",
+  });
+
+  // 4. معالج فتح نافذة التعديل لتعبئة البيانات تلقائياً
+  const handleOpenEditModal = (college: ICollege) => {
+    setSelectedCollegeId(college.collegeId);
+    setFormData({
+      name: college.name,
+      description: college.description,
+    });
+    setIsEditMode(true);
+    setShowCreateModal(true);
+  };
+
+  // 5. معالج إغلاق النافذة وتصفير البيانات
+  const handleCloseModal = () => {
+    setShowCreateModal(false);
+    setIsEditMode(false);
+    setSelectedCollegeId(null);
+    setFormData({ name: "", description: "" });
+  };
+
+  // 6. تنفيذ عمليتي الإنشاء والتعديل (Submit)
+  const handleFormSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    try {
+      if (isEditMode && selectedCollegeId) {
+        await collegesApis.update(selectedCollegeId, formData);
+      } else {
+        await collegesApis.create(formData);
+      }
+      handleCloseModal();
+      fetchColleges(); // تحديث الكاش تلقائياً لعرض البيانات الجديدة
+    } catch (err) {
+      alert(isEditMode ? "Error updating college" : "Error creating college");
+    }
+  };
+
+  // 7. تنفيذ عملية الحذف الفوري عبر الـ ID
+  const handleDeleteCollege = async (id: number) => {
+    if (!window.confirm("Are you sure you want to delete this college?"))
+      return;
+    try {
+      await collegesApis.delete(id);
+      fetchColleges();
+    } catch (err) {
+      alert("Error deleting college");
+    }
+  };
+
+  // شاشة التحميل المتناسقة (Spinner)
+  if (loading) {
+    return (
+      <div className="w-full h-96 flex items-center justify-center">
+        <div
+          className="animate-spin rounded-full h-10 w-10 border-b-2"
+          style={{ borderColor: primaryPurple }}
+        ></div>
+      </div>
+    );
+  }
+
+  // شاشة معالجة الأخطاء وإعادة المحاولة
+  if (hasError) {
+    return (
+      <div className="w-full p-8 text-center bg-red-50 text-red-600 rounded-[24px] border border-red-100">
+        <p className="font-bold">Failed to fetch colleges from the server</p>
+        <button
+          onClick={() => fetchColleges()}
+          style={{ backgroundColor: primaryPurple }}
+          className="mt-4 px-4 py-2 text-white rounded-xl text-xs font-bold shadow-md animate-pulse"
+        >
+          Try Again
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full space-y-8 p-2 animate-in fade-in duration-700">
@@ -98,42 +193,50 @@ const Colleges = () => {
             <tbody className="divide-y divide-gray-50">
               {colleges.map((college) => (
                 <tr
-                  key={college.college_id}
+                  key={college.collegeId}
                   className="hover:bg-slate-50/30 transition-colors group"
                 >
                   <td className="px-8 py-6">
                     <span className="font-bold text-slate-300 italic">
-                      #{college.college_id}
+                      #{college.collegeId}
                     </span>
                   </td>
                   <td className="px-8 py-6">
-                    <span className="font-bold text-slate-700 text-[15px] group-hover:text-[#5D3FD3] transition-colors">
+                    <span className="font-bold text-slate-800 text-base group-hover:text-[#5D3FD3] transition-colors">
                       {college.name}
                     </span>
                   </td>
                   <td className="px-8 py-6">
-                    {/* تعديل لون الوصف إلى الأصفر (نص ذهبي/أصفر غامق لضمان القراءة) */}
-                    <p className="text-gray-400 text-sm leading-relaxed max-w-xs font-medium">
+                    <p className="text-slate-500 text-sm max-w-sm line-clamp-1">
                       {college.description}
                     </p>
                   </td>
                   <td className="px-8 py-6">
-                    {/* تعديل لون Created At إلى الأخضر */}
-                    <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-green-50 text-green-600 font-semibold text-xs border border-green-100/50">
+                    <div className="flex items-center gap-2 text-slate-400 text-xs">
                       <Calendar size={14} />
-                      {college.created_at}
+                      {college.createdAt
+                        ? college.createdAt.split("T")[0]
+                        : "N/A"}
                     </div>
                   </td>
                   <td className="px-8 py-6 text-center">
-                    <div className="flex justify-center gap-2">
-                      <button className="p-2.5 rounded-xl text-sky-500 hover:bg-sky-50 transition-all">
+                    <div className="flex items-center justify-center gap-2">
+                      <button
+                        onClick={() => handleOpenEditModal(college)}
+                        title="Edit College"
+                        className="p-2 text-slate-400 hover:text-[#5D3FD3] hover:bg-slate-50 rounded-xl transition-all"
+                      >
                         <Edit2 size={16} />
                       </button>
-                      <button className="p-2.5 rounded-xl text-pink-500 hover:bg-pink-50 transition-all">
+                      <button
+                        onClick={() => handleDeleteCollege(college.collegeId)}
+                        title="Delete College"
+                        className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
+                      >
                         <Trash2 size={16} />
                       </button>
-                      <button className="p-2.5 rounded-xl text-slate-400 hover:bg-slate-100 transition-all">
-                        <MoreHorizontal size={16} />
+                      <button className="p-2 text-slate-300 hover:text-[#5D3FD3] transition-colors">
+                        <MoreHorizontal size={20} />
                       </button>
                     </div>
                   </td>
@@ -144,10 +247,10 @@ const Colleges = () => {
         </div>
       </div>
 
-      {/* Modal - Add New College */}
+      {/* Modal - Create / Edit College */}
       {showCreateModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-          <div className="bg-white w-full max-w-xl rounded-[32px] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-300">
+          <div className="bg-white w-full max-w-xl rounded-[32px] shadow-2xl overflow-hidden animate-in zoom-in-95">
             <div
               style={{ backgroundColor: primaryPurple }}
               className="p-8 flex justify-between items-center text-white"
@@ -158,56 +261,70 @@ const Colleges = () => {
                 </div>
                 <div>
                   <h2 className="text-xl font-bold tracking-tight">
-                    Add New College
+                    {isEditMode ? "Modify College Details" : "Add New College"}
                   </h2>
-                  <p className="text-indigo-100 text-xs opacity-80">
-                    Define a new academic department
+                  <p className="text-indigo-100 text-xs mt-0.5 opacity-80">
+                    {isEditMode
+                      ? "Update information accurately"
+                      : "Establish a new academic division"}
                   </p>
                 </div>
               </div>
               <button
-                onClick={() => setShowCreateModal(false)}
+                onClick={handleCloseModal}
                 className="hover:bg-white/10 p-2 rounded-full transition-colors"
               >
                 <X size={24} />
               </button>
             </div>
 
-            <form className="p-8 space-y-6">
+            <form onSubmit={handleFormSubmit} className="p-8 space-y-6">
               <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">
-                  Official Name
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">
+                  College Name
                 </label>
                 <input
                   type="text"
-                  placeholder="e.g. Faculty of Information Technology"
-                  className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-[#5D3FD3]/5 focus:bg-white focus:border-[#5D3FD3]/20 outline-none transition-all text-sm font-medium"
+                  required
+                  value={formData.name}
+                  onChange={(e) =>
+                    setFormData({ ...formData, name: e.target.value })
+                  }
+                  placeholder="e.g., College of Information Technology"
+                  className="w-full px-5 py-3.5 bg-slate-50 border border-transparent rounded-2xl focus:ring-2 focus:ring-[#5D3FD3]/10 focus:bg-white focus:border-[#5D3FD3]/20 outline-none transition-all text-sm"
                 />
               </div>
+
               <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">
-                  About the College
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">
+                  Description
                 </label>
                 <textarea
-                  rows="4"
-                  className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-[#5D3FD3]/5 focus:bg-white focus:border-[#5D3FD3]/20 outline-none transition-all text-sm font-medium resize-none"
-                  placeholder="Brief overview of the college goals..."
+                  rows={4}
+                  required
+                  value={formData.description}
+                  onChange={(e) =>
+                    setFormData({ ...formData, description: e.target.value })
+                  }
+                  className="w-full px-5 py-3.5 bg-slate-50 border border-transparent rounded-2xl focus:ring-2 focus:ring-[#5D3FD3]/10 focus:bg-white focus:border-[#5D3FD3]/20 outline-none transition-all text-sm resize-none"
+                  placeholder="Provide a summary of the college's major disciplines and mission..."
                 ></textarea>
               </div>
-              <div className="flex gap-4 pt-4">
+
+              <div className="flex gap-4 mt-4 pt-6 border-t border-slate-50">
                 <button
                   type="button"
-                  onClick={() => setShowCreateModal(false)}
-                  className="flex-1 px-6 py-4 text-slate-400 font-bold rounded-2xl hover:bg-slate-50 transition-all"
+                  onClick={handleCloseModal}
+                  className="flex-1 px-6 py-4 border border-slate-100 text-slate-500 font-bold rounded-2xl hover:bg-slate-50 transition-all text-sm"
                 >
-                  Discard
+                  Cancel
                 </button>
                 <button
                   type="submit"
                   style={{ backgroundColor: primaryPurple }}
-                  className="flex-1 px-6 py-4 text-white font-bold rounded-2xl shadow-xl shadow-indigo-200 hover:translate-y-[-2px] transition-all"
+                  className="flex-1 px-6 py-4 text-white font-bold rounded-2xl shadow-lg shadow-indigo-100 hover:opacity-90 transition-all text-sm"
                 >
-                  Save College
+                  {isEditMode ? "Save Changes" : "Confirm & Save"}
                 </button>
               </div>
             </form>
