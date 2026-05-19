@@ -25,13 +25,13 @@ const getCampaign = async (id: number) => {
 };
 
 // 3. إضافة حملة جديدة (تأخذ payload سواء كان Object عادي أو FormData إذا كان فيه رفع صور)
-const addCampaign = async (payload: any) => {
+const addCampaign = async (payload: ICampaign) => {
   const { data } = await ApiInstance.post(CampaignApiRoutes.GetAll, payload);
   return data;
 };
 
 // 4. تعديل حملة كاملة (PUT صريح بدون حيلة الـ _method القديمة)
-const updateCampaign = async (payload: any, id: number) => {
+const updateCampaign = async (payload: ICampaign, id: number) => {
   const { data } = await ApiInstance.put(
     `${CampaignApiRoutes.GetAll}/${id}`,
     payload,

@@ -15,7 +15,7 @@ export default defineConfig({
     proxy: {
       // الـ Proxy بيلقط أي طلب بيبدأ بـ /api-railway
       "/api-railway": {
-        target: "https://sbc-production-cd86.up.railway.app",
+        target: "https://sbc-production.up.railway.app/",
         changeOrigin: true,
         secure: true,
         // بنحذف كلمة /api-railway قبل ما نبعت الطلب للسيرفر ليروح المسار للباك-إند صح (/api/v1/...)
