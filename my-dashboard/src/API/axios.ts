@@ -3,7 +3,7 @@ import axios, { type InternalAxiosRequestConfig } from "axios";
 
 const API = axios.create({
   // استبدلنا localhost برابط السيرفر الفعلي المأخوذ من Swagger
-  baseURL: "https://sbc-production-cd86.up.railway.app/api/v1",
+  baseURL: "https://sbc-production.up.railway.app/api/v1",
   headers: {
     "Content-Type": "application/json",
   },
