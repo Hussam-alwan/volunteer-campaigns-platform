@@ -4,7 +4,7 @@ import ApiInstance from "../api.instance"; // تأكدي من مسار ملف ا
 import type { IPagination, IResponse } from "../../common.interfaces"; // تأكدي من وجود هذه الـ interfaces العامة لديكِ
 import CampaignApiRoutes from "./Campaign.api-routes"; // ملف الـ Routes البسيط الذي جهزناه
 import type { ICampaign } from "./Campaign.interfaces"; // الـ Interface الجديد الخاص بالحملات
-
+import type { ICampaignInputs } from "./Campaign.interfaces"; // الـ Interface الخاص ببيانات الإدخال لإنشاء أو تعديل حملة
 // 1. جلب كل الحملات مع الـ Pagination والـ Params
 const getAllCampaigns = async (params?: IPagination) => {
   const { data } = await ApiInstance.get<IResponse<ICampaign[]>>(
@@ -25,13 +25,13 @@ const getCampaign = async (id: number) => {
 };
 
 // 3. إضافة حملة جديدة (تأخذ payload سواء كان Object عادي أو FormData إذا كان فيه رفع صور)
-const addCampaign = async (payload: ICampaign) => {
+const addCampaign = async (payload: ICampaignInputs) => {
   const { data } = await ApiInstance.post(CampaignApiRoutes.GetAll, payload);
   return data;
 };
 
 // 4. تعديل حملة كاملة (PUT صريح بدون حيلة الـ _method القديمة)
-const updateCampaign = async (payload: ICampaign, id: number) => {
+const updateCampaign = async (payload: ICampaignInputs, id: number) => {
   const { data } = await ApiInstance.put(
     `${CampaignApiRoutes.GetAll}/${id}`,
     payload,
