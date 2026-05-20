@@ -1,11 +1,10 @@
-import React from "react";
+import React, { useState } from "react";
+import { useParams } from "react-router-dom"; // إذا كان الـ campaignId يأتي من الرابط
 import {
-  CheckCircle2,
   Clock,
   Users,
   TrendingUp,
   MoreHorizontal,
-  Calendar as CalendarIcon,
   Search,
   ArrowUpRight,
   FileSpreadsheet,
@@ -18,92 +17,103 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  Cell,
-  AreaChart,
-  Area,
 } from "recharts";
 
+// استدعاء الـ Hooks التي قمنا ببنائها سوياً لربط البيانات
+// import attendanceQueries from "./Attendancequeries";
+import attendanceQueries from "@/API/Attendance/Attendancequeries";
 const AttendanceProgress = () => {
+  // 1. جلب الـ ID الخاص بالحملة الحالية (يمكنك تعديلها لتأخذ قيمة ثابتة أو من الـ Props إذا لم تكن تستخدم الراوتر)
+  const { campaignId = 1 } = useParams();
+  const [searchTerm, setSearchTerm] = useState("");
+
   const primaryColor = "#5D3FD3";
   const secondaryColor = "#A78BFA";
+
+  // 2. جلب البيانات الحية من السيرفر باستخدام الـ Hooks
+  const { data: attendanceData, isLoading: isAttendanceLoading } =
+    attendanceQueries.useGetAttendance(campaignId);
+
+  const { data: progressData, isLoading: isProgressLoading } =
+    attendanceQueries.useGetProgress(campaignId);
+
+  // استخراج المصفوفات الفعلية من الـ Response القادم من الباك اند (مع وضع مصفوفة فارغة كاحتياط لمنع الـ Crash)
+  const attendanceLogs = attendanceData?.data || [];
+  const progressLogs = progressData?.data || [];
+
+  // 3. حساب الإحصائيات (Stats) ديناميكياً بناءً على البيانات الحية القادمة من السيرفر
+  const totalHours = attendanceLogs.reduce(
+    (acc, curr) => acc + (curr.hoursThatDay || 0),
+    0,
+  );
+  const activeVolunteers = new Set(attendanceLogs.map((log) => log.student))
+    .size;
+  const latestProgress =
+    progressLogs.length > 0 ? `${progressLogs[0].percentage}%` : "0%";
 
   const stats = [
     {
       label: "Total Volunteer Hours",
-      value: "1,240",
+      value: totalHours.toLocaleString(),
       icon: <Clock size={22} />,
-      change: "+12%",
-      // استخدام اللون الأزرق ليرمز للوقت والثبات
+      change: "+12%", // يمكنك تركها ثابتة أو حسابها لاحقاً
       bg: "bg-blue-50",
       textColor: "text-blue-600",
     },
     {
-      label: "Avg. Progress Rate",
-      value: "68%",
+      label: "Latest Progress Rate",
+      value: latestProgress,
       icon: <TrendingUp size={22} />,
       change: "+5%",
-      // استخدام اللون البرتقالي ليرمز للطاقة والتقدم
       bg: "bg-orange-50",
       textColor: "text-orange-600",
     },
     {
       label: "Active Volunteers",
-      value: "84",
+      value: activeVolunteers.toString(),
       icon: <Users size={22} />,
       change: "+18%",
-      // استخدام اللون الأخضر ليرمز للمجتمع والنمو
       bg: "bg-emerald-50",
       textColor: "text-emerald-600",
     },
   ];
 
-  const chartData = [
-    { name: "Beach Clean", hours: 45, progress: 80 },
-    { name: "Education", hours: 32, progress: 65 },
-    { name: "Clothes Coll.", hours: 15, progress: 20 },
-    { name: "Food Bank", hours: 55, progress: 90 },
-    { name: "Tree Plant", hours: 28, progress: 45 },
-  ];
+  // 4. تجهيز بيانات الرسوم البيانية ديناميكياً بناءً على سجل التقدم الفعلي من السيرفر
+  const chartData = progressLogs
+    .map((item, index) => ({
+      name: `Milestone ${index + 1}`,
+      progress: item.percentage,
+    }))
+    .reverse(); // لترتيبها من الأقدم للأحدث
 
-  const attendanceLogs = [
-    {
-      id: 1,
-      student: "Ahmad Mohammed",
-      campaign: "Beach Clean-up 2026",
-      date: "2026-05-10",
-      hours: 5,
-      status: "Present",
-    },
-    {
-      id: 2,
-      student: "Sara Jamil",
-      campaign: "Education Workshop",
-      date: "2026-05-10",
-      hours: 3,
-      status: "Present",
-    },
-    {
-      id: 3,
-      student: "Khalid Ali",
-      campaign: "Beach Clean-up 2026",
-      date: "2026-05-09",
-      hours: 0,
-      status: "Absent",
-    },
-  ];
+  // 5. فلترة جدول الحضور بناءً على البحث باسم الطالب
+  const filteredLogs = attendanceLogs.filter((log) =>
+    log.student?.toString().toLowerCase().includes(searchTerm.toLowerCase()),
+  );
 
   const getStatusStyle = (status) => {
     switch (status) {
+      case "PRESENT":
       case "Present":
         return "bg-emerald-50 text-emerald-600 border-emerald-100";
+      case "ABSENT":
       case "Absent":
         return "bg-rose-50 text-rose-600 border-rose-100";
-      case "Excused":
+      case "LATE":
+      case "Late":
         return "bg-amber-50 text-amber-600 border-amber-100";
       default:
         return "bg-slate-50 text-slate-500 border-slate-100";
     }
   };
+
+  if (isAttendanceLoading || isProgressLoading) {
+    return (
+      <div className="w-full h-96 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#5D3FD3]"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full space-y-8 p-2 animate-in fade-in duration-700">
@@ -123,7 +133,7 @@ const AttendanceProgress = () => {
         </button>
       </div>
 
-      {/* Stats Grid - تم تغيير ألوان الأيقونات هنا */}
+      {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {stats.map((stat, i) => (
           <div
@@ -152,6 +162,45 @@ const AttendanceProgress = () => {
         ))}
       </div>
 
+      {/* Charts Section - تفعيل الـ Recharts الذي قمت باستيراده وإعطائه حاوية ثابتة */}
+      {chartData.length > 0 && (
+        <div className="bg-white p-6 rounded-[30px] border border-gray-100 shadow-sm">
+          <h3 className="text-xl font-bold text-slate-900 mb-6">
+            Campaign Progress Over Time
+          </h3>
+          <div style={{ width: "100%", height: "300px", minWidth: 0 }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={chartData}>
+                <CartesianGrid
+                  strokeDasharray="3 3"
+                  vertical={false}
+                  stroke="#F1F5F9"
+                />
+                <XAxis
+                  dataKey="name"
+                  stroke="#94A3B8"
+                  fontSize={12}
+                  tickLine={false}
+                />
+                <YAxis
+                  stroke="#94A3B8"
+                  fontSize={12}
+                  tickLine={false}
+                  unit="%"
+                />
+                <Tooltip cursor={{ fill: "#F8FAFC" }} />
+                <Bar
+                  dataKey="progress"
+                  fill={primaryColor}
+                  radius={[10, 10, 0, 0]}
+                  maxBarSize={50}
+                />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      )}
+
       {/* Attendance Table */}
       <div className="bg-white rounded-[30px] border border-gray-100 shadow-sm overflow-hidden">
         <div className="p-8 border-b border-gray-50 flex justify-between items-center">
@@ -165,7 +214,9 @@ const AttendanceProgress = () => {
             />
             <input
               type="text"
-              placeholder="Search..."
+              placeholder="Search student..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-9 pr-4 py-2 bg-slate-50 border-none rounded-xl text-sm focus:ring-2 focus:ring-[#5D3FD3]/10 outline-none w-48"
             />
           </div>
@@ -175,42 +226,54 @@ const AttendanceProgress = () => {
           <table className="w-full text-left">
             <thead>
               <tr className="bg-slate-50/50 text-slate-400 text-[11px] uppercase tracking-wider">
-                <th className="px-8 py-4 font-bold">Student</th>
-                <th className="px-8 py-4 font-bold">Campaign</th>
+                <th className="px-8 py-4 font-bold">Student ID / Name</th>
+                <th className="px-8 py-4 font-bold">Campaign ID</th>
                 <th className="px-8 py-4 font-bold text-center">Hours</th>
                 <th className="px-8 py-4 font-bold">Status</th>
                 <th className="px-8 py-4"></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
-              {attendanceLogs.map((log) => (
-                <tr
-                  key={log.id}
-                  className="hover:bg-slate-50/50 transition-colors group"
-                >
-                  <td className="px-8 py-5 font-semibold text-slate-700">
-                    {log.student}
-                  </td>
-                  <td className="px-8 py-5 text-slate-500 text-sm">
-                    {log.campaign}
-                  </td>
-                  <td className="px-8 py-5 text-center font-bold text-[#5D3FD3]">
-                    {log.hours}h
-                  </td>
-                  <td className="px-8 py-5">
-                    <span
-                      className={`px-3 py-1 rounded-lg text-[10px] font-bold border ${getStatusStyle(log.status)}`}
-                    >
-                      {log.status}
-                    </span>
-                  </td>
-                  <td className="px-8 py-5 text-right">
-                    <button className="text-slate-300 hover:text-[#5D3FD3] transition-colors">
-                      <MoreHorizontal size={20} />
-                    </button>
+              {filteredLogs.length === 0 ? (
+                <tr>
+                  <td
+                    colSpan={5}
+                    className="px-8 py-8 text-center text-slate-400 font-medium"
+                  >
+                    No attendance records found.
                   </td>
                 </tr>
-              ))}
+              ) : (
+                filteredLogs.map((log) => (
+                  <tr
+                    key={log.attendanceId}
+                    className="hover:bg-slate-50/50 transition-colors group"
+                  >
+                    <td className="px-8 py-5 font-semibold text-slate-700">
+                      {log.student}{" "}
+                      {/* هنا يظهر الـ ID أو الاسم الراجع من السيرفر */}
+                    </td>
+                    <td className="px-8 py-5 text-slate-500 text-sm">
+                      {log.campaign}
+                    </td>
+                    <td className="px-8 py-5 text-center font-bold text-[#5D3FD3]">
+                      {log.hoursThatDay}h
+                    </td>
+                    <td className="px-8 py-5">
+                      <span
+                        className={`px-3 py-1 rounded-lg text-[10px] font-bold border ${getStatusStyle(log.status)}`}
+                      >
+                        {log.status}
+                      </span>
+                    </td>
+                    <td className="px-8 py-5 text-right">
+                      <button className="text-slate-300 hover:text-[#5D3FD3] transition-colors">
+                        <MoreHorizontal size={20} />
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
