@@ -5,11 +5,15 @@ import com.uni.impact.progress.Progress;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.OffsetDateTime;
 
 
 @Entity
+@EntityListeners(AuditingEntityListener.class)
 @Getter
 @Setter
 public class CampaignPhoto {
@@ -24,6 +28,14 @@ public class CampaignPhoto {
 
     @Column(nullable = false)
     private OffsetDateTime uploadedAt;
+
+    @Column(nullable = false, updatable = false)
+    @CreatedDate
+    private OffsetDateTime createdAt;
+
+    @Column(nullable = false)
+    @LastModifiedDate
+    private OffsetDateTime updatedAt;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "campaign_id", nullable = false)

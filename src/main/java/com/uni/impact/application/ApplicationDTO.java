@@ -30,6 +30,12 @@ public class ApplicationDTO {
 	@NotNull
 	private OffsetDateTime appliedAt;
 
+	@NotNull
+	private OffsetDateTime createdAt;
+
+	@NotNull
+	private OffsetDateTime updatedAt;
+
 	private OffsetDateTime reviewedAt;
 
 	private String removalReason;

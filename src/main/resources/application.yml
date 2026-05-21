@@ -7,7 +7,7 @@ spring:
         jwt:
           issuer-uri: ${keycloak.auth-server-url}/realms/${keycloak.realm}
   datasource:
-    url: ${JDBC_DATABASE_URL:jdbc:postgresql://localhost:5432/impact}
+    url: ${JDBC_DATABASE_URL:jdbc:postgresql://localhost:5433/impact}
     username: ${JDBC_DATABASE_USERNAME:postgres}
     password: ${JDBC_DATABASE_PASSWORD:P4ssword!}
     hikari:
