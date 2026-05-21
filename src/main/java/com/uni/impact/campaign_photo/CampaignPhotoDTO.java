@@ -22,6 +22,12 @@ public class CampaignPhotoDTO {
     private OffsetDateTime uploadedAt;
 
     @NotNull
+    private OffsetDateTime createdAt;
+
+    @NotNull
+    private OffsetDateTime updatedAt;
+
+    @NotNull
     private Long campaign;
 
     private Long progress;

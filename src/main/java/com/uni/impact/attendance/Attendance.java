@@ -5,12 +5,16 @@ import com.uni.impact.user.User;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 
 
 @Entity
+@EntityListeners(AuditingEntityListener.class)
 @Getter
 @Setter
 public class Attendance {
@@ -35,6 +39,14 @@ public class Attendance {
 
     @Column(nullable = false)
     private OffsetDateTime recordedAt;
+
+    @Column(nullable = false, updatable = false)
+    @CreatedDate
+    private OffsetDateTime createdAt;
+
+    @Column(nullable = false)
+    @LastModifiedDate
+    private OffsetDateTime updatedAt;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "student_id", nullable = false)

@@ -23,4 +23,7 @@ public class CollegeDTO {
     @NotNull
     private OffsetDateTime createdAt;
 
+    @NotNull
+    private OffsetDateTime updatedAt;
+
 }

@@ -29,6 +29,12 @@ public class AttendanceDTO {
     private OffsetDateTime recordedAt;
 
     @NotNull
+    private OffsetDateTime createdAt;
+
+    @NotNull
+    private OffsetDateTime updatedAt;
+
+    @NotNull
     private Long student;
 
     @NotNull

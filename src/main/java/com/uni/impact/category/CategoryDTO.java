@@ -21,4 +21,7 @@ public class CategoryDTO {
     @NotNull
     private OffsetDateTime createdAt;
 
+    @NotNull
+    private OffsetDateTime updatedAt;
+
 }

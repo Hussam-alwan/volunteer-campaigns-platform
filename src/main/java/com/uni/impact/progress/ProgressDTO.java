@@ -19,6 +19,9 @@ public class ProgressDTO {
     private String notes;
 
     @NotNull
+    private OffsetDateTime createdAt;
+
+    @NotNull
     private OffsetDateTime updatedAt;
 
     @NotNull
