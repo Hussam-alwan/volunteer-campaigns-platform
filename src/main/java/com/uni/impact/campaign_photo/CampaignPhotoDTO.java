@@ -5,7 +5,7 @@ import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;
 
-import java.time.OffsetDateTime;
+import java.time.LocalDateTime;
 
 
 @Getter
@@ -19,13 +19,13 @@ public class CampaignPhotoDTO {
     private String photoUrl;
 
     @NotNull
-    private OffsetDateTime uploadedAt;
+    private LocalDateTime uploadedAt;
 
     @NotNull
-    private OffsetDateTime createdAt;
+    private LocalDateTime createdAt;
 
     @NotNull
-    private OffsetDateTime updatedAt;
+    private LocalDateTime updatedAt;
 
     @NotNull
     private Long campaign;

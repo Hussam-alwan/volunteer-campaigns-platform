@@ -10,6 +10,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import java.util.List;
+
 @Service
 @RequiredArgsConstructor
 public class AttendanceService {
@@ -26,6 +28,10 @@ public class AttendanceService {
         return attendanceRepository.findById(attendanceId).orElseThrow(NotFoundException::new);
     }
 
+    public Page<Attendance> findByCampaign(final Long campaignId,Pageable pageable) {
+        return attendanceRepository.findByCampaignCampaignId(campaignId, pageable);
+    }
+
     @Transactional
     public Attendance create(final AttendanceDTO attendanceDTO) {
         if (attendanceDTO.getAttendanceId() != null) {
@@ -34,6 +40,13 @@ public class AttendanceService {
         Attendance attendance = attendanceMapper.toEntity(attendanceDTO);
         applyRelations(attendance, attendanceDTO);
         return attendanceRepository.save(attendance);
+    }
+
+    @Transactional
+    public void createBulk(final java.util.List<AttendanceDTO> attendanceList) {
+        for (AttendanceDTO dto : attendanceList) {
+            create(dto);
+        }
     }
 
     @Transactional
@@ -53,6 +66,11 @@ public class AttendanceService {
          } catch (final Exception e) {
               throw new IllegalStateException("attendance could not be deleted");
        }
+    }
+
+    public Double getTotalHoursForUser(final Long userId) {
+        List<Attendance> list = attendanceRepository.findByStudentUserId(userId);
+        return list.stream().mapToDouble(a -> a.getHoursThatDay() == null ? 0d : a.getHoursThatDay()).sum();
     }
 
 

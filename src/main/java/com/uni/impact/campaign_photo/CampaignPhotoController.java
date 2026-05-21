@@ -1,13 +1,13 @@
 package com.uni.impact.campaign_photo;
 
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-
-import java.net.URI;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping(value = "/api/v1/campaign-photos")
@@ -26,23 +26,6 @@ public class CampaignPhotoController {
     public ResponseEntity<CampaignPhotoDTO> findById(@PathVariable Long id) {
         return ResponseEntity.ok(campaignPhotoMapper.toDto(campaignPhotoService.findById(id)));
     }
-
-    @PostMapping
-    public ResponseEntity<CampaignPhotoDTO> create(@Valid @RequestBody CampaignPhotoDTO campaignPhotoDTO) {
-        CampaignPhoto created = campaignPhotoService.create(campaignPhotoDTO);
-        return ResponseEntity.created(URI.create("/api/v1/campaign-photos/" + created.getPhotoId()))
-                .body(campaignPhotoMapper.toDto(created));
-    }
-
-    @PutMapping("/{id}")
-    public ResponseEntity<CampaignPhotoDTO> update(@PathVariable Long id, @RequestBody @Valid final CampaignPhotoDTO campaignPhotoDTO) {
-        campaignPhotoService.update(id, campaignPhotoDTO);
-        return ResponseEntity.ok(campaignPhotoMapper.toDto(campaignPhotoService.findById(id)));
-    }
-
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(@PathVariable final Long id) {
-        campaignPhotoService.delete(id);
-        return ResponseEntity.noContent().build();
-    }
+    // Creation / update / delete are handled via campaign-scoped endpoints in CampaignPhotoCampaignController
+    // (POST /api/v1/campaigns/{id}/photos and GET /api/v1/campaigns/{id}/photos)
 }

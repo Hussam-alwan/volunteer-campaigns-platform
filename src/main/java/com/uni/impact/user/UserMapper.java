@@ -7,7 +7,7 @@ import org.mapstruct.NullValuePropertyMappingStrategy;
 @Mapper(componentModel = "spring", nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
 public interface UserMapper {
 
-    @Mapping(target = "college", ignore = true)
+    @Mapping(target = "college", source = "college.collegeId")
     UserDTO toDto(User entity);
 
     @Mapping(target = "college", ignore = true)

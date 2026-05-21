@@ -1,12 +1,13 @@
 package com.uni.impact.progress;
 
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-import java.net.URI;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping(value = "/api/v1/progresses")
@@ -25,23 +26,6 @@ public class ProgressController {
     public ResponseEntity<ProgressDTO> findById(@PathVariable Long id) {
         return ResponseEntity.ok(progressMapper.toDto(progressService.findById(id)));
     }
-
-    @PostMapping
-    public ResponseEntity<ProgressDTO> create(@Valid @RequestBody ProgressDTO progressDTO) {
-        Progress created = progressService.create(progressDTO);
-        return ResponseEntity.created(URI.create("/api/v1/progresses/" + created.getProgressId()))
-                .body(progressMapper.toDto(created));
-    }
-
-    @PutMapping("/{id}")
-    public ResponseEntity<ProgressDTO> update(@PathVariable Long id, @RequestBody @Valid final ProgressDTO progressDTO) {
-        progressService.update(id, progressDTO);
-        return ResponseEntity.ok(progressMapper.toDto(progressService.findById(id)));
-    }
-
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(@PathVariable final Long id) {
-        progressService.delete(id);
-        return ResponseEntity.noContent().build();
-    }
+    // Creation / update / delete are handled via campaign-scoped endpoints in ProgressCampaignController
+    // (POST /api/v1/campaigns/{id}/progress and GET /api/v1/campaigns/{id}/progress)
 }

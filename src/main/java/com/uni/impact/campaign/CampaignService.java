@@ -1,5 +1,6 @@
 package com.uni.impact.campaign;
 
+import com.uni.impact.campaign.dto.CampaignSearchCriteria;
 import com.uni.impact.category.Category;
 import com.uni.impact.category.CategoryRepository;
 import com.uni.impact.user.User;
@@ -8,6 +9,7 @@ import com.uni.impact.util.NotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,14 +21,50 @@ public class CampaignService {
     private final UserRepository userRepository;
     private final CategoryRepository categoryRepository;
     private final CampaignMapper campaignMapper;
+
     public Page<Campaign> findAll(Pageable pageable) {
         return campaignRepository.findAll(pageable);
+    }
+
+
+    public Page<Campaign> searchCampaigns(CampaignSearchCriteria criteria, Pageable pageable) {
+        Specification<Campaign> spec = CampaignSpecification.withSearchCriteria(criteria);
+        return campaignRepository.findAll(spec, pageable);
     }
 
     public Campaign findById(final Long campaignId) {
         return campaignRepository.findById(campaignId).orElseThrow(NotFoundException::new);
     }
 
+    @Transactional
+    public Campaign patchDetails(final Long campaignId, final CampaignDTO campaignDTO) {
+        Campaign campaign = campaignRepository.findById(campaignId).orElseThrow(NotFoundException::new);
+        // Use mapper which ignores nulls to update only provided fields; do NOT apply relations for details-only
+        campaignMapper.updateEntity(campaign, campaignDTO);
+        return campaignRepository.save(campaign);
+    }
+
+    @Transactional
+    public Campaign updateStatus(final Long campaignId, final CampaignStatus newStatus) {
+        Campaign campaign = campaignRepository.findById(campaignId).orElseThrow(NotFoundException::new);
+        CampaignStatus current = campaign.getStatus();
+        if (!isValidTransition(current, newStatus)) {
+            throw new IllegalArgumentException("Invalid status transition from " + current + " to " + newStatus);
+        }
+        campaign.setStatus(newStatus);
+        return campaignRepository.save(campaign);
+    }
+
+    private boolean isValidTransition(final CampaignStatus from, final CampaignStatus to) {
+        if (from == to) return true;
+        return switch (from) {
+            case PENDING ->
+                    to == CampaignStatus.APPROVED || to == CampaignStatus.REJECTED || to == CampaignStatus.CANCELED;
+            case APPROVED -> to == CampaignStatus.ONGOING || to == CampaignStatus.CANCELED;
+            case ONGOING -> to == CampaignStatus.COMPLETED || to == CampaignStatus.CANCELED;
+            default -> false; // REJECTED, COMPLETED, CANCELED are terminal
+        };
+    }
 
     @Transactional
     public Campaign create(final CampaignDTO campaignDTO) {

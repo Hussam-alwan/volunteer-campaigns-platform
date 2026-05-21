@@ -29,6 +29,10 @@ public class ProgressService {
         return progressRepository.findById(progressId).orElseThrow(NotFoundException::new);
     }
 
+    public Page<Progress> findByCampaign(final Long campaignId, Pageable pageable) {
+        return progressRepository.findByCampaignCampaignId(campaignId, pageable);
+    }
+
     @Transactional
     public Progress create(final ProgressDTO progressDTO) {
         if (progressDTO.getProgressId() != null) {

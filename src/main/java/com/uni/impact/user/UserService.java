@@ -25,6 +25,10 @@ public class UserService {
         return userRepository.findById(userId).orElseThrow(NotFoundException::new);
     }
 
+    public User findByEmail(final String email) {
+        return userRepository.findByEmailIgnoreCase(email).orElseThrow(NotFoundException::new);
+    }
+
     @Transactional
     public User create(final UserDTO userDTO) {
         if (userDTO.getUserId() != null) {
@@ -47,10 +51,12 @@ public class UserService {
         return userRepository.save(user);
     }
 
+    @Transactional
     public void delete(final Long userId) {
         final User user = userRepository.findById(userId).orElseThrow(NotFoundException::new);
         userRepository.delete(user);
     }
+
     private void applyRelations(final User user, final UserDTO userDTO) {
         final College college = userDTO.getCollege() == null ? null : collegeRepository.findById(userDTO.getCollege())
                 .orElseThrow(() -> new NotFoundException("college not found"));
@@ -60,4 +66,13 @@ public class UserService {
         return userRepository.existsByEmailIgnoreCase(email);
     }
 
+    @Transactional
+    public User ban(Long id) {
+        User user = userRepository.findById(id).orElseThrow(NotFoundException::new);
+        if (user.getIsBanned()) {
+            return user;
+        }
+        user.setIsBanned(true);
+        return userRepository.save(user);
+    }
 }

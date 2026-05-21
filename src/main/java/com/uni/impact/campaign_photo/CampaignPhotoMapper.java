@@ -7,8 +7,8 @@ import org.mapstruct.NullValuePropertyMappingStrategy;
 @Mapper(componentModel = "spring", nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
 public interface CampaignPhotoMapper {
 
-    @Mapping(target = "campaign", ignore = true)
-    @Mapping(target = "progress", ignore = true)
+    @Mapping(target = "campaign", source = "campaign.campaignId")
+    @Mapping(target = "progress", source = "progress.progressId")
     CampaignPhotoDTO toDto(CampaignPhoto entity);
 
     @Mapping(target = "campaign", ignore = true)

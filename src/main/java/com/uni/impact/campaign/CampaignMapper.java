@@ -6,10 +6,10 @@ import org.mapstruct.NullValuePropertyMappingStrategy;
 @Mapper(componentModel = "spring", nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
 public interface CampaignMapper {
 
-    @Mapping(target = "proposedBy", ignore = true)
-    @Mapping(target = "approvedBy", ignore = true)
-    @Mapping(target = "managedBy", ignore = true)
-    @Mapping(target = "category", ignore = true)
+    @Mapping(target = "proposedBy", source = "proposedBy.userId")
+    @Mapping(target = "approvedBy", source = "approvedBy.userId")
+    @Mapping(target = "managedBy", source = "managedBy.userId")
+    @Mapping(target = "category", source = "category.categoryId")
     CampaignDTO toDto(Campaign entity);
 
     @Mapping(target = "proposedBy", ignore = true)

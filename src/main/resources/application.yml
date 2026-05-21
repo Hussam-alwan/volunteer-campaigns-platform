@@ -61,3 +61,7 @@ jwt:
       resource-id: impact-realm
       principle-attribute: preferred_username
 
+app:
+  upload:
+    dir: uploads/photos
+

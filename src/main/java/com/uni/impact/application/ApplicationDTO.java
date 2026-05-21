@@ -6,8 +6,7 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;
-
-import java.time.OffsetDateTime;
+import java.time.LocalDateTime;
 
 
 @Getter
@@ -28,19 +27,21 @@ public class ApplicationDTO {
 	private String adminNotes;
 
 	@NotNull
-	private OffsetDateTime appliedAt;
+	private LocalDateTime appliedAt;
+
+	private LocalDateTime withdrawnAt;
 
 	@NotNull
-	private OffsetDateTime createdAt;
+	private LocalDateTime createdAt;
 
 	@NotNull
-	private OffsetDateTime updatedAt;
+	private LocalDateTime updatedAt;
 
-	private OffsetDateTime reviewedAt;
+	private LocalDateTime reviewedAt;
 
 	private String removalReason;
 
-	private OffsetDateTime removedAt;
+	private LocalDateTime removedAt;
 
 	@NotNull
 	private Long student;

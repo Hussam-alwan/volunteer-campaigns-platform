@@ -6,7 +6,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.time.LocalDate;
-import java.time.OffsetDateTime;
+import java.time.LocalDateTime;
 
 @Getter
 @Setter
@@ -34,13 +34,13 @@ public class CampaignDTO {
     @NotNull
     private CampaignStatus status;
 
-    private OffsetDateTime publishedAt;
+    private LocalDateTime publishedAt;
 
     @NotNull
-    private OffsetDateTime createdAt;
+    private LocalDateTime createdAt;
 
     @NotNull
-    private OffsetDateTime updatedAt;
+    private LocalDateTime updatedAt;
 
     @NotNull
     private Long proposedBy;
