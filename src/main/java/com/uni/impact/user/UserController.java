@@ -6,8 +6,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
 import java.net.URI;
@@ -27,8 +25,8 @@ public class UserController {
     }
 
     @GetMapping("/me")
-    public ResponseEntity<UserDTO> me(@AuthenticationPrincipal Jwt jwt) {
-        return ResponseEntity.ok(userMapper.toDto(userService.findByEmail(jwt.getClaimAsString("email"))));
+    public ResponseEntity<UserDTO> me(@RequestParam String email) {
+        return ResponseEntity.ok(userMapper.toDto(userService.findByEmail(email)));
     }
 
     @GetMapping("/{id}")

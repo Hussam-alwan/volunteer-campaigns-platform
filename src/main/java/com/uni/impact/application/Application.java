@@ -21,7 +21,8 @@ public class Application {
 
     @Id
     @Column(updatable = false)
-    @GeneratedValue(strategy = GenerationType.SEQUENCE)
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "application_id_gen")
+    @SequenceGenerator(name = "application_id_gen", sequenceName = "application_id_seq", initialValue = 101, allocationSize = 1)
     private Long id;
 
     @Column(length = 200)

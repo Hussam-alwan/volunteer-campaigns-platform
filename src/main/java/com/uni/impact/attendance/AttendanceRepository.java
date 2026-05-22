@@ -11,5 +11,6 @@ import java.util.List;
 public interface AttendanceRepository extends JpaRepository<Attendance, Long> {
 	Page<Attendance> findByCampaignCampaignId(Long campaignId, Pageable pageable);
 	List<Attendance> findByStudentUserId(Long userId);
-	Page<Attendance> findByStudentUserId(Long userId, Pageable pageable);
+
+	long countByStatus(AttendanceStatus status);
 }

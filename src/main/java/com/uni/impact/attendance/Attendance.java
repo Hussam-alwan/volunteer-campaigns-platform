@@ -21,7 +21,8 @@ public class Attendance {
 
     @Id
     @Column(nullable = false, updatable = false)
-    @GeneratedValue(strategy = GenerationType.SEQUENCE)
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "attendance_id_gen")
+    @SequenceGenerator(name = "attendance_id_gen", sequenceName = "attendance_id_seq", initialValue = 101, allocationSize = 1)
     private Long attendanceId;
 
     @Column(nullable = false)

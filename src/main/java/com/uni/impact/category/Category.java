@@ -21,7 +21,8 @@ public class Category {
 
     @Id
     @Column(updatable = false)
-    @GeneratedValue(strategy = GenerationType.SEQUENCE)
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "category_id_gen")
+    @SequenceGenerator(name = "category_id_gen", sequenceName = "category_id_seq", initialValue = 101, allocationSize = 1)
     private Long categoryId;
 
     @Column(nullable = false, length = 100)

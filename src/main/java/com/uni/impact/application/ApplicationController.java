@@ -7,8 +7,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import java.net.URI;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.oauth2.jwt.Jwt;
 import com.uni.impact.user.UserRepository;
 import com.uni.impact.application.dto.VolunteerSearchCriteria;
 
@@ -52,8 +50,7 @@ public class ApplicationController {
     @GetMapping("/me")
     public ResponseEntity<Page<ApplicationDTO>> myApplications(
             Pageable pageable,
-            @AuthenticationPrincipal Jwt jwt) {
-        String email = jwt == null ? null : jwt.getClaimAsString("email");
+            @RequestParam String email) {
         return ResponseEntity.ok(applicationService.findByStudentEmail(email, pageable).map(applicationMapper::toDto));
     }
 
@@ -64,20 +61,19 @@ public class ApplicationController {
     }
 
     @PatchMapping("/{id}/withdraw")
-    public ResponseEntity<ApplicationDTO> withdraw(@PathVariable Long id, @AuthenticationPrincipal Jwt jwt) {
-        String email = jwt == null ? null : jwt.getClaimAsString("email");
+    public ResponseEntity<ApplicationDTO> withdraw(@PathVariable Long id, @RequestParam String email) {
         final com.uni.impact.user.User user = userRepository.findByEmailIgnoreCase(email).orElseThrow(() -> new RuntimeException("user not found"));
         applicationService.withdraw(id, user.getUserId());
         return ResponseEntity.ok(applicationMapper.toDto(applicationService.findById(id)));
     }
 
     @PatchMapping("/{id}/remove")
-    public ResponseEntity<ApplicationDTO> remove(@PathVariable Long id, @RequestBody final ApplicationDTO applicationDTO,
-                                                 @AuthenticationPrincipal Jwt jwt) {
-        // removal typically done by admin; passing remover if available
+    public ResponseEntity<ApplicationDTO> remove(@PathVariable Long id,
+                                                 @RequestBody final ApplicationDTO applicationDTO,
+                                                 @RequestParam(required = false) String email) {
         Long removerId = null;
-        if (jwt != null) {
-            final com.uni.impact.user.User u = userRepository.findByEmailIgnoreCase(jwt.getClaimAsString("email")).orElse(null);
+        if (email != null) {
+            final com.uni.impact.user.User u = userRepository.findByEmailIgnoreCase(email).orElse(null);
             removerId = u == null ? null : u.getUserId();
         }
         applicationService.remove(id, removerId, applicationDTO.getRemovalReason());

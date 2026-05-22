@@ -27,7 +27,8 @@ public class Campaign {
 
     @Id
     @Column(updatable = false)
-    @GeneratedValue(strategy = GenerationType.SEQUENCE)
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "campaign_id_gen")
+    @SequenceGenerator(name = "campaign_id_gen", sequenceName = "campaign_id_seq", initialValue = 101, allocationSize = 1)
     private Long campaignId;
 
     @Column(nullable = false)

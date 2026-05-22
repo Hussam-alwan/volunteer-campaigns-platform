@@ -21,7 +21,8 @@ public class College {
 
     @Id
     @Column(updatable = false)
-    @GeneratedValue(strategy = GenerationType.SEQUENCE)
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "college_id_gen")
+    @SequenceGenerator(name = "college_id_gen", sequenceName = "college_id_seq", initialValue = 101, allocationSize = 1)
     private Long collegeId;
 
     @Column(nullable = false)

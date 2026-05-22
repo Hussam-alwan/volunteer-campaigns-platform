@@ -22,7 +22,8 @@ public class Progress {
 
     @Id
     @Column(nullable = false, updatable = false)
-    @GeneratedValue(strategy = GenerationType.SEQUENCE)
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "progress_id_gen")
+    @SequenceGenerator(name = "progress_id_gen", sequenceName = "progress_id_seq", initialValue = 101, allocationSize = 1)
     private Long progressId;
 
     @Column(nullable = false)

@@ -20,7 +20,8 @@ public class CampaignPhoto {
 
     @Id
     @Column(updatable = false)
-    @GeneratedValue(strategy = GenerationType.SEQUENCE)
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "campaign_photo_id_gen")
+    @SequenceGenerator(name = "campaign_photo_id_gen", sequenceName = "campaign_photo_id_seq", initialValue = 101, allocationSize = 1)
     private Long photoId;
 
     @Column(nullable = false, length = 500)
