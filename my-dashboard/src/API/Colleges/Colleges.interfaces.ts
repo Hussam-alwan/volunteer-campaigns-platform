@@ -4,30 +4,31 @@ export interface ICollege {
   collegeId: number;
   name: string;
   description: string;
-  createdAt: string; // أو Date حسب رغبتك بالمعالجة
+  createdAt: string;
   updatedAt: string;
 }
 
-// الواجهة الخاصة ببيانات الإنشاء (بدون ID وبدون تواريخ لتجنب خطأ 500)
+// واجهة الإنشاء - خالية تماماً من الـ ID والتواريخ منعا لـ ILLEGAL_ARGUMENT
 export interface ICreateCollegeInput {
   name: string;
   description: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
-// الواجهة الخاصة بالتعديل (بحال كان التعديل مطابقاً للإنشاء)
+// واجهة التعديل - خالية أيضاً لمنع تضارب الـ IDs (Altered identifier)
 export interface IUpdateCollegeInput {
   name: string;
   description: string;
 }
 
-// واجهة الـ Query Params لإرسالها بالـ Request
+// واجهة الـ Query Params للإرسال بالـ Request
 export interface IPageableParams {
   page: number;
   size: number;
-  sort?: string | string[]; // جعلناها مرنة لتوافق صيغة (name,asc)
+  sort?: string; // يفضل إرسالها كـ string نظيف مثل "name,asc"
 }
 
-// واجهة الـ pageable الداخلية التي يعيدها الباك-إيند في الـ Response
 export interface SpringPageable {
   pageNumber: number;
   pageSize: number;
@@ -41,7 +42,6 @@ export interface SpringPageable {
   unpaged: boolean;
 }
 
-// الرد الكامل والنهائي المتوقع من الـ GET /api/v1/colleges بناءً على Spring Data
 export interface ICollegesPaginatedResponse {
   content: ICollege[];
   pageable: SpringPageable;
@@ -58,4 +58,17 @@ export interface ICollegesPaginatedResponse {
   first: boolean;
   numberOfElements: number;
   empty: boolean;
+}
+export interface ICreateCollegeInput {
+  name: string;
+  description: string;
+  createdAt: string; // أضفناهم هون لأن الباك-إيند عم يطلبهم إجباري
+  updatedAt: string;
+}
+
+export interface IUpdateCollegeInput {
+  name: string;
+  description: string;
+  createdAt: string;
+  updatedAt: string;
 }
