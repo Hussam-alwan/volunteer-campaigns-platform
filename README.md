@@ -6,7 +6,7 @@ Backend service for a university volunteer-campaigns platform. Students apply to
 
 - **Java 21** / **Spring Boot 4**
 - **PostgreSQL 16** (via Docker)
-- **Keycloak** (JWT OAuth2 resource server)
+- **Spring Security** (session-based login/logout, BCrypt passwords)
 - **Spring Data JPA** + Hibernate
 - **MapStruct** for DTO mapping, **Lombok** for boilerplate
 - **springdoc-openapi** (Swagger UI)
@@ -16,7 +16,6 @@ Backend service for a university volunteer-campaigns platform. Students apply to
 
 - JDK 21
 - Docker + Docker Compose
-- A running Keycloak (for protected endpoints) — see [Keycloak setup](#keycloak-setup)
 
 ## Running locally
 
@@ -26,7 +25,7 @@ Backend service for a university volunteer-campaigns platform. Students apply to
 docker compose up -d postgresql
 ```
 
-This starts Postgres on `localhost:5433` with database `impact` and user `postgres` / `P4ssword!`. It also runs `postgres/init/00-init-keycloak.sql` to provision a `keycloak` database for Keycloak's own use.
+Postgres listens on `localhost:5433`, database `impact`, user `postgres` / `P4ssword!`.
 
 ### 2. Start the app
 
@@ -34,39 +33,63 @@ This starts Postgres on `localhost:5433` with database `impact` and user `postgr
 ./mvnw spring-boot:run
 ```
 
-The API will be available at `http://localhost:8080`.
+The API will be available at `http://localhost:8080`. Swagger UI at `http://localhost:8080/swagger-ui.html`.
 
-### 3. Swagger UI
+## Authentication
 
-`http://localhost:8080/swagger-ui.html` (the OpenAPI JSON is at `/v3/api-docs`).
+Session-based: after a successful `POST /api/v1/auth/login`, the server sets a `JSESSIONID` cookie. The browser/SPA must send that cookie on subsequent requests (use `fetch(..., { credentials: 'include' })`).
+
+### Endpoints
+
+| Method | Path                       | Auth     | Body                                        | Description                |
+| ------ | -------------------------- | -------- | ------------------------------------------- | -------------------------- |
+| POST   | `/api/v1/auth/register`    | Public   | `UserRequestDTO` (with `password`)          | Create a new user account  |
+| POST   | `/api/v1/auth/login`       | Public   | `{ "email": "...", "password": "..." }`     | Log in, sets session cookie |
+| POST   | `/api/v1/auth/logout`      | Required | —                                           | Invalidate the session     |
+| GET    | `/api/v1/auth/me`          | Required | —                                           | Current authenticated user |
+
+All other `/api/v1/...` endpoints require an authenticated session. Anonymous requests get `401 Unauthorized`.
+
+### Frontend example (fetch)
+
+```js
+// Log in
+await fetch('http://localhost:8080/api/v1/auth/login', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  credentials: 'include',
+  body: JSON.stringify({ email: 'student@example.com', password: 'secret123' }),
+});
+
+// Authenticated call
+const me = await fetch('http://localhost:8080/api/v1/auth/me', {
+  credentials: 'include',
+}).then(r => r.json());
+
+// Log out
+await fetch('http://localhost:8080/api/v1/auth/logout', {
+  method: 'POST',
+  credentials: 'include',
+});
+```
+
+CORS already allows `http://localhost:*` and `http://127.0.0.1:*` with credentials.
 
 ## Configuration
 
-All settings live in `src/main/resources/application.yml` and can be overridden via environment variables:
-
-| Variable                      | Default                                             | Purpose                       |
-| ----------------------------- | --------------------------------------------------- | ----------------------------- |
-| `SPRING_DATASOURCE_URL`       | `jdbc:postgresql://localhost:5433/impact`           | JDBC URL                      |
-| `SPRING_DATASOURCE_USERNAME`  | `postgres`                                          | DB user                       |
-| `SPRING_DATASOURCE_PASSWORD`  | `P4ssword!`                                         | DB password                   |
-| `KEYCLOAK_ISSUER_URI`         | `http://localhost:8180/realms/impact`               | JWT issuer URI                |
-| `KEYCLOAK_CLIENT_ID`          | `impact-app`                                        | Keycloak client / resource id |
-| `KEYCLOAK_PRINCIPLE_ATTRIBUTE`| `preferred_username`                                | JWT claim used as principal   |
-| `APP_UPLOAD_DIR`              | `uploads/photos`                                    | Directory for uploaded photos |
-
-## Keycloak setup
-
-A realm export is provided at `keycloak/imports/realm-export.json`. Run Keycloak alongside Postgres (port `8180` by default) and import the realm. The app expects a resource (client) whose name matches `KEYCLOAK_CLIENT_ID` and a role claim under `resource_access.<client>.roles`.
+| Variable                      | Default                                             | Purpose         |
+| ----------------------------- | --------------------------------------------------- | --------------- |
+| `SPRING_DATASOURCE_URL`       | `jdbc:postgresql://localhost:5433/impact`           | JDBC URL        |
+| `SPRING_DATASOURCE_USERNAME`  | `postgres`                                          | DB user         |
+| `SPRING_DATASOURCE_PASSWORD`  | `P4ssword!`                                         | DB password     |
+| `APP_UPLOAD_DIR`              | `uploads/photos`                                    | Photo upload dir |
 
 ## Docker
-
-A multi-stage `Dockerfile` is included. To build the app image:
 
 ```bash
 docker build -t impact-api .
 docker run --rm -p 8080:8080 \
   -e SPRING_DATASOURCE_URL=jdbc:postgresql://host.docker.internal:5433/impact \
-  -e KEYCLOAK_ISSUER_URI=http://host.docker.internal:8180/realms/impact \
   impact-api
 ```
 
@@ -77,6 +100,7 @@ src/main/java/com/uni/impact/
 ├── ImpactApplication.java         # Spring Boot entry point
 ├── application/                    # Volunteer applications to campaigns
 ├── attendance/                     # Per-day attendance records
+├── auth/                           # Login / logout / register / me
 ├── campaign/                       # Campaigns (proposal → approval → ongoing)
 ├── campaign_photo/                 # Uploaded campaign photos
 ├── category/                       # Campaign categories
@@ -84,8 +108,8 @@ src/main/java/com/uni/impact/
 ├── dashboard/                      # Aggregated stats endpoint
 ├── progress/                       # Campaign progress updates
 ├── user/                           # Students / staff
-├── security/                       # Spring Security + Keycloak JWT converter
-├── config/                         # JPA auditing, CORS, Swagger, datasource
+├── security/                       # Spring Security config + UserDetailsService
+├── config/                         # JPA auditing, Swagger, datasource, web
 └── util/                           # Shared types (NotFoundException, ...)
 ```
 

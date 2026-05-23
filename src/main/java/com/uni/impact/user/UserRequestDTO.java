@@ -28,6 +28,9 @@ public class UserRequestDTO {
     @Email
     private String email;
 
+    @Size(min = 8, max = 100)
+    private String password;
+
     @Size(max = 10, min = 10)
     private String phone;
 

@@ -24,18 +24,6 @@ spring:
             non_contextual_creation: true
         id:
           new_generator_mappings: true
-  security:
-    oauth2:
-      resourceserver:
-        jwt:
-          issuer-uri: ${KEYCLOAK_ISSUER_URI:http://localhost:8180/realms/impact}
-
-jwt:
-  auth:
-    converter:
-      resource-id: ${KEYCLOAK_CLIENT_ID:impact-app}
-      principle-attribute: ${KEYCLOAK_PRINCIPLE_ATTRIBUTE:preferred_username}
-
 error:
   handling:
     http-status-in-json-response: true
