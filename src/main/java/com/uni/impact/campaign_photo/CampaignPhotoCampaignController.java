@@ -24,7 +24,7 @@ public class CampaignPhotoCampaignController {
 
     @PostMapping("/{id}/photos")
     @Operation(summary = "Create photo from URL", description = "Create a campaign photo using a photo URL")
-    public ResponseEntity<CampaignPhotoDTO> createPhoto(@PathVariable Long id, @RequestBody CampaignPhotoDTO photoDTO) {
+    public ResponseEntity<CampaignPhotoResponseDTO> createPhoto(@PathVariable Long id, @RequestBody CampaignPhotoRequestDTO photoDTO) {
         photoDTO.setCampaign(id);
         CampaignPhoto created = campaignPhotoService.create(photoDTO);
         return ResponseEntity.created(URI.create("/api/v1/campaign-photos/" + created.getPhotoId()))
@@ -33,7 +33,7 @@ public class CampaignPhotoCampaignController {
 
     @PostMapping(value = "/{id}/photos/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Operation(summary = "Upload photo file", description = "Upload a photo file for a campaign")
-    public ResponseEntity<CampaignPhotoDTO> uploadPhoto(
+    public ResponseEntity<CampaignPhotoResponseDTO> uploadPhoto(
             @PathVariable Long id,
             @RequestPart(value = "file") MultipartFile file) {
         CampaignPhoto created = campaignPhotoService.createFromFile(id, file);
@@ -43,19 +43,18 @@ public class CampaignPhotoCampaignController {
 
     @PostMapping(value = "/{id}/photos/uploads", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Operation(summary = "Upload multiple photo files", description = "Upload multiple photo files for a campaign")
-    public ResponseEntity<List<CampaignPhotoDTO>> uploadPhotos(
+    public ResponseEntity<List<CampaignPhotoResponseDTO>> uploadPhotos(
             @PathVariable Long id,
             @RequestPart(value = "files") MultipartFile[] files) {
         List<CampaignPhoto> created = campaignPhotoService.createFromFiles(id, files);
-        List<CampaignPhotoDTO> dtos = created.stream().map(campaignPhotoMapper::toDto).toList();
+        List<CampaignPhotoResponseDTO> dtos = created.stream().map(campaignPhotoMapper::toDto).toList();
         return ResponseEntity.created(URI.create("/api/v1/campaign-photos"))
                 .body(dtos);
     }
 
     @GetMapping("/{id}/photos")
     @Operation(summary = "Get campaign photos", description = "Get all photos for a campaign")
-    public ResponseEntity<Page<CampaignPhotoDTO>> getPhotos(@PathVariable Long id, Pageable pageable) {
+    public ResponseEntity<Page<CampaignPhotoResponseDTO>> getPhotos(@PathVariable Long id, Pageable pageable) {
         return ResponseEntity.ok(campaignPhotoService.findByCampaign(id, pageable).map(campaignPhotoMapper::toDto));
     }
 }
-

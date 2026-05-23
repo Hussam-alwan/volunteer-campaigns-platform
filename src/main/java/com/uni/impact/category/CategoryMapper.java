@@ -7,11 +7,17 @@ import org.mapstruct.NullValuePropertyMappingStrategy;
 @Mapper(componentModel = "spring", nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
 public interface CategoryMapper {
 
-    CategoryDTO toDto(Category entity);
+    CategoryResponseDTO toDto(Category entity);
 
+    @Mapping(target = "categoryId", ignore = true)
+    @Mapping(target = "createdAt", ignore = true)
+    @Mapping(target = "updatedAt", ignore = true)
     @Mapping(target = "categoryCampaigns", ignore = true)
-    Category toEntity(CategoryDTO dto);
+    Category toEntity(CategoryRequestDTO dto);
 
+    @Mapping(target = "categoryId", ignore = true)
+    @Mapping(target = "createdAt", ignore = true)
+    @Mapping(target = "updatedAt", ignore = true)
     @Mapping(target = "categoryCampaigns", ignore = true)
-    void updateEntity(@MappingTarget Category entity, CategoryDTO dto);
+    void updateEntity(@MappingTarget Category entity, CategoryRequestDTO dto);
 }

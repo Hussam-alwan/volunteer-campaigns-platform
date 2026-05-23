@@ -45,10 +45,7 @@ public class CampaignPhotoService {
     }
 
     @Transactional
-    public CampaignPhoto create(final CampaignPhotoDTO campaignPhotoDTO) {
-        if (campaignPhotoDTO.getPhotoId() != null) {
-            throw new IllegalArgumentException("A new campaign photo cannot already have an ID");
-        }
+    public CampaignPhoto create(final CampaignPhotoRequestDTO campaignPhotoDTO) {
         CampaignPhoto campaignPhoto = campaignPhotoMapper.toEntity(campaignPhotoDTO);
         applyRelations(campaignPhoto, campaignPhotoDTO);
         return campaignPhotoRepository.save(campaignPhoto);
@@ -56,16 +53,15 @@ public class CampaignPhotoService {
 
     @Transactional
     public CampaignPhoto createFromFile(final Long campaignId, final MultipartFile file) {
-        if (file.isEmpty()) {
+        if (file == null || file.isEmpty()) {
             throw new IllegalArgumentException("File cannot be empty");
         }
+        validateImage(file);
 
-        // Validate campaign exists
         Campaign campaign = campaignRepository.findById(campaignId)
                 .orElseThrow(() -> new NotFoundException("Campaign not found"));
 
-        // Generate unique filename
-        String filename = UUID.randomUUID() + "_" + file.getOriginalFilename();
+        String filename = UUID.randomUUID() + buildExtension(file);
 
         try {
             return saveFileAndCreatePhoto(campaign, filename, file.getBytes());
@@ -80,7 +76,6 @@ public class CampaignPhotoService {
             throw new IllegalArgumentException("No files provided");
         }
 
-        // Validate campaign exists
         Campaign campaign = campaignRepository.findById(campaignId)
                 .orElseThrow(() -> new NotFoundException("Campaign not found"));
 
@@ -88,8 +83,9 @@ public class CampaignPhotoService {
 
         for (MultipartFile file : files) {
             if (file == null || file.isEmpty()) continue;
+            validateImage(file);
 
-            String filename = java.util.UUID.randomUUID() + "_" + file.getOriginalFilename();
+            String filename = UUID.randomUUID() + buildExtension(file);
 
             try {
                 saved.add(saveFileAndCreatePhoto(campaign, filename, file.getBytes()));
@@ -101,8 +97,24 @@ public class CampaignPhotoService {
         return saved;
     }
 
+    private void validateImage(final MultipartFile file) {
+        String contentType = file.getContentType();
+        if (contentType == null || !contentType.toLowerCase().startsWith("image/")) {
+            throw new IllegalArgumentException("Only image files are allowed");
+        }
+    }
+
+    private String buildExtension(final MultipartFile file) {
+        String original = file.getOriginalFilename();
+        if (original == null) return "";
+        int dot = original.lastIndexOf('.');
+        if (dot < 0 || dot == original.length() - 1) return "";
+        String ext = original.substring(dot + 1).toLowerCase().replaceAll("[^a-z0-9]", "");
+        return ext.isEmpty() ? "" : "." + ext;
+    }
+
     @Transactional
-    public CampaignPhoto update(final Long photoId, final CampaignPhotoDTO campaignPhotoDTO) {
+    public CampaignPhoto update(final Long photoId, final CampaignPhotoRequestDTO campaignPhotoDTO) {
         CampaignPhoto campaignPhoto = campaignPhotoRepository.findById(photoId)
                 .orElseThrow(NotFoundException::new);
         campaignPhotoMapper.updateEntity(campaignPhoto, campaignPhotoDTO);
@@ -110,14 +122,41 @@ public class CampaignPhotoService {
         return campaignPhotoRepository.save(campaignPhoto);
     }
 
+    @Transactional
     public void delete(final Long photoId) {
         final CampaignPhoto campaignPhoto = campaignPhotoRepository.findById(photoId)
                 .orElseThrow(NotFoundException::new);
-       try {
-              campaignPhotoRepository.delete(campaignPhoto);
-         } catch (final Exception e) {
-              throw new IllegalStateException("Unable to delete campaign photo", e);
-       }
+        try {
+            deleteFileOnDisk(campaignPhoto.getPhotoUrl());
+            campaignPhotoRepository.delete(campaignPhoto);
+        } catch (final Exception e) {
+            throw new IllegalStateException("Unable to delete campaign photo", e);
+        }
+    }
+
+    @Transactional
+    public void deleteByCampaign(final Long campaignId) {
+        java.util.List<CampaignPhoto> photos = campaignPhotoRepository.findAllByCampaignCampaignId(campaignId);
+        for (CampaignPhoto photo : photos) {
+            deleteFileOnDisk(photo.getPhotoUrl());
+        }
+        campaignPhotoRepository.deleteAll(photos);
+    }
+
+    private void deleteFileOnDisk(final String photoUrl) {
+        if (photoUrl == null) return;
+        // photoUrl is stored as "/uploads/photos/<filename>" — keep only the filename
+        String filename = photoUrl.substring(photoUrl.lastIndexOf('/') + 1);
+        if (filename.isEmpty()) return;
+        try {
+            Path filePath = Paths.get(uploadDir).resolve(filename).normalize();
+            // make sure we never escape the upload dir
+            Path base = Paths.get(uploadDir).toAbsolutePath().normalize();
+            if (!filePath.toAbsolutePath().startsWith(base)) return;
+            Files.deleteIfExists(filePath);
+        } catch (IOException ignored) {
+            // best-effort: row delete still proceeds
+        }
     }
 
 
@@ -136,7 +175,7 @@ public class CampaignPhotoService {
         return campaignPhotoRepository.save(campaignPhoto);
     }
 
-    private void applyRelations(final CampaignPhoto campaignPhoto, final CampaignPhotoDTO campaignPhotoDTO) {
+    private void applyRelations(final CampaignPhoto campaignPhoto, final CampaignPhotoRequestDTO campaignPhotoDTO) {
         final Campaign campaign = campaignPhotoDTO.getCampaign() == null ? null : campaignRepository.findById(campaignPhotoDTO.getCampaign())
                 .orElseThrow(() -> new NotFoundException("campaign not found"));
         campaignPhoto.setCampaign(campaign);

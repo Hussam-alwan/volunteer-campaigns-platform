@@ -22,16 +22,13 @@ public class CategoryService {
     }
 
     @Transactional
-    public Category create(final CategoryDTO categoryDTO) {
-        if (categoryDTO.getCategoryId() != null) {
-            throw new IllegalArgumentException("A new category cannot already have an ID");
-        }
+    public Category create(final CategoryRequestDTO categoryDTO) {
         Category category = categoryMapper.toEntity(categoryDTO);
         return categoryRepository.save(category);
     }
 
     @Transactional
-    public Category update(final Long categoryId, final CategoryDTO categoryDTO) {
+    public Category update(final Long categoryId, final CategoryRequestDTO categoryDTO) {
         Category category = categoryRepository.findById(categoryId)
                 .orElseThrow(NotFoundException::new);
         categoryMapper.updateEntity(category, categoryDTO);

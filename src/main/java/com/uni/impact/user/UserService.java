@@ -30,10 +30,7 @@ public class UserService {
     }
 
     @Transactional
-    public User create(final UserDTO userDTO) {
-        if (userDTO.getUserId() != null) {
-            throw new IllegalArgumentException("A new user cannot already have an ID");
-        }
+    public User create(final UserRequestDTO userDTO) {
         if (emailExists(userDTO.getEmail())) {
             throw new IllegalArgumentException("Email already exists");
         }
@@ -43,7 +40,7 @@ public class UserService {
     }
 
     @Transactional
-    public User update(final Long userId, final UserDTO userDTO) {
+    public User update(final Long userId, final UserRequestDTO userDTO) {
 
         User user = userRepository.findById(userId).orElseThrow(NotFoundException::new);
         userMapper.updateEntity(user, userDTO);
@@ -57,7 +54,7 @@ public class UserService {
         userRepository.delete(user);
     }
 
-    private void applyRelations(final User user, final UserDTO userDTO) {
+    private void applyRelations(final User user, final UserRequestDTO userDTO) {
         final College college = userDTO.getCollege() == null ? null : collegeRepository.findById(userDTO.getCollege())
                 .orElseThrow(() -> new NotFoundException("college not found"));
         user.setCollege(college);

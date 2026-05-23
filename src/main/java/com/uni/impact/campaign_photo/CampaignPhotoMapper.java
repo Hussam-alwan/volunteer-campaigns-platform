@@ -9,13 +9,19 @@ public interface CampaignPhotoMapper {
 
     @Mapping(target = "campaign", source = "campaign.campaignId")
     @Mapping(target = "progress", source = "progress.progressId")
-    CampaignPhotoDTO toDto(CampaignPhoto entity);
+    CampaignPhotoResponseDTO toDto(CampaignPhoto entity);
 
+    @Mapping(target = "photoId", ignore = true)
+    @Mapping(target = "createdAt", ignore = true)
+    @Mapping(target = "updatedAt", ignore = true)
     @Mapping(target = "campaign", ignore = true)
     @Mapping(target = "progress", ignore = true)
-    CampaignPhoto toEntity(CampaignPhotoDTO dto);
+    CampaignPhoto toEntity(CampaignPhotoRequestDTO dto);
 
+    @Mapping(target = "photoId", ignore = true)
+    @Mapping(target = "createdAt", ignore = true)
+    @Mapping(target = "updatedAt", ignore = true)
     @Mapping(target = "campaign", ignore = true)
     @Mapping(target = "progress", ignore = true)
-    void updateEntity(@MappingTarget CampaignPhoto entity, CampaignPhotoDTO dto);
+    void updateEntity(@MappingTarget CampaignPhoto entity, CampaignPhotoRequestDTO dto);
 }

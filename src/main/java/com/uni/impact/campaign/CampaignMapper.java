@@ -10,8 +10,12 @@ public interface CampaignMapper {
     @Mapping(target = "approvedBy", source = "approvedBy.userId")
     @Mapping(target = "managedBy", source = "managedBy.userId")
     @Mapping(target = "category", source = "category.categoryId")
-    CampaignDTO toDto(Campaign entity);
+    CampaignResponseDTO toDto(Campaign entity);
 
+    @Mapping(target = "campaignId", ignore = true)
+    @Mapping(target = "publishedAt", ignore = true)
+    @Mapping(target = "createdAt", ignore = true)
+    @Mapping(target = "updatedAt", ignore = true)
     @Mapping(target = "proposedBy", ignore = true)
     @Mapping(target = "approvedBy", ignore = true)
     @Mapping(target = "managedBy", ignore = true)
@@ -20,8 +24,12 @@ public interface CampaignMapper {
     @Mapping(target = "campaignCampaignPhotos", ignore = true)
     @Mapping(target = "campaignAttendances", ignore = true)
     @Mapping(target = "campaignProgresses", ignore = true)
-    Campaign toEntity(CampaignDTO dto);
+    Campaign toEntity(CampaignRequestDTO dto);
 
+    @Mapping(target = "campaignId", ignore = true)
+    @Mapping(target = "publishedAt", ignore = true)
+    @Mapping(target = "createdAt", ignore = true)
+    @Mapping(target = "updatedAt", ignore = true)
     @Mapping(target = "proposedBy", ignore = true)
     @Mapping(target = "approvedBy", ignore = true)
     @Mapping(target = "managedBy", ignore = true)
@@ -30,5 +38,5 @@ public interface CampaignMapper {
     @Mapping(target = "campaignCampaignPhotos", ignore = true)
     @Mapping(target = "campaignAttendances", ignore = true)
     @Mapping(target = "campaignProgresses", ignore = true)
-    void updateEntity(@MappingTarget Campaign entity, CampaignDTO dto);
+    void updateEntity(@MappingTarget Campaign entity, CampaignRequestDTO dto);
 }

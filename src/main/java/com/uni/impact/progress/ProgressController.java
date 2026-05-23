@@ -18,12 +18,12 @@ public class ProgressController {
     private final ProgressMapper progressMapper;
 
     @GetMapping
-    public ResponseEntity<Page<ProgressDTO>> findAll(Pageable pageable) {
+    public ResponseEntity<Page<ProgressResponseDTO>> findAll(Pageable pageable) {
         return ResponseEntity.ok(progressService.findAll(pageable).map(progressMapper::toDto));
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<ProgressDTO> findById(@PathVariable Long id) {
+    public ResponseEntity<ProgressResponseDTO> findById(@PathVariable Long id) {
         return ResponseEntity.ok(progressMapper.toDto(progressService.findById(id)));
     }
     // Creation / update / delete are handled via campaign-scoped endpoints in ProgressCampaignController

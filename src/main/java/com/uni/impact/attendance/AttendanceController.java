@@ -18,12 +18,12 @@ public class AttendanceController {
     private final AttendanceMapper attendanceMapper;
 
     @GetMapping
-    public ResponseEntity<Page<AttendanceDTO>> findAll(Pageable pageable) {
+    public ResponseEntity<Page<AttendanceResponseDTO>> findAll(Pageable pageable) {
         return ResponseEntity.ok(attendanceService.findAll(pageable).map(attendanceMapper::toDto));
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<AttendanceDTO> findById(@PathVariable Long id) {
+    public ResponseEntity<AttendanceResponseDTO> findById(@PathVariable Long id) {
         return ResponseEntity.ok(attendanceMapper.toDto(attendanceService.findById(id)));
     }
     // Creation / update / delete are handled via campaign-scoped endpoints in AttendanceCampaignController

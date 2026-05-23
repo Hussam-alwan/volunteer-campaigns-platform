@@ -8,8 +8,11 @@ import org.mapstruct.NullValuePropertyMappingStrategy;
 public interface UserMapper {
 
     @Mapping(target = "college", source = "college.collegeId")
-    UserDTO toDto(User entity);
+    UserResponseDTO toDto(User entity);
 
+    @Mapping(target = "userId", ignore = true)
+    @Mapping(target = "createdAt", ignore = true)
+    @Mapping(target = "updatedAt", ignore = true)
     @Mapping(target = "college", ignore = true)
     @Mapping(target = "proposedByCampaigns", ignore = true)
     @Mapping(target = "approvedByCampaigns", ignore = true)
@@ -20,8 +23,11 @@ public interface UserMapper {
     @Mapping(target = "removedByApplications", ignore = true)
     @Mapping(target = "studentAttendances", ignore = true)
     @Mapping(target = "recordedByAttendances", ignore = true)
-    User toEntity(UserDTO dto);
+    User toEntity(UserRequestDTO dto);
 
+    @Mapping(target = "userId", ignore = true)
+    @Mapping(target = "createdAt", ignore = true)
+    @Mapping(target = "updatedAt", ignore = true)
     @Mapping(target = "college", ignore = true)
     @Mapping(target = "proposedByCampaigns", ignore = true)
     @Mapping(target = "approvedByCampaigns", ignore = true)
@@ -32,5 +38,5 @@ public interface UserMapper {
     @Mapping(target = "removedByApplications", ignore = true)
     @Mapping(target = "studentAttendances", ignore = true)
     @Mapping(target = "recordedByAttendances", ignore = true)
-    void updateEntity(@MappingTarget User entity, UserDTO dto);
+    void updateEntity(@MappingTarget User entity, UserRequestDTO dto);
 }

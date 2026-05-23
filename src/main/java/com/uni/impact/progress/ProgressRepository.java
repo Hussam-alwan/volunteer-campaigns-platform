@@ -9,4 +9,6 @@ import org.springframework.stereotype.Repository;
 public interface ProgressRepository extends JpaRepository<Progress, Long> {
 	Page<Progress> findByCampaignCampaignId(Long campaignId, Pageable pageable);
 
+	void deleteByCampaignCampaignId(Long campaignId);
+
 }

@@ -18,24 +18,24 @@ public class CategoryController {
     private final CategoryMapper categoryMapper;
 
     @GetMapping
-    public ResponseEntity<Page<CategoryDTO>> findAll(Pageable pageable) {
+    public ResponseEntity<Page<CategoryResponseDTO>> findAll(Pageable pageable) {
         return ResponseEntity.ok(categoryService.findAll(pageable).map(categoryMapper::toDto));
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<CategoryDTO> findById(@PathVariable Long id) {
+    public ResponseEntity<CategoryResponseDTO> findById(@PathVariable Long id) {
         return ResponseEntity.ok(categoryMapper.toDto(categoryService.findById(id)));
     }
 
     @PostMapping
-    public ResponseEntity<CategoryDTO> create(@Valid @RequestBody CategoryDTO categoryDTO) {
+    public ResponseEntity<CategoryResponseDTO> create(@Valid @RequestBody CategoryRequestDTO categoryDTO) {
         Category created = categoryService.create(categoryDTO);
         return ResponseEntity.created(URI.create("/api/v1/categories/" + created.getCategoryId()))
                 .body(categoryMapper.toDto(created));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<CategoryDTO> update(@PathVariable Long id, @RequestBody @Valid final CategoryDTO categoryDTO) {
+    public ResponseEntity<CategoryResponseDTO> update(@PathVariable Long id, @RequestBody @Valid final CategoryRequestDTO categoryDTO) {
         categoryService.update(id, categoryDTO);
         return ResponseEntity.ok(categoryMapper.toDto(categoryService.findById(id)));
     }

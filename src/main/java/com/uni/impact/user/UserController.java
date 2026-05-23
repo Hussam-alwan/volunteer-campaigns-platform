@@ -20,29 +20,29 @@ public class UserController {
     private final AttendanceService attendanceService;
 
     @GetMapping
-    public ResponseEntity<Page<UserDTO>> findAll(Pageable pageable) {
+    public ResponseEntity<Page<UserResponseDTO>> findAll(Pageable pageable) {
         return ResponseEntity.ok(userService.findAll(pageable).map(userMapper::toDto));
     }
 
     @GetMapping("/me")
-    public ResponseEntity<UserDTO> me(@RequestParam String email) {
+    public ResponseEntity<UserResponseDTO> me(@RequestParam String email) {
         return ResponseEntity.ok(userMapper.toDto(userService.findByEmail(email)));
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<UserDTO> findById(@PathVariable Long id) {
+    public ResponseEntity<UserResponseDTO> findById(@PathVariable Long id) {
         return ResponseEntity.ok(userMapper.toDto(userService.findById(id)));
     }
 
     @PostMapping
-    public ResponseEntity<UserDTO> create(@Valid @RequestBody UserDTO userDTO) {
+    public ResponseEntity<UserResponseDTO> create(@Valid @RequestBody UserRequestDTO userDTO) {
         User created = userService.create(userDTO);
         return ResponseEntity.created(URI.create("/api/v1/users/" + created.getUserId()))
                 .body(userMapper.toDto(created));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<UserDTO> update(@PathVariable Long id, @RequestBody @Valid final UserDTO userDTO) {
+    public ResponseEntity<UserResponseDTO> update(@PathVariable Long id, @RequestBody @Valid final UserRequestDTO userDTO) {
         userService.update(id, userDTO);
         return ResponseEntity.ok(userMapper.toDto(userService.findById(id)));
     }
@@ -54,7 +54,7 @@ public class UserController {
     }
 
     @PatchMapping("/{id}/ban")
-    public ResponseEntity<UserDTO> ban(@PathVariable Long id) {
+    public ResponseEntity<UserResponseDTO> ban(@PathVariable Long id) {
         User user = userService.ban(id);
         return ResponseEntity.ok(userMapper.toDto(user));
     }

@@ -33,28 +33,26 @@ public class AttendanceService {
     }
 
     @Transactional
-    public Attendance create(final AttendanceDTO attendanceDTO) {
-        if (attendanceDTO.getAttendanceId() != null) {
-            throw new IllegalArgumentException("A new attendance cannot already have an ID");
-        }
+    public Attendance create(final Long campaignId, final AttendanceRequestDTO attendanceDTO) {
         Attendance attendance = attendanceMapper.toEntity(attendanceDTO);
-        applyRelations(attendance, attendanceDTO);
+        applyRelations(attendance, campaignId, attendanceDTO);
+        attendance.setRecordedAt(java.time.LocalDateTime.now());
         return attendanceRepository.save(attendance);
     }
 
     @Transactional
-    public void createBulk(final java.util.List<AttendanceDTO> attendanceList) {
-        for (AttendanceDTO dto : attendanceList) {
-            create(dto);
+    public void createBulk(final Long campaignId, final java.util.List<AttendanceRequestDTO> attendanceList) {
+        for (AttendanceRequestDTO dto : attendanceList) {
+            create(campaignId, dto);
         }
     }
 
     @Transactional
-    public Attendance update(final Long attendanceId, final AttendanceDTO attendanceDTO) {
+    public Attendance update(final Long attendanceId, final Long campaignId, final AttendanceRequestDTO attendanceDTO) {
         Attendance attendance = attendanceRepository.findById(attendanceId)
                 .orElseThrow(NotFoundException::new);
         attendanceMapper.updateEntity(attendance, attendanceDTO);
-        applyRelations(attendance, attendanceDTO);
+        applyRelations(attendance, campaignId, attendanceDTO);
         return attendanceRepository.save(attendance);
     }
 
@@ -74,11 +72,11 @@ public class AttendanceService {
     }
 
 
-    private void applyRelations(final Attendance attendance, final AttendanceDTO attendanceDTO) {
+    private void applyRelations(final Attendance attendance, final Long campaignId, final AttendanceRequestDTO attendanceDTO) {
         final User student = attendanceDTO.getStudent() == null ? null : userRepository.findById(attendanceDTO.getStudent())
                 .orElseThrow(() -> new NotFoundException("student not found"));
         attendance.setStudent(student);
-        final Campaign campaign = attendanceDTO.getCampaign() == null ? null : campaignRepository.findById(attendanceDTO.getCampaign())
+        final Campaign campaign = campaignId == null ? null : campaignRepository.findById(campaignId)
                 .orElseThrow(() -> new NotFoundException("campaign not found"));
         attendance.setCampaign(campaign);
         final User recordedBy = attendanceDTO.getRecordedBy() == null ? null : userRepository.findById(attendanceDTO.getRecordedBy())

@@ -34,17 +34,14 @@ public class ProgressService {
     }
 
     @Transactional
-    public Progress create(final ProgressDTO progressDTO) {
-        if (progressDTO.getProgressId() != null) {
-            throw new IllegalArgumentException("A new progress cannot already have an ID");
-        }
+    public Progress create(final ProgressRequestDTO progressDTO) {
         Progress progress = progressMapper.toEntity(progressDTO);
         applyRelations(progress, progressDTO);
         return progressRepository.save(progress);
     }
 
     @Transactional
-    public Progress update(final Long progressId, final ProgressDTO progressDTO) {
+    public Progress update(final Long progressId, final ProgressRequestDTO progressDTO) {
         Progress progress = progressRepository.findById(progressId)
                 .orElseThrow(NotFoundException::new);
         progressMapper.updateEntity(progress, progressDTO);
@@ -62,7 +59,7 @@ public class ProgressService {
         }
     }
 
-    private void applyRelations(final Progress progress, final ProgressDTO progressDTO) {
+    private void applyRelations(final Progress progress, final ProgressRequestDTO progressDTO) {
         final Campaign campaign = progressDTO.getCampaign() == null ? null : campaignRepository.findById(progressDTO.getCampaign())
                 .orElseThrow(() -> new NotFoundException("campaign not found"));
         progress.setCampaign(campaign);

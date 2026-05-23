@@ -14,6 +14,8 @@ public interface ApplicationRepository extends JpaRepository<Application, Long>,
 	Page<Application> findByCampaignCampaignId(Long campaignId, Pageable pageable);
 	Page<Application> findByStudentUserId(Long userId, Pageable pageable);
 
+	void deleteByCampaignCampaignId(Long campaignId);
+
 	@Query("SELECT a.status, COUNT(a) FROM Application a GROUP BY a.status")
 	List<Object[]> countGroupedByStatus();
 }

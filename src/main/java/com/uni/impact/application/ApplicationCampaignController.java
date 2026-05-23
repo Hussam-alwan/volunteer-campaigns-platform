@@ -16,15 +16,14 @@ public class ApplicationCampaignController {
 
     @PostMapping("/{id}/apply")
     public ResponseEntity<Void> apply(@PathVariable Long id,
-                                      @RequestBody(required = false) ApplicationDTO applicationDTO,
+                                      @RequestBody(required = false) ApplicationRequestDTO applicationDTO,
                                       @RequestParam(required = false) String email) {
         applicationService.applyToCampaign(id, email, applicationDTO);
         return ResponseEntity.ok().build();
     }
 
     @GetMapping("/{id}/applications")
-    public ResponseEntity<Page<ApplicationDTO>> getApplications(@PathVariable Long id, Pageable pageable) {
+    public ResponseEntity<Page<ApplicationResponseDTO>> getApplications(@PathVariable Long id, Pageable pageable) {
         return ResponseEntity.ok(applicationService.findByCampaign(id, pageable).map(applicationMapper::toDto));
     }
 }
-

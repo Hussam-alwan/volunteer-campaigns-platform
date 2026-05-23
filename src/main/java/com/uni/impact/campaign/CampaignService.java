@@ -1,8 +1,12 @@
 package com.uni.impact.campaign;
 
+import com.uni.impact.application.ApplicationRepository;
+import com.uni.impact.attendance.AttendanceRepository;
 import com.uni.impact.campaign.dto.CampaignSearchCriteria;
+import com.uni.impact.campaign_photo.CampaignPhotoService;
 import com.uni.impact.category.Category;
 import com.uni.impact.category.CategoryRepository;
+import com.uni.impact.progress.ProgressRepository;
 import com.uni.impact.user.User;
 import com.uni.impact.user.UserRepository;
 import com.uni.impact.util.NotFoundException;
@@ -21,6 +25,10 @@ public class CampaignService {
     private final UserRepository userRepository;
     private final CategoryRepository categoryRepository;
     private final CampaignMapper campaignMapper;
+    private final CampaignPhotoService campaignPhotoService;
+    private final ApplicationRepository applicationRepository;
+    private final AttendanceRepository attendanceRepository;
+    private final ProgressRepository progressRepository;
 
     public Page<Campaign> findAll(Pageable pageable) {
         return campaignRepository.findAll(pageable);
@@ -37,7 +45,7 @@ public class CampaignService {
     }
 
     @Transactional
-    public Campaign patchDetails(final Long campaignId, final CampaignDTO campaignDTO) {
+    public Campaign patchDetails(final Long campaignId, final CampaignRequestDTO campaignDTO) {
         Campaign campaign = campaignRepository.findById(campaignId).orElseThrow(NotFoundException::new);
         // Use mapper which ignores nulls to update only provided fields; do NOT apply relations for details-only
         campaignMapper.updateEntity(campaign, campaignDTO);
@@ -67,17 +75,14 @@ public class CampaignService {
     }
 
     @Transactional
-    public Campaign create(final CampaignDTO campaignDTO) {
-        if (campaignDTO.getCampaignId() != null) {
-            throw new IllegalArgumentException("A new campaign cannot already have an ID");
-        }
+    public Campaign create(final CampaignRequestDTO campaignDTO) {
         Campaign campaign = campaignMapper.toEntity(campaignDTO);
         applyRelations(campaign, campaignDTO);
         return campaignRepository.save(campaign);
     }
 
     @Transactional
-    public Campaign update(final Long campaignId, final CampaignDTO campaignDTO) {
+    public Campaign update(final Long campaignId, final CampaignRequestDTO campaignDTO) {
         Campaign campaign = campaignRepository.findById(campaignId)
                 .orElseThrow(NotFoundException::new);
         campaignMapper.updateEntity(campaign, campaignDTO);
@@ -85,18 +90,25 @@ public class CampaignService {
         return campaignRepository.save(campaign);
     }
 
+    @Transactional
     public void delete(final Long campaignId) {
         final Campaign campaign = campaignRepository.findById(campaignId)
                 .orElseThrow(NotFoundException::new);
         try {
-                campaignRepository.delete(campaign);
-             } catch (final Exception e) {
-                throw new IllegalStateException("campaign could not be deleted");
+            // Cascade: remove dependents before deleting the campaign so FK constraints are satisfied.
+            // Photos go first because they reference both campaign and progress.
+            campaignPhotoService.deleteByCampaign(campaignId);
+            applicationRepository.deleteByCampaignCampaignId(campaignId);
+            attendanceRepository.deleteByCampaignCampaignId(campaignId);
+            progressRepository.deleteByCampaignCampaignId(campaignId);
+            campaignRepository.delete(campaign);
+        } catch (final Exception e) {
+            throw new IllegalStateException("campaign could not be deleted", e);
         }
     }
 
 
-    private void applyRelations(final Campaign campaign, final CampaignDTO campaignDTO) {
+    private void applyRelations(final Campaign campaign, final CampaignRequestDTO campaignDTO) {
         final User proposedBy = campaignDTO.getProposedBy() == null ? null : userRepository.findById(campaignDTO.getProposedBy())
                 .orElseThrow(() -> new NotFoundException("proposedBy not found"));
         campaign.setProposedBy(proposedBy);

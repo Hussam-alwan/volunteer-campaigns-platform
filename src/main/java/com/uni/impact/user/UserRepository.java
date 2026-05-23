@@ -12,6 +12,8 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     boolean existsByEmailIgnoreCase(String email);
 
+    boolean existsByCollege_CollegeId(Long collegeId);
+
     Optional<User> findByEmailIgnoreCase(String email);
 
     long countByStudentNumberIsNotNull();

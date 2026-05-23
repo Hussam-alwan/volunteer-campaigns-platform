@@ -21,18 +21,18 @@ public class ApplicationController {
     private final UserRepository userRepository;
 
     @GetMapping
-    public ResponseEntity<Page<ApplicationDTO>> findAll(@ModelAttribute VolunteerSearchCriteria criteria, Pageable pageable) {
+    public ResponseEntity<Page<ApplicationResponseDTO>> findAll(@ModelAttribute VolunteerSearchCriteria criteria, Pageable pageable) {
         Page<Application> applications = applicationService.searchVolunteers(criteria, pageable);
         return ResponseEntity.ok(applications.map(applicationMapper::toDto));
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<ApplicationDTO> findById(@PathVariable Long id) {
+    public ResponseEntity<ApplicationResponseDTO> findById(@PathVariable Long id) {
         return ResponseEntity.ok(applicationMapper.toDto(applicationService.findById(id)));
     }
 
     @PostMapping
-    public ResponseEntity<ApplicationDTO> create(@Valid @RequestBody ApplicationDTO applicationDTO) {
+    public ResponseEntity<ApplicationResponseDTO> create(@Valid @RequestBody ApplicationRequestDTO applicationDTO) {
         Application created = applicationService.create(applicationDTO);
         return ResponseEntity
                 .created(URI.create("/api/v1/applications/" + created.getId()))
@@ -40,36 +40,36 @@ public class ApplicationController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<ApplicationDTO> update(
+    public ResponseEntity<ApplicationResponseDTO> update(
             @PathVariable Long id,
-            @RequestBody @Valid final ApplicationDTO applicationDTO) {
+            @RequestBody @Valid final ApplicationRequestDTO applicationDTO) {
         applicationService.update(id, applicationDTO);
         return ResponseEntity.ok(applicationMapper.toDto(applicationService.findById(id)));
     }
 
     @GetMapping("/me")
-    public ResponseEntity<Page<ApplicationDTO>> myApplications(
+    public ResponseEntity<Page<ApplicationResponseDTO>> myApplications(
             Pageable pageable,
             @RequestParam String email) {
         return ResponseEntity.ok(applicationService.findByStudentEmail(email, pageable).map(applicationMapper::toDto));
     }
 
     @PatchMapping("/{id}/status")
-    public ResponseEntity<ApplicationDTO> changeStatus(@PathVariable Long id, @RequestBody final ApplicationDTO applicationDTO) {
+    public ResponseEntity<ApplicationResponseDTO> changeStatus(@PathVariable Long id, @RequestBody final ApplicationRequestDTO applicationDTO) {
         applicationService.changeStatus(id, applicationDTO.getStatus(), null, applicationDTO.getRejectionReason());
         return ResponseEntity.ok(applicationMapper.toDto(applicationService.findById(id)));
     }
 
     @PatchMapping("/{id}/withdraw")
-    public ResponseEntity<ApplicationDTO> withdraw(@PathVariable Long id, @RequestParam String email) {
+    public ResponseEntity<ApplicationResponseDTO> withdraw(@PathVariable Long id, @RequestParam String email) {
         final com.uni.impact.user.User user = userRepository.findByEmailIgnoreCase(email).orElseThrow(() -> new RuntimeException("user not found"));
         applicationService.withdraw(id, user.getUserId());
         return ResponseEntity.ok(applicationMapper.toDto(applicationService.findById(id)));
     }
 
     @PatchMapping("/{id}/remove")
-    public ResponseEntity<ApplicationDTO> remove(@PathVariable Long id,
-                                                 @RequestBody final ApplicationDTO applicationDTO,
+    public ResponseEntity<ApplicationResponseDTO> remove(@PathVariable Long id,
+                                                 @RequestBody final ApplicationRequestDTO applicationDTO,
                                                  @RequestParam(required = false) String email) {
         Long removerId = null;
         if (email != null) {

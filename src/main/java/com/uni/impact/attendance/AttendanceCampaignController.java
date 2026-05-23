@@ -17,23 +17,20 @@ public class AttendanceCampaignController {
     private final AttendanceMapper attendanceMapper;
 
     @PostMapping("/{id}/attendance")
-    public ResponseEntity<AttendanceDTO> createAttendance(@PathVariable Long id, @RequestBody AttendanceDTO attendanceDTO) {
-        attendanceDTO.setCampaign(id);
-        Attendance created = attendanceService.create(attendanceDTO);
+    public ResponseEntity<AttendanceResponseDTO> createAttendance(@PathVariable Long id, @RequestBody AttendanceRequestDTO attendanceDTO) {
+        Attendance created = attendanceService.create(id, attendanceDTO);
         return ResponseEntity.created(URI.create("/api/v1/attendances/" + created.getAttendanceId()))
                 .body(attendanceMapper.toDto(created));
     }
 
     @PostMapping("/{id}/attendance/bulk")
-    public ResponseEntity<Void> createAttendanceBulk(@PathVariable Long id, @RequestBody java.util.List<AttendanceDTO> attendanceList) {
-        attendanceList.forEach(a -> a.setCampaign(id));
-        attendanceService.createBulk(attendanceList);
+    public ResponseEntity<Void> createAttendanceBulk(@PathVariable Long id, @RequestBody java.util.List<AttendanceRequestDTO> attendanceList) {
+        attendanceService.createBulk(id, attendanceList);
         return ResponseEntity.status(201).build();
     }
 
     @GetMapping("/{id}/attendance")
-    public ResponseEntity<Page<AttendanceDTO>> getAttendance(@PathVariable Long id, Pageable pageable) {
+    public ResponseEntity<Page<AttendanceResponseDTO>> getAttendance(@PathVariable Long id, Pageable pageable) {
         return ResponseEntity.ok(attendanceService.findByCampaign(id, pageable).map(attendanceMapper::toDto));
     }
 }
-

@@ -12,18 +12,28 @@ public interface ApplicationMapper {
     @Mapping(target = "campaign", source = "campaign.campaignId")
     @Mapping(target = "reviewedBy", source = "reviewedBy.userId")
     @Mapping(target = "removedBy", source = "removedBy.userId")
-    ApplicationDTO toDto(Application entity);
+    ApplicationResponseDTO toDto(Application entity);
 
 
+    @Mapping(target = "id", ignore = true)
+    @Mapping(target = "withdrawnAt", ignore = true)
+    @Mapping(target = "createdAt", ignore = true)
+    @Mapping(target = "updatedAt", ignore = true)
+    @Mapping(target = "removedAt", ignore = true)
     @Mapping(target = "student", ignore = true)
     @Mapping(target = "campaign", ignore = true)
     @Mapping(target = "reviewedBy", ignore = true)
     @Mapping(target = "removedBy", ignore = true)
-    Application toEntity(ApplicationDTO dto);
+    Application toEntity(ApplicationRequestDTO dto);
 
+    @Mapping(target = "id", ignore = true)
+    @Mapping(target = "withdrawnAt", ignore = true)
+    @Mapping(target = "createdAt", ignore = true)
+    @Mapping(target = "updatedAt", ignore = true)
+    @Mapping(target = "removedAt", ignore = true)
     @Mapping(target = "student", ignore = true)
     @Mapping(target = "campaign", ignore = true)
     @Mapping(target = "reviewedBy", ignore = true)
     @Mapping(target = "removedBy", ignore = true)
-    void updateEntity(@MappingTarget Application entity, ApplicationDTO dto);
+    void updateEntity(@MappingTarget Application entity, ApplicationRequestDTO dto);
 }

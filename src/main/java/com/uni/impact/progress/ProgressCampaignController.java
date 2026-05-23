@@ -17,7 +17,7 @@ public class ProgressCampaignController {
     private final ProgressMapper progressMapper;
 
     @PostMapping("/{id}/progress")
-    public ResponseEntity<ProgressDTO> createProgress(@PathVariable Long id, @RequestBody ProgressDTO progressDTO) {
+    public ResponseEntity<ProgressResponseDTO> createProgress(@PathVariable Long id, @RequestBody ProgressRequestDTO progressDTO) {
         progressDTO.setCampaign(id);
         Progress created = progressService.create(progressDTO);
         return ResponseEntity.created(URI.create("/api/v1/progresses/" + created.getProgressId()))
@@ -25,8 +25,7 @@ public class ProgressCampaignController {
     }
 
     @GetMapping("/{id}/progress")
-    public ResponseEntity<Page<ProgressDTO>> getProgress(@PathVariable Long id, Pageable pageable) {
+    public ResponseEntity<Page<ProgressResponseDTO>> getProgress(@PathVariable Long id, Pageable pageable) {
         return ResponseEntity.ok(progressService.findByCampaign(id, pageable).map(progressMapper::toDto));
     }
 }
-

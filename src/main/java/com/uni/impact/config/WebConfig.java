@@ -9,6 +9,9 @@ import org.springframework.web.filter.CorsFilter;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
 
@@ -35,7 +38,15 @@ public class WebConfig implements WebMvcConfigurer {
 
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
-        String uploadPath = Paths.get(uploadDir).toAbsolutePath().toUri().toString();
+        Path absolute = Paths.get(uploadDir).toAbsolutePath().normalize();
+        try {
+            Files.createDirectories(absolute);
+        } catch (IOException ignored) {
+        }
+        String uploadPath = absolute.toUri().toString();
+        if (!uploadPath.endsWith("/")) {
+            uploadPath = uploadPath + "/";
+        }
 
         registry.addResourceHandler("/uploads/**")
                 .addResourceLocations(uploadPath)

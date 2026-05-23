@@ -51,11 +51,7 @@ public class ApplicationService {
     }
 
     @Transactional
-    public Application create(final ApplicationDTO applicationDTO) {
-        if (applicationDTO.getId() != null) {
-            throw new IllegalArgumentException("A new application cannot already have an ID");
-        }
-
+    public Application create(final ApplicationRequestDTO applicationDTO) {
         Application application = applicationMapper.toEntity(applicationDTO);
         applyRelations(application, applicationDTO);
 
@@ -63,7 +59,7 @@ public class ApplicationService {
     }
 
     @Transactional
-    public Application update(final Long id, final ApplicationDTO applicationDTO) {
+    public Application update(final Long id, final ApplicationRequestDTO applicationDTO) {
         Application application = applicationRepository.findById(id)
                 .orElseThrow(NotFoundException::new);
 
@@ -84,7 +80,7 @@ public class ApplicationService {
         }
     }
 
-    private void applyRelations(final Application application, final ApplicationDTO applicationDTO) {
+    private void applyRelations(final Application application, final ApplicationRequestDTO applicationDTO) {
         User student = applicationDTO.getStudent() == null ? null : userRepository.findById(applicationDTO.getStudent())
                 .orElseThrow(() -> new NotFoundException("student not found"));
         application.setStudent(student);
@@ -103,7 +99,7 @@ public class ApplicationService {
     }
 
     @Transactional
-    public void applyToCampaign(final Long campaignId, final String studentEmail, final ApplicationDTO applicationDTO) {
+    public void applyToCampaign(final Long campaignId, final String studentEmail, final ApplicationRequestDTO applicationDTO) {
         final User student = studentEmail == null ? null : userRepository.findByEmailIgnoreCase(studentEmail).orElseThrow(NotFoundException::new);
         final Campaign campaign = campaignRepository.findById(campaignId).orElseThrow(() -> new NotFoundException("campaign not found"));
         Application application = new Application();
