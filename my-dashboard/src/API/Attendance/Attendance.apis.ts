@@ -15,7 +15,7 @@ import type {
 // 1. دوال الحضور والغياب (Attendance APIs)
 // ==========================================
 
-// جلب حضور وغياب حملة معينة مع الـ Pagination والـ Params
+// جلب حضور وغياب حملة معينة مع الـ Pagination والـ Params الافتراضية
 const getAttendance = async (
   campaignId: number | string,
   params?: IPagination,
@@ -23,8 +23,24 @@ const getAttendance = async (
   const { data } = await ApiInstance.get<IResponse<IAttendance[]>>(
     AttendanceApiRoutes.GetAttendance(campaignId),
     {
-      params,
+      // التعديل: إرسال الـ page و size بشكل صريح ليتوافق مع الـ Pageable الخاص بـ Spring Boot
+      params: {
+        page: params?.page ?? 0,
+        size: params?.size ?? 1000, // نطلب 1000 عنصر افتراضياً لضمان ظهور السجلات فوراً
+      },
     },
+  );
+  return data;
+};
+
+const updateAttendance = async (
+  campaignId: number | string,
+  attendanceId: number | string,
+  payload: IAttendanceInputs,
+) => {
+  const { data } = await ApiInstance.put(
+    AttendanceApiRoutes.UpdateAttendance(campaignId, attendanceId),
+    payload,
   );
   return data;
 };
@@ -65,7 +81,11 @@ const getProgress = async (
   const { data } = await ApiInstance.get<IResponse<IProgress[]>>(
     AttendanceApiRoutes.GetProgress(campaignId),
     {
-      params,
+      // التعديل: إرسال الـ page و size بشكل صريح ليتوافق مع الـ Pageable الخاص بـ Spring Boot
+      params: {
+        page: params?.page ?? 0,
+        size: params?.size ?? 1000,
+      },
     },
   );
   return data;
@@ -90,6 +110,7 @@ const attendanceApis = {
   createAttendanceBulk,
   getProgress,
   createProgress,
+  updateAttendance,
 };
 
 export default attendanceApis;
