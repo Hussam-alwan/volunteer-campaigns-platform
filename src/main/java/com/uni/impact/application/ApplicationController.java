@@ -1,15 +1,27 @@
 package com.uni.impact.application;
 
+import com.uni.impact.application.dto.VolunteerSearchCriteria;
+import com.uni.impact.user.User;
+import com.uni.impact.user.UserRepository;
+import com.uni.impact.util.NotFoundException;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-import java.net.URI;
-import com.uni.impact.user.UserRepository;
-import com.uni.impact.application.dto.VolunteerSearchCriteria;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
+import java.net.URI;
 
 @RestController
 @RequestMapping(value = "/api/v1/applications")
@@ -62,27 +74,28 @@ public class ApplicationController {
 
     @PatchMapping("/{id}/withdraw")
     public ResponseEntity<ApplicationResponseDTO> withdraw(@PathVariable Long id, @RequestParam String email) {
-        final com.uni.impact.user.User user = userRepository.findByEmailIgnoreCase(email).orElseThrow(() -> new RuntimeException("user not found"));
+        final User user = userRepository.findByEmailIgnoreCase(email)
+                .orElseThrow(() -> new NotFoundException("user not found"));
         applicationService.withdraw(id, user.getUserId());
         return ResponseEntity.ok(applicationMapper.toDto(applicationService.findById(id)));
     }
 
     @PatchMapping("/{id}/remove")
     public ResponseEntity<ApplicationResponseDTO> remove(@PathVariable Long id,
-                                                 @RequestBody final ApplicationRequestDTO applicationDTO,
-                                                 @RequestParam(required = false) String email) {
+                                                         @RequestBody final ApplicationRequestDTO applicationDTO,
+                                                         @RequestParam(required = false) String email) {
         Long removerId = null;
         if (email != null) {
-            final com.uni.impact.user.User u = userRepository.findByEmailIgnoreCase(email).orElse(null);
-            removerId = u == null ? null : u.getUserId();
+            removerId = userRepository.findByEmailIgnoreCase(email)
+                    .map(User::getUserId)
+                    .orElse(null);
         }
         applicationService.remove(id, removerId, applicationDTO.getRemovalReason());
         return ResponseEntity.ok(applicationMapper.toDto(applicationService.findById(id)));
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(
-            @PathVariable final Long id) {
+    public ResponseEntity<Void> delete(@PathVariable final Long id) {
         applicationService.delete(id);
         return ResponseEntity.noContent().build();
     }

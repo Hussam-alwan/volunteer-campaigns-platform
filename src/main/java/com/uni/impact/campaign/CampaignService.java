@@ -46,8 +46,8 @@ public class CampaignService {
 
     @Transactional
     public Campaign patchDetails(final Long campaignId, final CampaignRequestDTO campaignDTO) {
+        // Mapper ignores nulls so only provided fields are updated; relations are not touched here.
         Campaign campaign = campaignRepository.findById(campaignId).orElseThrow(NotFoundException::new);
-        // Use mapper which ignores nulls to update only provided fields; do NOT apply relations for details-only
         campaignMapper.updateEntity(campaign, campaignDTO);
         return campaignRepository.save(campaign);
     }
@@ -95,8 +95,7 @@ public class CampaignService {
         final Campaign campaign = campaignRepository.findById(campaignId)
                 .orElseThrow(NotFoundException::new);
         try {
-            // Cascade: remove dependents before deleting the campaign so FK constraints are satisfied.
-            // Photos go first because they reference both campaign and progress.
+            // Photos first: they FK to both campaign and progress.
             campaignPhotoService.deleteByCampaign(campaignId);
             applicationRepository.deleteByCampaignCampaignId(campaignId);
             attendanceRepository.deleteByCampaignCampaignId(campaignId);

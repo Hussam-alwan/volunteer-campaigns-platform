@@ -41,7 +41,6 @@ public class UserService {
 
     @Transactional
     public User update(final Long userId, final UserRequestDTO userDTO) {
-
         User user = userRepository.findById(userId).orElseThrow(NotFoundException::new);
         userMapper.updateEntity(user, userDTO);
         applyRelations(user, userDTO);
@@ -64,9 +63,9 @@ public class UserService {
     }
 
     @Transactional
-    public User ban(Long id) {
+    public User ban(final Long id) {
         User user = userRepository.findById(id).orElseThrow(NotFoundException::new);
-        if (user.getIsBanned()) {
+        if (Boolean.TRUE.equals(user.getIsBanned())) {
             return user;
         }
         user.setIsBanned(true);

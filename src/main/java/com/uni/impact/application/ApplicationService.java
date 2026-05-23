@@ -1,17 +1,19 @@
 package com.uni.impact.application;
 
+import com.uni.impact.application.dto.VolunteerSearchCriteria;
 import com.uni.impact.campaign.Campaign;
 import com.uni.impact.campaign.CampaignRepository;
 import com.uni.impact.user.User;
 import com.uni.impact.user.UserRepository;
 import com.uni.impact.util.NotFoundException;
-import com.uni.impact.application.dto.VolunteerSearchCriteria;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
 
 @Service
 @RequiredArgsConstructor
@@ -39,7 +41,6 @@ public class ApplicationService {
         return applicationRepository.findAll(pageable);
     }
 
-
     public Page<Application> searchVolunteers(VolunteerSearchCriteria criteria, Pageable pageable) {
         Specification<Application> spec = VolunteerSpecification.withSearchCriteria(criteria);
         return applicationRepository.findAll(spec, pageable);
@@ -54,7 +55,6 @@ public class ApplicationService {
     public Application create(final ApplicationRequestDTO applicationDTO) {
         Application application = applicationMapper.toEntity(applicationDTO);
         applyRelations(application, applicationDTO);
-
         return applicationRepository.save(application);
     }
 
@@ -76,7 +76,7 @@ public class ApplicationService {
         try {
             applicationRepository.delete(application);
         } catch (Exception e) {
-            throw new RuntimeException("Cannot delete application as it is being referenced by another entity");
+            throw new IllegalStateException("Cannot delete application as it is being referenced by another entity", e);
         }
     }
 
@@ -106,7 +106,7 @@ public class ApplicationService {
         application.setCampaign(campaign);
         application.setStudent(student);
         application.setStatus(ApplicationStatus.PENDING);
-        application.setAppliedAt(java.time.LocalDateTime.now());
+        application.setAppliedAt(LocalDateTime.now());
         application.setMotivationLetter(applicationDTO == null ? null : applicationDTO.getMotivationLetter());
         applicationRepository.save(application);
     }
@@ -114,19 +114,19 @@ public class ApplicationService {
     @Transactional
     public void changeStatus(final Long id, final ApplicationStatus newStatus, final Long reviewerId, final String rejectionReason) {
         Application application = applicationRepository.findById(id).orElseThrow(NotFoundException::new);
-        // simple transition rules
         ApplicationStatus current = application.getStatus();
-        boolean allowed = false;
-        if (current == ApplicationStatus.PENDING) {
-            allowed = newStatus == ApplicationStatus.APPROVED || newStatus == ApplicationStatus.REJECTED || newStatus == ApplicationStatus.CANCELLED;
-        } else if (current == ApplicationStatus.APPROVED) {
-            allowed = newStatus == ApplicationStatus.CANCELLED;
-        }
+        boolean allowed = switch (current) {
+            case PENDING -> newStatus == ApplicationStatus.APPROVED
+                    || newStatus == ApplicationStatus.REJECTED
+                    || newStatus == ApplicationStatus.CANCELLED;
+            case APPROVED -> newStatus == ApplicationStatus.CANCELLED;
+            default -> false;
+        };
         if (!allowed) {
             throw new IllegalArgumentException("Invalid status transition from " + current + " to " + newStatus);
         }
         application.setStatus(newStatus);
-        application.setReviewedAt(java.time.LocalDateTime.now());
+        application.setReviewedAt(LocalDateTime.now());
         if (reviewerId != null) {
             application.setReviewedBy(userRepository.findById(reviewerId).orElseThrow(NotFoundException::new));
         }
@@ -143,19 +143,18 @@ public class ApplicationService {
             throw new IllegalArgumentException("Only the student can withdraw their application");
         }
         application.setStatus(ApplicationStatus.WITHDRAWN);
-        application.setWithdrawnAt(java.time.LocalDateTime.now());
+        application.setWithdrawnAt(LocalDateTime.now());
         applicationRepository.save(application);
     }
 
     @Transactional
     public void remove(final Long id, final Long removedById, final String removalReason) {
         Application application = applicationRepository.findById(id).orElseThrow(NotFoundException::new);
-        application.setRemovedAt(java.time.LocalDateTime.now());
+        application.setRemovedAt(LocalDateTime.now());
         application.setRemovalReason(removalReason);
         if (removedById != null) {
             application.setRemovedBy(userRepository.findById(removedById).orElseThrow(NotFoundException::new));
         }
-        // mark canceled when removed
         application.setStatus(ApplicationStatus.CANCELLED);
         applicationRepository.save(application);
     }

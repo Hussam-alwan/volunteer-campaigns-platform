@@ -13,6 +13,7 @@ public class CategoryService {
 
     private final CategoryRepository categoryRepository;
     private final CategoryMapper categoryMapper;
+
     public Page<Category> findAll(Pageable pageable) {
         return categoryRepository.findAll(pageable);
     }
@@ -35,13 +36,14 @@ public class CategoryService {
         return categoryRepository.save(category);
     }
 
+    @Transactional
     public void delete(final Long categoryId) {
         final Category category = categoryRepository.findById(categoryId)
                 .orElseThrow(NotFoundException::new);
         try {
             categoryRepository.delete(category);
         } catch (Exception e) {
-            throw new IllegalStateException("Unable to delete category. It might be referenced by other entities.");
+            throw new IllegalStateException("Unable to delete category. It might be referenced by other entities.", e);
         }
     }
 }

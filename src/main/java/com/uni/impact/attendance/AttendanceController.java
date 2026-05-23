@@ -26,6 +26,4 @@ public class AttendanceController {
     public ResponseEntity<AttendanceResponseDTO> findById(@PathVariable Long id) {
         return ResponseEntity.ok(attendanceMapper.toDto(attendanceService.findById(id)));
     }
-    // Creation / update / delete are handled via campaign-scoped endpoints in AttendanceCampaignController
-    // (POST /api/v1/campaigns/{id}/attendance, /attendance/bulk, GET /api/v1/campaigns/{id}/attendance)
 }

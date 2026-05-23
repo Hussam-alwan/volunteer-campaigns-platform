@@ -1,6 +1,5 @@
 package com.uni.impact.progress;
 
-
 import com.uni.impact.campaign.Campaign;
 import com.uni.impact.campaign.CampaignRepository;
 import com.uni.impact.user.User;
@@ -49,13 +48,14 @@ public class ProgressService {
         return progressRepository.save(progress);
     }
 
+    @Transactional
     public void delete(final Long progressId) {
         final Progress progress = progressRepository.findById(progressId)
                 .orElseThrow(NotFoundException::new);
         try {
             progressRepository.delete(progress);
         } catch (Exception e) {
-            throw new IllegalStateException("Unable to delete progress. It might be referenced by other entities.");
+            throw new IllegalStateException("Unable to delete progress. It might be referenced by other entities.", e);
         }
     }
 

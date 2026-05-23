@@ -1,14 +1,35 @@
-HELP.md
+## Maven / build output
 target/
+HELP.md
 !.mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
 !**/src/test/**/target/
+
+## Local config / secrets
 application-local.yml
+application-local.properties
+*.env
+.env
+.env.*
+!.env.example
+
+## Runtime artifacts
+uploads/
+logs/
 *.log
+*.pid
+
+## Exported / generated docs
+apidocs.json
+openapi.json
+
+## OS
 .DS_Store
+Thumbs.db
+desktop.ini
 
 ## IntelliJ IDEA
-.idea
+.idea/
 *.iws
 *.iml
 *.ipr
@@ -16,12 +37,12 @@ application-local.yml
 ## VS Code
 .vscode/
 
-## STS
+## Eclipse / STS
 .apt_generated
 .classpath
 .factorypath
 .project
-.settings
+.settings/
 .springBeans
 .sts4-cache
 
@@ -34,3 +55,7 @@ application-local.yml
 build/
 !**/src/main/**/build/
 !**/src/test/**/build/
+
+## Docker / Keycloak data
+keycloak/data/
+postgres/data/

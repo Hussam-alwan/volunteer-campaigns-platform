@@ -10,6 +10,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -24,11 +26,12 @@ public class AttendanceService {
     public Page<Attendance> findAll(Pageable pageable) {
         return attendanceRepository.findAll(pageable);
     }
+
     public Attendance findById(final Long attendanceId) {
         return attendanceRepository.findById(attendanceId).orElseThrow(NotFoundException::new);
     }
 
-    public Page<Attendance> findByCampaign(final Long campaignId,Pageable pageable) {
+    public Page<Attendance> findByCampaign(final Long campaignId, Pageable pageable) {
         return attendanceRepository.findByCampaignCampaignId(campaignId, pageable);
     }
 
@@ -36,12 +39,12 @@ public class AttendanceService {
     public Attendance create(final Long campaignId, final AttendanceRequestDTO attendanceDTO) {
         Attendance attendance = attendanceMapper.toEntity(attendanceDTO);
         applyRelations(attendance, campaignId, attendanceDTO);
-        attendance.setRecordedAt(java.time.LocalDateTime.now());
+        attendance.setRecordedAt(LocalDateTime.now());
         return attendanceRepository.save(attendance);
     }
 
     @Transactional
-    public void createBulk(final Long campaignId, final java.util.List<AttendanceRequestDTO> attendanceList) {
+    public void createBulk(final Long campaignId, final List<AttendanceRequestDTO> attendanceList) {
         for (AttendanceRequestDTO dto : attendanceList) {
             create(campaignId, dto);
         }
@@ -56,21 +59,21 @@ public class AttendanceService {
         return attendanceRepository.save(attendance);
     }
 
+    @Transactional
     public void delete(final Long attendanceId) {
         final Attendance attendance = attendanceRepository.findById(attendanceId)
                 .orElseThrow(NotFoundException::new);
-       try {
-              attendanceRepository.delete(attendance);
-         } catch (final Exception e) {
-              throw new IllegalStateException("attendance could not be deleted");
-       }
+        try {
+            attendanceRepository.delete(attendance);
+        } catch (final Exception e) {
+            throw new IllegalStateException("attendance could not be deleted", e);
+        }
     }
 
     public Double getTotalHoursForUser(final Long userId) {
         List<Attendance> list = attendanceRepository.findByStudentUserId(userId);
         return list.stream().mapToDouble(a -> a.getHoursThatDay() == null ? 0d : a.getHoursThatDay()).sum();
     }
-
 
     private void applyRelations(final Attendance attendance, final Long campaignId, final AttendanceRequestDTO attendanceDTO) {
         final User student = attendanceDTO.getStudent() == null ? null : userRepository.findById(attendanceDTO.getStudent())

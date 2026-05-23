@@ -18,6 +18,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -40,7 +42,7 @@ public class CampaignPhotoService {
         return campaignPhotoRepository.findById(photoId).orElseThrow(NotFoundException::new);
     }
 
-    public Page<CampaignPhoto> findByCampaign(final Long campaignId,Pageable pageable) {
+    public Page<CampaignPhoto> findByCampaign(final Long campaignId, Pageable pageable) {
         return campaignPhotoRepository.findByCampaignCampaignId(campaignId, pageable);
     }
 
@@ -71,7 +73,7 @@ public class CampaignPhotoService {
     }
 
     @Transactional
-    public java.util.List<CampaignPhoto> createFromFiles(final Long campaignId, final MultipartFile[] files) {
+    public List<CampaignPhoto> createFromFiles(final Long campaignId, final MultipartFile[] files) {
         if (files == null || files.length == 0) {
             throw new IllegalArgumentException("No files provided");
         }
@@ -79,10 +81,12 @@ public class CampaignPhotoService {
         Campaign campaign = campaignRepository.findById(campaignId)
                 .orElseThrow(() -> new NotFoundException("Campaign not found"));
 
-        java.util.List<CampaignPhoto> saved = new java.util.ArrayList<>();
+        List<CampaignPhoto> saved = new ArrayList<>();
 
         for (MultipartFile file : files) {
-            if (file == null || file.isEmpty()) continue;
+            if (file == null || file.isEmpty()) {
+                continue;
+            }
             validateImage(file);
 
             String filename = UUID.randomUUID() + buildExtension(file);
@@ -106,9 +110,13 @@ public class CampaignPhotoService {
 
     private String buildExtension(final MultipartFile file) {
         String original = file.getOriginalFilename();
-        if (original == null) return "";
+        if (original == null) {
+            return "";
+        }
         int dot = original.lastIndexOf('.');
-        if (dot < 0 || dot == original.length() - 1) return "";
+        if (dot < 0 || dot == original.length() - 1) {
+            return "";
+        }
         String ext = original.substring(dot + 1).toLowerCase().replaceAll("[^a-z0-9]", "");
         return ext.isEmpty() ? "" : "." + ext;
     }
@@ -136,7 +144,7 @@ public class CampaignPhotoService {
 
     @Transactional
     public void deleteByCampaign(final Long campaignId) {
-        java.util.List<CampaignPhoto> photos = campaignPhotoRepository.findAllByCampaignCampaignId(campaignId);
+        List<CampaignPhoto> photos = campaignPhotoRepository.findAllByCampaignCampaignId(campaignId);
         for (CampaignPhoto photo : photos) {
             deleteFileOnDisk(photo.getPhotoUrl());
         }
@@ -144,21 +152,26 @@ public class CampaignPhotoService {
     }
 
     private void deleteFileOnDisk(final String photoUrl) {
-        if (photoUrl == null) return;
+        if (photoUrl == null) {
+            return;
+        }
         // photoUrl is stored as "/uploads/photos/<filename>" — keep only the filename
         String filename = photoUrl.substring(photoUrl.lastIndexOf('/') + 1);
-        if (filename.isEmpty()) return;
+        if (filename.isEmpty()) {
+            return;
+        }
         try {
-            Path filePath = Paths.get(uploadDir).resolve(filename).normalize();
-            // make sure we never escape the upload dir
             Path base = Paths.get(uploadDir).toAbsolutePath().normalize();
-            if (!filePath.toAbsolutePath().startsWith(base)) return;
+            Path filePath = base.resolve(filename).normalize();
+            // Defence in depth: never escape the upload dir.
+            if (!filePath.startsWith(base)) {
+                return;
+            }
             Files.deleteIfExists(filePath);
         } catch (IOException ignored) {
-            // best-effort: row delete still proceeds
+            // Best-effort; row delete still proceeds.
         }
     }
-
 
     private CampaignPhoto saveFileAndCreatePhoto(Campaign campaign, String filename, byte[] content) throws IOException {
         Path uploadPath = Paths.get(uploadDir);

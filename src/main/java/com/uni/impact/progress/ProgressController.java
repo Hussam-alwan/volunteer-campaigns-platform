@@ -26,6 +26,4 @@ public class ProgressController {
     public ResponseEntity<ProgressResponseDTO> findById(@PathVariable Long id) {
         return ResponseEntity.ok(progressMapper.toDto(progressService.findById(id)));
     }
-    // Creation / update / delete are handled via campaign-scoped endpoints in ProgressCampaignController
-    // (POST /api/v1/campaigns/{id}/progress and GET /api/v1/campaigns/{id}/progress)
 }

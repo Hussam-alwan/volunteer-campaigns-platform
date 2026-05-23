@@ -1,4 +1,5 @@
 package com.uni.impact.category;
+
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.MappingTarget;
