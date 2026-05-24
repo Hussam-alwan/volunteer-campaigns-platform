@@ -1,8 +1,37 @@
 // src/apis/campaign/campaign.queries.ts
 
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import campaignApis from "./Campaign.apis"; // استدعاء ملف الـ API الذي جهزناه سوياً
-import type { IPagination } from "../../common.interfaces";
+import type { IPagination, IResponse } from "../../common.interfaces";
+import type { ICampaign, ICampaignInputs } from "./Campaign.interfaces"; // استخدم الـ interface الصحيح من Campaign.interfaces
+
+type CampaignListCache =
+  | ICampaign[]
+  | (IResponse<ICampaign[]> & {
+      content?: ICampaign[];
+      last?: boolean;
+    });
+
+type CampaignMutationResponse = Partial<ICampaign> & {
+  id?: number;
+  campaignId?: number;
+  categoryId?: number;
+  start_date?: string;
+  end_date?: string;
+  max_volunteers?: number;
+  publishedAt?: string | null;
+  managedBy?: number | null;
+};
+
+const getCampaignItems = (
+  cache: CampaignListCache | undefined,
+): ICampaign[] => {
+  if (!cache) return [];
+  if (Array.isArray(cache)) return cache;
+  if (Array.isArray(cache.content)) return cache.content;
+  if (Array.isArray(cache.data)) return cache.data;
+  return [];
+};
 
 // تجميع مفاتيح الكاش (Query Keys) لضمان تنظيمها وعدم تكرارها
 export const campaignQueryKeys = {
@@ -12,12 +41,11 @@ export const campaignQueryKeys = {
 };
 
 // 1. هوك جلب كل الحملات مع الـ Pagination والـ Filters
-const useGetAllCampaigns = (param: IPagination) => {
-  const queryResult = useQuery({
+const useGetAllCampaigns = (param?: any) => {
+  const queryResult = useQuery<CampaignListCache, Error, ICampaign[]>({
     queryKey: campaignQueryKeys.useGetAllCampaigns(param),
     queryFn: () => campaignApis.getAllCampaigns(param),
-    // يمكنكِ إبقاء السطر أدناه إذا أردتِ عمل فلترة أو تعديل شكل البيانات قبل وصولها للـ Component
-    select: (res) => res,
+    select: (res) => getCampaignItems(res),
   });
 
   return queryResult;
@@ -36,9 +64,131 @@ const useGetCampaignById = (campaignId: number) => {
   return queryResult;
 };
 
+// 3. هوك إضافة حملة جديدة مع تحديث الـ cache تلقائياً
+const useAddCampaign = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (payload: ICampaignInputs) => campaignApis.addCampaign(payload),
+    onSuccess: (responseData: CampaignMutationResponse) => {
+      console.log("📋 Response from API:", responseData);
+
+      // استخرج الحملة الجديدة من الـ response وتأكد من وجود جميع الحقول
+      const newCampaign: ICampaign = {
+        campaignId: responseData.campaignId || responseData.id || Date.now(),
+        title: responseData.title || "",
+        description: responseData.description || "",
+        location: responseData.location || "",
+        startDate: responseData.startDate || responseData.start_date || "",
+        endDate: responseData.endDate || responseData.end_date || "",
+        maxVolunteers:
+          responseData.maxVolunteers || responseData.max_volunteers || 0,
+        status: responseData.status || "PENDING",
+        publishedAt: responseData.publishedAt || null,
+        createdAt: responseData.createdAt || new Date().toISOString(),
+        updatedAt: responseData.updatedAt || new Date().toISOString(),
+        proposedBy: responseData.proposedBy || 0,
+        approvedBy: responseData.approvedBy || null,
+        managedBy: responseData.managedBy || 0,
+        category: responseData.category || responseData.categoryId || 0,
+        photos: [],
+      };
+
+      console.log("✅ New Campaign Object:", newCampaign);
+
+      const queryKey = ["get-all-campaigns"] as const;
+
+      // حاول تحديث الكاش أولاً (لتحسين الاستجابة الفورية)
+      try {
+        queryClient.setQueriesData<CampaignListCache>(
+          { queryKey },
+          (oldData) => {
+            if (!oldData) {
+              const freshContent = [newCampaign];
+              return {
+                content: freshContent,
+                data: freshContent,
+                totalElements: 1,
+                totalPages: 1,
+                last: true,
+              };
+            }
+
+            const currentContent = getCampaignItems(oldData);
+            const updatedContent = [newCampaign, ...currentContent];
+
+            if (Array.isArray(oldData)) {
+              return updatedContent;
+            }
+
+            return {
+              ...oldData,
+              content: updatedContent,
+              data: updatedContent,
+              totalElements:
+                (oldData.totalElements ?? currentContent.length) + 1,
+            };
+          },
+        );
+      } catch (e: unknown) {
+        console.warn("Cache update warning:", e);
+      }
+    },
+    onError: (error: unknown) => {
+      console.error("❌ Mutation error:", error);
+    },
+  });
+};
+
+// 4. هوك حذف حملة مع تحديث الـ cache
+const useDeleteCampaign = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (campaignId: number) => campaignApis.deleteCampaign(campaignId),
+    onSuccess: (_, campaignId: number) => {
+      console.log("✅ Campaign deleted:", campaignId);
+
+      const queryKey = ["get-all-campaigns"] as const;
+
+      // حدّث الكاش بحذف الحملة من القائمة
+      try {
+        queryClient.setQueriesData<CampaignListCache>(
+          { queryKey },
+          (oldData) => {
+            if (!oldData) return oldData;
+
+            const filteredContent = getCampaignItems(oldData).filter(
+              (campaign) => campaign.campaignId !== campaignId,
+            );
+
+            if (Array.isArray(oldData)) {
+              return filteredContent;
+            }
+
+            return {
+              ...oldData,
+              content: filteredContent,
+              data: filteredContent,
+              totalElements: Math.max(0, (oldData.totalElements || 1) - 1),
+            };
+          },
+        );
+      } catch (e: unknown) {
+        console.warn("Cache update warning:", e);
+      }
+    },
+    onError: (error: unknown) => {
+      console.error("❌ Delete mutation error:", error);
+    },
+  });
+};
+
 const campaignQueries = {
   useGetAllCampaigns,
   useGetCampaignById,
+  useAddCampaign,
+  useDeleteCampaign,
 };
 
 export default campaignQueries;

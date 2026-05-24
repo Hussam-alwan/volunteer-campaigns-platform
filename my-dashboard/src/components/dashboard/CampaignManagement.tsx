@@ -1,10 +1,9 @@
 // src/pages/CampaignManagement.tsx
-
 import React, { useState, type ChangeEvent, type FormEvent } from "react";
 import {
   Plus,
   Search,
-  Filter,
+  // Filter,
   MoreHorizontal,
   MapPin,
   Users,
@@ -16,37 +15,56 @@ import {
   Image as ImageIcon,
   Upload,
   Link2,
+  Trash2,
 } from "lucide-react";
 
 import campaignQueries from "../../API/Campaingns/Campaingnqueries";
-import campaignApis from "../../API/Campaingns/Campaign.apis";
 import { campaignService } from "../../services/campaignService";
+import { API_BASE_URL, SERVER_BASE_URL } from "../../constants/domain";
 import type {
   Campaign,
   CreateCampaignInput,
   CampaignStatus,
 } from "../../Types2/campaign";
+import type { ICampaign } from "../../API/Campaingns/Campaign.interfaces";
+
+type ApiErrorShape = {
+  message?: string;
+  error?: string;
+  status?: number;
+  path?: string;
+};
+
+type CampaignPhoto = {
+  photoId?: number;
+  campaignId?: number;
+  photoUrl?: string;
+  uploadedAt?: string;
+};
 
 const CampaignManagement: React.FC = () => {
-  // التحكم بحالة الـ Pagination مع الحفاظ على التصميم المتناسق للجدول
-  const [pagination, setPagination] = useState({
-    pageIndex: 1,
-    pageSize: 10,
-  });
+  const [query, setQuery] = useState<string>("");
+  const [searchTerm, setSearchTerm] = useState<string>("");
 
   // جلب البيانات الاحترافي عبر React Query بدون الحاجة لـ useEffect يدوي
   const {
     data: campaignsResponse,
     isLoading: loading,
     isError: hasError,
-    refetch: fetchCampaigns,
   } = campaignQueries.useGetAllCampaigns({
-    page: pagination.pageIndex,
-    size: pagination.pageSize,
+    page: 0,
+    size: 10,
+    ...(searchTerm ? { search: searchTerm } : {}),
   });
 
-  // استخراج المصفوفة الفعلية للحملات من الرد الموحد الجديد
-  const campaigns = campaignsResponse?.data || [];
+  // استخدم الـ mutation لإضافة حملة جديدة
+  const addCampaignMutation = campaignQueries.useAddCampaign();
+  const deleteCampaignMutation = campaignQueries.useDeleteCampaign();
+
+  // استخراج المصفوفة الفعلية للحملات من الرد
+  const campaigns = Array.isArray(campaignsResponse)
+    ? campaignsResponse
+    : campaignsResponse || [];
 
   // حالات النوافذ المنبثقة والتحكم بالواجهة (تماما كما في تصميمك الأصلي)
   const [showCreateModal, setShowCreateModal] = useState<boolean>(false);
@@ -55,6 +73,14 @@ const CampaignManagement: React.FC = () => {
     null,
   );
   const [photoUrlInput, setPhotoUrlInput] = useState<string>("");
+  const [openDropdown, setOpenDropdown] = useState<number | null>(null);
+  const [selectedFilesToUpload, setSelectedFilesToUpload] = useState<File[]>(
+    [],
+  );
+  const [localPreviews, setLocalPreviews] = useState<string[]>([]);
+  const [photoBlobUrls, setPhotoBlobUrls] = useState<Record<string, string>>(
+    {},
+  );
 
   // فورم الإنشاء المربوط بالـ State
   const [formData, setFormData] = useState<CreateCampaignInput>({
@@ -69,14 +95,13 @@ const CampaignManagement: React.FC = () => {
 
   const primaryPurple = "#5D3FD3";
 
-  // حساب العدادات العلوية ديناميكياً من بيانات الـ API المحدثة تلقائياً كاش
-  const totalCampaigns = campaigns.length;
   const ongoingCampaigns = campaigns.filter(
-    (c) => c.status?.toLowerCase() === "ongoing",
+    (c: ICampaign) => c.status?.toLowerCase() === "ongoing",
   ).length;
   const pendingCampaigns = campaigns.filter(
-    (c) => c.status?.toLowerCase() === "pending",
+    (c: ICampaign) => c.status?.toLowerCase() === "pending",
   ).length;
+  const totalCampaigns = campaigns.length;
 
   const stats = [
     {
@@ -103,29 +128,63 @@ const CampaignManagement: React.FC = () => {
     switch (status?.toLowerCase()) {
       case "ongoing":
         return "bg-emerald-50 text-emerald-600 border-emerald-100";
+
       case "approved":
         return "bg-blue-50 text-blue-600 border-blue-100";
+
       case "pending":
         return "bg-orange-50 text-orange-600 border-orange-100";
+
       case "rejected":
         return "bg-red-50 text-red-600 border-red-100";
+
       case "draft":
         return "bg-slate-50 text-slate-500 border-slate-100";
+
       case "completed":
         return "bg-purple-50 text-purple-600 border-purple-100";
+
       case "cancelled":
+      case "canceled":
         return "bg-rose-50 text-rose-600 border-rose-100";
+
       default:
         return "bg-slate-50 text-slate-600 border-slate-100";
     }
+  };
+
+  const extractErrorMessage = (err: unknown, fallback: string): string => {
+    if (typeof err === "object" && err !== null) {
+      const maybeError = err as {
+        message?: string;
+        response?: { data?: ApiErrorShape; status?: number };
+      };
+      const apiData = maybeError.response?.data;
+      const apiMessage =
+        apiData?.message ||
+        apiData?.error ||
+        (apiData?.status ? `HTTP ${apiData.status}` : undefined);
+      return apiMessage || maybeError.message || fallback;
+    }
+
+    return fallback;
+  };
+
+  const buildPhotoDisplayUrl = (rawPhotoUrl?: string): string => {
+    if (!rawPhotoUrl) return "";
+    if (rawPhotoUrl.startsWith("http")) return rawPhotoUrl;
+
+    const cleaned = rawPhotoUrl.replace(/^\/api\/v1(?=\/)/, "");
+    const normalizedPath = cleaned.startsWith("/") ? cleaned : `/${cleaned}`;
+    return `${SERVER_BASE_URL}${normalizedPath}`;
   };
 
   const openPhotosManagement = async (camp: Campaign) => {
     setSelectedCampaign(camp);
     setShowPhotosModal(true);
     try {
-      const response = await campaignService.getCampaignPhotos(camp.id);
-      setSelectedCampaign((prev) =>
+      const response = await campaignService.getCampaignPhotos(camp.campaignId);
+      setSelectedCampaign((prev: Campaign | null) =>
         prev
           ? {
               ...prev,
@@ -138,39 +197,87 @@ const CampaignManagement: React.FC = () => {
     }
   };
 
-  const handleFileUpload = async (e: ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = (e: ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
-    if (!files || files.length === 0 || !selectedCampaign) return;
+    if (!files || files.length === 0) return;
+
+    const arr = Array.from(files);
+    const previews = arr.map((f: File) => URL.createObjectURL(f));
+    setSelectedFilesToUpload(arr);
+    setLocalPreviews(previews);
+  };
+
+  const uploadSelectedFiles = async () => {
+    if (!selectedCampaign || selectedFilesToUpload.length === 0) return;
 
     try {
-      if (files.length === 1) {
-        await campaignService.uploadSinglePhoto(selectedCampaign.id, files[0]);
+      if (selectedFilesToUpload.length === 1) {
+        await campaignService.uploadSinglePhoto(
+          selectedCampaign.campaignId,
+          selectedFilesToUpload[0],
+        );
       } else {
-        await campaignService.uploadMultiplePhotos(selectedCampaign.id, files);
+        // campaignService.uploadMultiplePhotos expects a FileList but accepts array-like as well
+        await campaignService.uploadMultiplePhotos(
+          selectedCampaign.campaignId,
+          selectedFilesToUpload as unknown as FileList,
+        );
       }
+
+      // cleanup previews
+      localPreviews.forEach((url) => URL.revokeObjectURL(url));
+      setLocalPreviews([]);
+      setSelectedFilesToUpload([]);
+
+      // refresh gallery
       openPhotosManagement(selectedCampaign);
     } catch (err) {
-      alert("Failed to upload image files");
+      console.error("Upload selected files error:", err);
+      alert("Failed to upload selected images");
     }
+  };
+
+  const clearSelection = () => {
+    localPreviews.forEach((url) => URL.revokeObjectURL(url));
+    setLocalPreviews([]);
+    setSelectedFilesToUpload([]);
   };
 
   const handleUrlSubmit = async () => {
     if (!photoUrlInput || !selectedCampaign) return;
     try {
-      await campaignService.addPhotoByUrl(selectedCampaign.id, photoUrlInput);
+      await campaignService.addPhotoByUrl(
+        selectedCampaign.campaignId,
+        photoUrlInput,
+      );
       setPhotoUrlInput("");
       openPhotosManagement(selectedCampaign);
     } catch (err) {
+      console.error("Add photo by URL error:", err);
       alert("Failed to add photo URL");
     }
   };
 
   const handleCreateSubmit = async (e: FormEvent) => {
     e.preventDefault();
+
+    const payload = {
+      title: formData.title,
+      description: formData.description,
+      location: formData.location,
+      startDate: formData.start_date,
+      endDate: formData.end_date,
+      maxVolunteers: Number(formData.max_volunteers),
+      category: Number(formData.categoryId),
+      status: "PENDING",
+      proposedBy: 1,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
     try {
-      await campaignApis.addCampaign(formData);
+      await addCampaignMutation.mutateAsync(payload);
       setShowCreateModal(false);
-      fetchCampaigns();
       setFormData({
         title: "",
         description: "",
@@ -181,10 +288,23 @@ const CampaignManagement: React.FC = () => {
         end_date: "",
       });
     } catch (err) {
+      console.error("Error creating campaign:", err);
       alert("Error creating campaign");
     }
   };
 
+  const handleDeleteCampaign = async (campaignId: number) => {
+    const confirmed = window.confirm("هل أنت متأكد من حذف هذه الحملة؟");
+    if (!confirmed) return;
+
+    try {
+      await deleteCampaignMutation.mutateAsync(campaignId);
+      setOpenDropdown(null);
+    } catch (err) {
+      console.error("Error deleting campaign:", err);
+      alert(extractErrorMessage(err, "Error deleting campaign"));
+    }
+  };
   if (loading) {
     return (
       <div className="w-full h-96 flex items-center justify-center">
@@ -198,15 +318,8 @@ const CampaignManagement: React.FC = () => {
 
   if (hasError) {
     return (
-      <div className="w-full p-8 text-center bg-red-50 text-red-600 rounded-[24px] border border-red-100">
+      <div className="w-full p-8 text-center bg-red-50 text-red-600 rounded-3xl border border-red-100">
         <p className="font-bold">Failed to fetch campaigns from the server</p>
-        <button
-          onClick={() => fetchCampaigns()}
-          style={{ backgroundColor: primaryPurple }}
-          className="mt-4 px-4 py-2 text-white rounded-xl text-xs font-bold shadow-md"
-        >
-          Try Again
-        </button>
       </div>
     );
   }
@@ -258,8 +371,8 @@ const CampaignManagement: React.FC = () => {
       </div>
 
       {/* Filters & Search */}
-      <div className="flex flex-wrap gap-4 bg-white p-4 rounded-[24px] border border-gray-100 shadow-sm">
-        <div className="relative flex-1 min-w-[280px]">
+      <div className="flex flex-wrap gap-4 bg-white p-4 rounded-3xl border border-gray-100 shadow-sm">
+        <div className="relative flex-1 min-w-70 flex items-center gap-2">
           <Search
             className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
             size={18}
@@ -267,13 +380,35 @@ const CampaignManagement: React.FC = () => {
           <input
             type="text"
             placeholder="Search campaigns..."
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") setSearchTerm(query.trim());
+            }}
             className="w-full pl-12 pr-4 py-3 bg-slate-50 border-none rounded-xl outline-none focus:ring-2 focus:ring-[#5D3FD3]/10 text-sm"
           />
+          <button
+            onClick={() => setSearchTerm(query.trim())}
+            className="px-3 py-2 bg-[#5D3FD3] text-white rounded-xl text-sm hover:opacity-90"
+            title="Search"
+          >
+            Search
+          </button>
+          <button
+            onClick={() => {
+              setQuery("");
+              setSearchTerm("");
+            }}
+            className="px-3 py-2 bg-white border border-slate-200 text-slate-600 rounded-xl text-sm hover:bg-slate-50"
+            title="Clear"
+          >
+            Clear
+          </button>
         </div>
-        <button className="flex items-center gap-2 px-6 py-3 border border-slate-100 rounded-xl font-bold text-slate-600 hover:bg-slate-50 transition-colors">
+        {/* <button className="flex items-center gap-2 px-6 py-3 border border-slate-100 rounded-xl font-bold text-slate-600 hover:bg-slate-50 transition-colors">
           <Filter size={18} />
           Filters
-        </button>
+        </button> */}
       </div>
 
       {/* Campaigns Table */}
@@ -297,9 +432,14 @@ const CampaignManagement: React.FC = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
-              {campaigns.map((camp) => (
+              {(searchTerm
+                ? campaigns.filter((c: ICampaign) =>
+                    c.title?.toLowerCase().includes(searchTerm.toLowerCase()),
+                  )
+                : campaigns
+              ).map((camp: ICampaign) => (
                 <tr
-                  key={camp.id}
+                  key={camp.campaignId}
                   className="hover:bg-slate-50/50 transition-colors group"
                 >
                   <td className="px-8 py-6">
@@ -312,36 +452,30 @@ const CampaignManagement: React.FC = () => {
                           <MapPin size={12} /> {camp.location}
                         </span>
                         <span className="flex items-center gap-1 text-slate-400">
-                          <Calendar size={12} /> {camp.start_date} To{" "}
-                          {camp.end_date}
+                          <Calendar size={12} /> {camp.startDate} To{" "}
+                          {camp.endDate}
                         </span>
                       </div>
                     </div>
                   </td>
                   <td className="px-8 py-6">
                     <span className="px-3 py-1 bg-slate-100 text-slate-500 rounded-lg text-[10px] font-bold uppercase tracking-wider">
-                      {camp.categoryId === 1
+                      {camp.category === 1
                         ? "Environment"
-                        : camp.categoryId === 2
+                        : camp.category === 2
                           ? "Education"
-                          : camp.categoryId === 3
+                          : camp.category === 3
                             ? "Health"
-                            : `Category ${camp.categoryId}`}
+                            : `Category ${camp.category}`}
                     </span>
                   </td>
                   <td className="px-8 py-6">
                     <div className="flex flex-col gap-2 w-36">
                       <div className="flex justify-between text-[10px] font-bold text-slate-500 uppercase">
+                        <span>0 / {camp.maxVolunteers}</span>
                         <span>
-                          {camp.current_volunteers || 0} / {camp.max_volunteers}
-                        </span>
-                        <span>
-                          {camp.max_volunteers > 0
-                            ? Math.round(
-                                ((camp.current_volunteers || 0) /
-                                  camp.max_volunteers) *
-                                  100,
-                              )
+                          {camp.maxVolunteers > 0
+                            ? Math.round((0 / camp.maxVolunteers) * 100)
                             : 0}
                           %
                         </span>
@@ -349,7 +483,7 @@ const CampaignManagement: React.FC = () => {
                       <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
                         <div
                           style={{
-                            width: `${camp.max_volunteers > 0 ? ((camp.current_volunteers || 0) / camp.max_volunteers) * 100 : 0}%`,
+                            width: `${camp.maxVolunteers > 0 ? (0 / camp.maxVolunteers) * 100 : 0}%`,
                           }}
                           className="h-full bg-blue-600 rounded-full"
                         ></div>
@@ -360,14 +494,12 @@ const CampaignManagement: React.FC = () => {
                     <div className="flex flex-col gap-2 w-32">
                       <div className="flex justify-between text-[10px] font-bold text-slate-500 uppercase">
                         <span>Progress</span>
-                        <span style={{ color: primaryPurple }}>
-                          {camp.actual_progress || 0}%
-                        </span>
+                        <span style={{ color: primaryPurple }}>{0}%</span>
                       </div>
                       <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
                         <div
                           style={{
-                            width: `${camp.actual_progress || 0}%`,
+                            width: `${0}%`,
                             backgroundColor: primaryPurple,
                           }}
                           className="h-full rounded-full"
@@ -377,7 +509,7 @@ const CampaignManagement: React.FC = () => {
                   </td>
                   <td className="px-8 py-6">
                     <span
-                      className={`px-4 py-1.5 rounded-lg text-[10px] font-bold border ${getStatusStyle(camp.status)}`}
+                      className={`px-4 py-1.5 rounded-lg text-[10px] font-bold border ${getStatusStyle(camp.status as CampaignStatus)}`}
                     >
                       {camp.status}
                     </span>
@@ -385,15 +517,42 @@ const CampaignManagement: React.FC = () => {
                   <td className="px-8 py-6 text-center">
                     <div className="flex items-center justify-center gap-2">
                       <button
-                        onClick={() => openPhotosManagement(camp)}
+                        onClick={() => openPhotosManagement(camp as Campaign)}
                         title="Manage Photos"
                         className="p-2 text-slate-400 hover:text-[#5D3FD3] hover:bg-slate-50 rounded-xl transition-all"
                       >
                         <ImageIcon size={18} />
                       </button>
-                      <button className="p-2 text-slate-300 hover:text-[#5D3FD3] transition-colors">
-                        <MoreHorizontal size={20} />
-                      </button>
+                      <div className="relative">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setOpenDropdown((current) =>
+                              current === camp.campaignId
+                                ? null
+                                : camp.campaignId,
+                            )
+                          }
+                          className="p-2 text-slate-300 hover:text-[#5D3FD3] hover:bg-slate-50 rounded-xl transition-colors"
+                        >
+                          <MoreHorizontal size={20} />
+                        </button>
+
+                        {openDropdown === camp.campaignId && (
+                          <div className="absolute right-0 mt-2 w-44 rounded-xl border border-slate-200 bg-white shadow-lg z-20 overflow-hidden">
+                            <button
+                              type="button"
+                              onClick={() =>
+                                handleDeleteCampaign(camp.campaignId)
+                              }
+                              className="flex w-full items-center gap-3 px-4 py-3 text-sm font-medium text-red-600 hover:bg-red-50 transition-colors"
+                            >
+                              <Trash2 size={16} />
+                              حذف الحملة
+                            </button>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </td>
                 </tr>
@@ -406,7 +565,7 @@ const CampaignManagement: React.FC = () => {
       {/* Modal - Create Campaign */}
       {showCreateModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-300">
-          <div className="bg-white w-full max-w-2xl rounded-[32px] shadow-2xl overflow-hidden animate-in zoom-in-95">
+          <div className="bg-white w-full max-w-2xl rounded-4xl shadow-2xl overflow-hidden animate-in zoom-in-95">
             <div
               style={{ backgroundColor: primaryPurple }}
               className="p-8 flex justify-between items-center text-white"
@@ -437,10 +596,15 @@ const CampaignManagement: React.FC = () => {
               className="p-8 grid grid-cols-1 md:grid-cols-2 gap-6 max-h-[70vh] overflow-y-auto"
             >
               <div className="md:col-span-2 space-y-2">
-                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">
+                <label
+                  htmlFor="campaign-title"
+                  className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1"
+                >
                   Campaign Title
                 </label>
                 <input
+                  id="campaign-title"
+                  name="title"
                   type="text"
                   required
                   value={formData.title}
@@ -453,10 +617,15 @@ const CampaignManagement: React.FC = () => {
               </div>
 
               <div className="md:col-span-2 space-y-2">
-                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">
+                <label
+                  htmlFor="campaign-description"
+                  className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1"
+                >
                   Description
                 </label>
                 <textarea
+                  id="campaign-description"
+                  name="description"
                   rows={3}
                   required
                   value={formData.description}
@@ -469,7 +638,10 @@ const CampaignManagement: React.FC = () => {
               </div>
 
               <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">
+                <label
+                  htmlFor="campaign-location"
+                  className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1"
+                >
                   Location
                 </label>
                 <div className="relative">
@@ -478,6 +650,8 @@ const CampaignManagement: React.FC = () => {
                     className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
                   />
                   <input
+                    id="campaign-location"
+                    name="location"
                     type="text"
                     required
                     value={formData.location}
@@ -491,10 +665,15 @@ const CampaignManagement: React.FC = () => {
               </div>
 
               <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">
+                <label
+                  htmlFor="campaign-category"
+                  className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1"
+                >
                   Category
                 </label>
                 <select
+                  id="campaign-category"
+                  name="category"
                   value={formData.categoryId}
                   onChange={(e) =>
                     setFormData({
@@ -511,7 +690,10 @@ const CampaignManagement: React.FC = () => {
               </div>
 
               <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">
+                <label
+                  htmlFor="max-volunteers"
+                  className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1"
+                >
                   Max Volunteers
                 </label>
                 <div className="relative">
@@ -520,6 +702,8 @@ const CampaignManagement: React.FC = () => {
                     className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
                   />
                   <input
+                    id="max-volunteers"
+                    name="max_volunteers"
                     type="number"
                     required
                     value={formData.max_volunteers || ""}
@@ -536,10 +720,15 @@ const CampaignManagement: React.FC = () => {
               </div>
 
               <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">
+                <label
+                  htmlFor="start-date"
+                  className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1"
+                >
                   Start Date
                 </label>
                 <input
+                  id="start-date"
+                  name="start_date"
                   type="date"
                   required
                   value={formData.start_date}
@@ -551,10 +740,15 @@ const CampaignManagement: React.FC = () => {
               </div>
 
               <div className="space-y-2 md:col-span-2">
-                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">
+                <label
+                  htmlFor="end-date"
+                  className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1"
+                >
                   End Date
                 </label>
                 <input
+                  id="end-date"
+                  name="end_date"
                   type="date"
                   required
                   value={formData.end_date}
@@ -589,7 +783,7 @@ const CampaignManagement: React.FC = () => {
       {/* Modal - Photos Management */}
       {showPhotosModal && selectedCampaign && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-300">
-          <div className="bg-white w-full max-w-3xl rounded-[32px] shadow-2xl overflow-hidden animate-in zoom-in-95">
+          <div className="bg-white w-full max-w-3xl rounded-4xl shadow-2xl overflow-hidden animate-in zoom-in-95">
             <div
               style={{ backgroundColor: primaryPurple }}
               className="p-8 flex justify-between items-center text-white"
@@ -662,6 +856,62 @@ const CampaignManagement: React.FC = () => {
                 </div>
               </div>
 
+              {localPreviews && localPreviews.length > 0 && (
+                <div className="space-y-3">
+                  <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                    Selected Preview ({localPreviews.length})
+                  </h4>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                    {localPreviews.map((url: string, idx: number) => (
+                      <div
+                        key={url}
+                        className="aspect-square bg-slate-100 rounded-2xl overflow-hidden border border-slate-100 relative flex items-center justify-center"
+                      >
+                        <img
+                          src={url}
+                          alt={`preview-${idx}`}
+                          className="w-full h-full object-cover"
+                        />
+                        <button
+                          onClick={() => {
+                            // remove single preview
+                            const newPreviews = localPreviews.filter(
+                              (_, i) => i !== idx,
+                            );
+                            const newFiles = selectedFilesToUpload.filter(
+                              (_, i) => i !== idx,
+                            );
+                            URL.revokeObjectURL(url);
+                            setLocalPreviews(newPreviews);
+                            setSelectedFilesToUpload(newFiles);
+                          }}
+                          className="absolute top-2 right-2 bg-white/80 p-1 rounded-full text-xs"
+                          title="Remove"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="flex gap-2">
+                    <button
+                      onClick={uploadSelectedFiles}
+                      style={{ backgroundColor: primaryPurple }}
+                      className="px-4 py-2.5 text-white font-bold rounded-xl text-xs active:scale-95 transition-transform"
+                    >
+                      Upload Selected
+                    </button>
+                    <button
+                      onClick={clearSelection}
+                      className="px-4 py-2.5 text-slate-600 bg-white border border-slate-200 rounded-xl text-xs"
+                    >
+                      Clear Selection
+                    </button>
+                  </div>
+                </div>
+              )}
+
               <div className="space-y-3">
                 <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">
                   Current Gallery ({selectedCampaign.photos?.length || 0})
@@ -669,18 +919,119 @@ const CampaignManagement: React.FC = () => {
                 {selectedCampaign.photos &&
                 selectedCampaign.photos.length > 0 ? (
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                    {selectedCampaign.photos.map((photo) => (
-                      <div
-                        key={photo.id}
-                        className="aspect-square bg-slate-100 rounded-2xl overflow-hidden border border-slate-100 relative group shadow-sm"
-                      >
-                        <img
-                          src={photo.photoUrl}
-                          alt="Campaign"
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                        />
-                      </div>
-                    ))}
+                    {selectedCampaign.photos.map((photo: CampaignPhoto) => {
+                      const p = photo as {
+                        photoId?: number;
+                        campaignId?: number;
+                        photoUrl?: string;
+                      };
+                      const key = p.photoId ?? p.campaignId ?? p.photoUrl;
+                      const src = buildPhotoDisplayUrl(p.photoUrl);
+
+                      const blobKey = String(key);
+                      const displaySrc = photoBlobUrls[blobKey] || src;
+
+                      return (
+                        <div
+                          key={String(key)}
+                          className="aspect-square bg-slate-100 rounded-2xl overflow-hidden border border-slate-100 relative group shadow-sm"
+                        >
+                          {displaySrc ? (
+                            <img
+                              src={displaySrc}
+                              alt="Campaign"
+                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                              onError={async () => {
+                                try {
+                                  const token = localStorage.getItem("token");
+                                  const headers: Record<string, string> = {};
+                                  if (token)
+                                    headers["Authorization"] =
+                                      `Bearer ${token}`;
+
+                                  const candidates: string[] = [];
+                                  // If API already returned an absolute URL, try it first
+                                  if (p.photoUrl?.startsWith("http"))
+                                    candidates.push(p.photoUrl);
+
+                                  // Prefer the server base (root) + photoUrl (no /api/v1 prefix)
+                                  if (
+                                    p.photoUrl &&
+                                    p.photoUrl.startsWith("/")
+                                  ) {
+                                    candidates.push(
+                                      buildPhotoDisplayUrl(p.photoUrl),
+                                    );
+                                  }
+
+                                  // As a fallback try the API base + photoUrl (older deployments might serve differently)
+                                  if (p.photoUrl) {
+                                    candidates.push(
+                                      `${API_BASE_URL}${p.photoUrl}`,
+                                    );
+                                  }
+
+                                  // Also try cleaning any leading /api/v1 if present and use server base
+                                  if (p.photoUrl) {
+                                    const cleaned = p.photoUrl.replace(
+                                      /^\/api\/v1/,
+                                      "",
+                                    );
+                                    if (cleaned && cleaned !== p.photoUrl) {
+                                      candidates.push(
+                                        `${SERVER_BASE_URL}${cleaned.startsWith("/") ? cleaned : "/" + cleaned}`,
+                                      );
+                                    }
+                                  }
+
+                                  let success = false;
+                                  for (const fullUrl of candidates) {
+                                    try {
+                                      // helpful debug for server-side troubleshooting
+                                      console.debug(
+                                        "Attempting image fetch:",
+                                        fullUrl,
+                                      );
+                                      const res = await fetch(fullUrl, {
+                                        headers,
+                                      });
+                                      if (!res.ok)
+                                        throw new Error(`status:${res.status}`);
+                                      const blob = await res.blob();
+                                      const urlObj = URL.createObjectURL(blob);
+                                      setPhotoBlobUrls((prev) => ({
+                                        ...prev,
+                                        [blobKey]: urlObj,
+                                      }));
+                                      success = true;
+                                      break;
+                                    } catch {
+                                      // try next candidate
+                                    }
+                                  }
+
+                                  if (!success)
+                                    console.error(
+                                      "All fetch attempts failed for image",
+                                      p.photoUrl || blobKey,
+                                      candidates,
+                                    );
+                                } catch (err) {
+                                  console.error(
+                                    "Failed to fetch image as blob:",
+                                    err,
+                                  );
+                                }
+                              }}
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-slate-300">
+                              No image
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 ) : (
                   <div className="p-12 text-center border border-slate-100 rounded-2xl bg-slate-50/30 flex flex-col items-center justify-center gap-2">

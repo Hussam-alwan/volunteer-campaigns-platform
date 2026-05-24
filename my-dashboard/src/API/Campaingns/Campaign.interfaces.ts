@@ -19,6 +19,12 @@ export interface ICampaign {
   approvedBy: number | null;
   managedBy: number;
   category: number;
+  photos?: {
+    photoId?: number;
+    campaignId?: number;
+    photoUrl: string;
+    uploadedAt?: string;
+  }[];
 }
 
 // الواجهة الخاصة بالبيانات التي يتم إرسالها عبر الـ Form لإنشاء حملة جديدة (Inputs)
@@ -30,4 +36,14 @@ export interface ICampaignInputs {
   endDate: string;
   maxVolunteers: number;
   category: number; // لتحديد القسم أو الفئة للحملة
+  status: string;
+  proposedBy: number;
+  createdAt: string;
+  updatedAt: string;
+}
+export interface ICampaignResponse {
+  content: ICampaign[];
+  totalPages: number;
+  totalElements: number;
+  last: boolean;
 }

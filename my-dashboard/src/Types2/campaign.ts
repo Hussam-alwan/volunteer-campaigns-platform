@@ -20,22 +20,50 @@ export interface CampaignPhoto {
 }
 
 // هيكل بيانات الحملة بالكامل
+// export interface Campaign {
+//   id: number;
+//   proposedBy: number;
+//   approvedBy?: number;
+//   managedBy?: number;
+//   categoryId: number;
+//   title: string;
+//   description: string;
+//   location: string;
+//   start_date: string;
+//   end_date: string;
+//   max_volunteers: number;
+//   current_volunteers: number; // يتم حسابها أو جلبها لتعرف كم متطوع سجل
+//   status: CampaignStatus;
+//   actual_progress: number; // نسبة الإنجاز الفعلي على الأرض
+//   photos: CampaignPhoto[];
+// }
 export interface Campaign {
-  id: number;
-  proposedBy: number;
-  approvedBy?: number;
-  managedBy?: number;
-  categoryId: number;
+  campaignId: number;
   title: string;
   description: string;
   location: string;
-  start_date: string;
-  end_date: string;
-  max_volunteers: number;
-  current_volunteers: number; // يتم حسابها أو جلبها لتعرف كم متطوع سجل
+
+  startDate: string;
+  endDate: string;
+
+  maxVolunteers: number;
   status: CampaignStatus;
-  actual_progress: number; // نسبة الإنجاز الفعلي على الأرض
-  photos: CampaignPhoto[];
+
+  publishedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+
+  proposedBy: number;
+  approvedBy: number | null;
+  managedBy: number | null;
+
+  category: number;
+
+  photos?: {
+    id?: number;
+    campaignId?: number;
+    photoUrl: string;
+  }[];
 }
 
 // البيانات المطلوبة حصراً عند إرسال فورم إنشاء حملة جديدة
@@ -47,4 +75,14 @@ export interface CreateCampaignInput {
   max_volunteers: number;
   start_date: string;
   end_date: string;
+}
+
+export interface PaginatedResponse<T> {
+  content: T[];
+  totalPages: number;
+  totalElements: number;
+  number: number;
+  size: number;
+  first: boolean;
+  last: boolean;
 }
