@@ -1,5 +1,7 @@
 import React from "react";
 import { Search, MessageSquare, Bell, MoreVertical } from "lucide-react";
+import LoginPage from "../auth/LoginPage";
+import RegisterPage from "../auth/RegisterPage";
 import {
   Avatar,
   AvatarImage,
@@ -9,6 +11,8 @@ import {
 function HeaderPage() {
   return (
     <div>
+      {/* <LoginPage />
+      <RegisterPage /> */}
       <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6">
         {/* Search */}
         <div className="relative w-96">
