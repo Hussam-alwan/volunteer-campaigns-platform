@@ -71,13 +71,13 @@ function ApplacitionReports() {
             />
             <Bar
               dataKey="pending"
-              fill="#a5b4fc"
+              fill="#cce0f5"
               radius={[4, 4, 0, 0]}
               barSize={12}
             />
             <Bar
               dataKey="accepted"
-              fill="#4f46e5"
+              fill="#0066cc"
               radius={[4, 4, 0, 0]}
               barSize={12}
             />

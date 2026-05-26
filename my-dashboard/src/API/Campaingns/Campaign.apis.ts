@@ -1,53 +1,135 @@
-// src/apis/campaign/campaign.api.ts
+import ApiInstance from "../api.instance";
+import type { IPagination } from "../../common.interfaces";
+import CampaignApiRoutes from "./Campaign.api-routes";
+import useAuthStore from "../../store/auth.store";
+import type {
+  Campaign,
+  CreateCampaignInput,
+  CampaignStatus,
+} from "../../Types2/campaign";
 
-import ApiInstance from "../api.instance"; // تأكدي من مسار ملف الـ Axios الجديد الخاص بكِ
-import type { IPagination, IResponse } from "../../common.interfaces"; // تأكدي من وجود هذه الـ interfaces العامة لديكِ
-import CampaignApiRoutes from "./Campaign.api-routes"; // ملف الـ Routes البسيط الذي جهزناه
-import type { ICampaign } from "./Campaign.interfaces"; // الـ Interface الجديد الخاص بالحملات
+interface BackendCampaign {
+  campaignId: number;
+  title: string;
+  description: string;
+  location: string;
+  startDate: string;
+  endDate: string;
+  maxVolunteers: number;
+  status: string;
+  publishedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  proposedBy: number;
+  approvedBy: number | null;
+  managedBy: number;
+  category: number;
+}
 
-// 1. جلب كل الحملات مع الـ Pagination والـ Params
-const getAllCampaigns = async (params?: IPagination) => {
-  const { data } = await ApiInstance.get<IResponse<ICampaign[]>>(
+interface BackendPage<T> {
+  content: T[];
+  totalElements: number;
+  totalPages: number;
+  size: number;
+  number: number;
+}
+
+export interface ICampaignsPage {
+  content: Campaign[];
+  totalElements: number;
+  totalPages: number;
+  size: number;
+  number: number;
+}
+
+const toCampaign = (b: BackendCampaign): Campaign => ({
+  id: b.campaignId,
+  title: b.title,
+  description: b.description,
+  location: b.location,
+  start_date: b.startDate,
+  end_date: b.endDate,
+  max_volunteers: b.maxVolunteers,
+  current_volunteers: 0,
+  actual_progress: 0,
+  status: (b.status || "").toLowerCase() as CampaignStatus,
+  categoryId: b.category,
+  proposedBy: b.proposedBy,
+  approvedBy: b.approvedBy ?? undefined,
+  managedBy: b.managedBy,
+  photos: [],
+});
+
+const toBackendPayload = (
+  p: CreateCampaignInput,
+  opts: { status: string; proposedBy: number },
+) => ({
+  title: p.title,
+  description: p.description,
+  location: p.location,
+  startDate: p.start_date,
+  endDate: p.end_date,
+  maxVolunteers: p.max_volunteers,
+  category: p.categoryId,
+  status: opts.status,
+  proposedBy: opts.proposedBy,
+});
+
+const currentUserId = (): number => {
+  const user = useAuthStore.getState().user;
+  if (!user?.userId) {
+    throw new Error("Not authenticated — cannot determine proposedBy.");
+  }
+  return user.userId;
+};
+
+const getAllCampaigns = async (
+  params?: IPagination,
+): Promise<ICampaignsPage> => {
+  const { data } = await ApiInstance.get<BackendPage<BackendCampaign>>(
     CampaignApiRoutes.GetAll,
-    {
-      params,
-    },
+    { params },
   );
-  return data;
+  return { ...data, content: data.content.map(toCampaign) };
 };
 
-// 2. جلب حملة واحدة محددة عبر الـ ID
-const getCampaign = async (id: number) => {
-  const { data } = await ApiInstance.get<ICampaign>(
+const getCampaign = async (id: number): Promise<Campaign> => {
+  const { data } = await ApiInstance.get<BackendCampaign>(
     `${CampaignApiRoutes.GetAll}/${id}`,
   );
-  return data;
+  return toCampaign(data);
 };
 
-// 3. إضافة حملة جديدة (تأخذ payload سواء كان Object عادي أو FormData إذا كان فيه رفع صور)
-const addCampaign = async (payload: ICampaign) => {
-  const { data } = await ApiInstance.post(CampaignApiRoutes.GetAll, payload);
-  return data;
-};
-
-// 4. تعديل حملة كاملة (PUT صريح بدون حيلة الـ _method القديمة)
-const updateCampaign = async (payload: ICampaign, id: number) => {
-  const { data } = await ApiInstance.put(
-    `${CampaignApiRoutes.GetAll}/${id}`,
-    payload,
+const addCampaign = async (payload: CreateCampaignInput): Promise<Campaign> => {
+  const { data } = await ApiInstance.post<BackendCampaign>(
+    CampaignApiRoutes.GetAll,
+    toBackendPayload(payload, {
+      status: "PENDING",
+      proposedBy: currentUserId(),
+    }),
   );
-  return data;
+  return toCampaign(data);
 };
 
-// 5. حذف حملة
-const deleteCampaign = async (id: number) => {
-  const { data } = await ApiInstance.delete(
+const updateCampaign = async (
+  id: number,
+  payload: CreateCampaignInput,
+  existing: Campaign,
+): Promise<Campaign> => {
+  const { data } = await ApiInstance.put<BackendCampaign>(
     `${CampaignApiRoutes.GetAll}/${id}`,
+    toBackendPayload(payload, {
+      status: (existing.status || "PENDING").toUpperCase(),
+      proposedBy: existing.proposedBy,
+    }),
   );
-  return data;
+  return toCampaign(data);
 };
 
-// تجميع كل الدوال لتصديرها بشكل منظم
+const deleteCampaign = async (id: number): Promise<void> => {
+  await ApiInstance.delete(`${CampaignApiRoutes.GetAll}/${id}`);
+};
+
 const campaignApis = {
   getAllCampaigns,
   getCampaign,

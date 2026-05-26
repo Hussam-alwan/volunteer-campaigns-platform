@@ -10,6 +10,7 @@ import useAuthStore from "../store/auth.store";
 
 const ApiInstance = axios.create({
   baseURL: API_BASE_URL,
+  withCredentials: true,
   headers: {
     "Content-Type": "application/json",
   },
@@ -24,7 +25,7 @@ ApiInstance.interceptors.request.use(
     // جلب الـ Token مباشرة من الـ Zustand Store الجديد
     const token = useAuthStore.getState().token;
 
-    if (token && config.headers) {
+    if (token && token !== "cookie_session_active" && config.headers) {
       config.headers.Authorization = `Bearer ${token}`;
     }
 

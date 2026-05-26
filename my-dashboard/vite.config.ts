@@ -18,7 +18,8 @@ export default defineConfig({
         target: "https://sbc-production.up.railway.app/",
         changeOrigin: true,
         secure: true,
-        // بنحذف كلمة /api-railway قبل ما نبعت الطلب للسيرفر ليروح المسار للباك-إند صح (/api/v1/...)
+        cookieDomainRewrite: "localhost",
+        cookiePathRewrite: "/",
         rewrite: (path) => path.replace(/^\/api-railway/, ""),
       },
     },

@@ -1,11 +1,11 @@
 // src/pages/CampaignManagement.tsx
 
-import React, { useState, type ChangeEvent, type FormEvent } from "react";
+import { useState, type ChangeEvent, type FormEvent } from "react";
 import {
   Plus,
   Search,
-  Filter,
-  MoreHorizontal,
+  Edit2,
+  Trash2,
   MapPin,
   Users,
   Calendar,
@@ -16,10 +16,11 @@ import {
   Image as ImageIcon,
   Upload,
   Link2,
+  Activity,
 } from "lucide-react";
 
 import campaignQueries from "../../API/Campaingns/Campaingnqueries";
-import campaignApis from "../../API/Campaingns/Campaign.apis";
+import attendanceQueries from "../../API/Attendance/Attendancequeries";
 import { campaignService } from "../../services/campaignService";
 import type {
   Campaign,
@@ -27,14 +28,23 @@ import type {
   CampaignStatus,
 } from "../../Types2/campaign";
 
-const CampaignManagement: React.FC = () => {
+const emptyFormData: CreateCampaignInput = {
+  title: "",
+  description: "",
+  location: "",
+  categoryId: 1,
+  max_volunteers: 0,
+  start_date: "",
+  end_date: "",
+};
+
+const CampaignManagement = () => {
   // التحكم بحالة الـ Pagination مع الحفاظ على التصميم المتناسق للجدول
-  const [pagination, setPagination] = useState({
-    pageIndex: 1,
+  const [pagination] = useState({
+    pageIndex: 0,
     pageSize: 10,
   });
 
-  // جلب البيانات الاحترافي عبر React Query بدون الحاجة لـ useEffect يدوي
   const {
     data: campaignsResponse,
     isLoading: loading,
@@ -45,29 +55,52 @@ const CampaignManagement: React.FC = () => {
     size: pagination.pageSize,
   });
 
-  // استخراج المصفوفة الفعلية للحملات من الرد الموحد الجديد
-  const campaigns = campaignsResponse?.data || [];
+  const addCampaignMutation = campaignQueries.useAddCampaign();
+  const updateCampaignMutation = campaignQueries.useUpdateCampaign();
+  const deleteCampaignMutation = campaignQueries.useDeleteCampaign();
 
-  // حالات النوافذ المنبثقة والتحكم بالواجهة (تماما كما في تصميمك الأصلي)
+  const campaigns = campaignsResponse?.content || [];
+
   const [showCreateModal, setShowCreateModal] = useState<boolean>(false);
   const [showPhotosModal, setShowPhotosModal] = useState<boolean>(false);
   const [selectedCampaign, setSelectedCampaign] = useState<Campaign | null>(
     null,
   );
+  const [editingCampaign, setEditingCampaign] = useState<Campaign | null>(null);
   const [photoUrlInput, setPhotoUrlInput] = useState<string>("");
-
-  // فورم الإنشاء المربوط بالـ State
-  const [formData, setFormData] = useState<CreateCampaignInput>({
-    title: "",
-    description: "",
-    location: "",
-    categoryId: 1,
-    max_volunteers: 0,
-    start_date: "",
-    end_date: "",
+  const [searchQuery, setSearchQuery] = useState<string>("");
+  const [progressCampaign, setProgressCampaign] = useState<Campaign | null>(
+    null,
+  );
+  const [progressForm, setProgressForm] = useState({
+    percentage: 0,
+    notes: "",
   });
 
-  const primaryPurple = "#5D3FD3";
+  const progressTargetId = progressCampaign?.id || 0;
+  const { data: progressPage } = attendanceQueries.useGetProgress(
+    progressTargetId,
+  );
+  const createProgress = attendanceQueries.useCreateProgress(progressTargetId);
+  const progressHistory = [...(progressPage?.content || [])].sort(
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+  );
+  const latestProgress = progressHistory[0];
+
+  const [formData, setFormData] =
+    useState<CreateCampaignInput>(emptyFormData);
+
+  const filteredCampaigns = campaigns.filter((c) => {
+    const term = searchQuery.toLowerCase().trim();
+    if (!term) return true;
+    return (
+      c.title.toLowerCase().includes(term) ||
+      c.location.toLowerCase().includes(term) ||
+      c.status?.toLowerCase().includes(term)
+    );
+  });
+
+  const primaryPurple = "#0066cc";
 
   // حساب العدادات العلوية ديناميكياً من بيانات الـ API المحدثة تلقائياً كاش
   const totalCampaigns = campaigns.length;
@@ -165,25 +198,88 @@ const CampaignManagement: React.FC = () => {
     }
   };
 
+  const closeModal = () => {
+    setShowCreateModal(false);
+    setEditingCampaign(null);
+    setFormData(emptyFormData);
+  };
+
+  const openEditModal = (camp: Campaign) => {
+    setEditingCampaign(camp);
+    setFormData({
+      title: camp.title,
+      description: camp.description,
+      location: camp.location,
+      categoryId: camp.categoryId,
+      max_volunteers: camp.max_volunteers,
+      start_date: camp.start_date,
+      end_date: camp.end_date,
+    });
+    setShowCreateModal(true);
+  };
+
   const handleCreateSubmit = async (e: FormEvent) => {
     e.preventDefault();
     try {
-      await campaignApis.addCampaign(formData);
-      setShowCreateModal(false);
-      fetchCampaigns();
-      setFormData({
-        title: "",
-        description: "",
-        location: "",
-        categoryId: 1,
-        max_volunteers: 0,
-        start_date: "",
-        end_date: "",
-      });
-    } catch (err) {
-      alert("Error creating campaign");
+      if (editingCampaign) {
+        await updateCampaignMutation.mutateAsync({
+          id: editingCampaign.id,
+          payload: formData,
+          existing: editingCampaign,
+        });
+      } else {
+        await addCampaignMutation.mutateAsync(formData);
+      }
+      closeModal();
+    } catch (err: any) {
+      alert(
+        err?.response?.data?.message ||
+          (editingCampaign
+            ? "Error updating campaign"
+            : "Error creating campaign"),
+      );
     }
   };
+
+  const handleDeleteCampaign = async (id: number) => {
+    if (!window.confirm("Delete this campaign?")) return;
+    try {
+      await deleteCampaignMutation.mutateAsync(id);
+    } catch (err: any) {
+      alert(err?.response?.data?.message || "Error deleting campaign");
+    }
+  };
+
+  const openProgressModal = (camp: Campaign) => {
+    setProgressCampaign(camp);
+    setProgressForm({ percentage: 0, notes: "" });
+  };
+
+  const closeProgressModal = () => {
+    setProgressCampaign(null);
+    setProgressForm({ percentage: 0, notes: "" });
+  };
+
+  const handleProgressSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    if (!progressCampaign) return;
+    const percentage = Number(progressForm.percentage);
+    if (Number.isNaN(percentage) || percentage < 0 || percentage > 100) {
+      alert("Percentage must be between 0 and 100.");
+      return;
+    }
+    createProgress.mutate(
+      { percentage, notes: progressForm.notes.trim() || undefined },
+      {
+        onSuccess: () => setProgressForm({ percentage: 0, notes: "" }),
+        onError: (err: any) =>
+          alert(err?.response?.data?.message || "Failed to save progress."),
+      },
+    );
+  };
+
+  const isFormSubmitting =
+    addCampaignMutation.isPending || updateCampaignMutation.isPending;
 
   if (loading) {
     return (
@@ -224,7 +320,11 @@ const CampaignManagement: React.FC = () => {
           </p>
         </div>
         <button
-          onClick={() => setShowCreateModal(true)}
+          onClick={() => {
+            setEditingCampaign(null);
+            setFormData(emptyFormData);
+            setShowCreateModal(true);
+          }}
           style={{ backgroundColor: primaryPurple }}
           className="flex items-center gap-2 text-white px-6 py-3 rounded-2xl font-bold shadow-lg shadow-indigo-100 transition-all active:scale-95 hover:opacity-90"
         >
@@ -238,7 +338,7 @@ const CampaignManagement: React.FC = () => {
         {stats.map((stat, i) => (
           <div
             key={i}
-            className="bg-white p-6 rounded-[30px] border border-gray-100 shadow-[0_8px_30px_rgb(0,0,0,0.02)] group hover:border-[#5D3FD3]/20 transition-all flex items-center gap-4"
+            className="bg-white p-6 rounded-[30px] border border-gray-100 shadow-[0_8px_30px_rgb(0,0,0,0.02)] group hover:border-[#0066cc]/20 transition-all flex items-center gap-4"
           >
             <div
               className={`p-4 rounded-2xl ${stat.bg} group-hover:scale-110 transition-transform`}
@@ -257,7 +357,7 @@ const CampaignManagement: React.FC = () => {
         ))}
       </div>
 
-      {/* Filters & Search */}
+      {/* Search */}
       <div className="flex flex-wrap gap-4 bg-white p-4 rounded-[24px] border border-gray-100 shadow-sm">
         <div className="relative flex-1 min-w-[280px]">
           <Search
@@ -266,14 +366,12 @@ const CampaignManagement: React.FC = () => {
           />
           <input
             type="text"
-            placeholder="Search campaigns..."
-            className="w-full pl-12 pr-4 py-3 bg-slate-50 border-none rounded-xl outline-none focus:ring-2 focus:ring-[#5D3FD3]/10 text-sm"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search by title, location, or status..."
+            className="w-full pl-12 pr-4 py-3 bg-slate-50 border-none rounded-xl outline-none focus:ring-2 focus:ring-[#0066cc]/10 text-sm"
           />
         </div>
-        <button className="flex items-center gap-2 px-6 py-3 border border-slate-100 rounded-xl font-bold text-slate-600 hover:bg-slate-50 transition-colors">
-          <Filter size={18} />
-          Filters
-        </button>
       </div>
 
       {/* Campaigns Table */}
@@ -297,14 +395,14 @@ const CampaignManagement: React.FC = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
-              {campaigns.map((camp) => (
+              {filteredCampaigns.map((camp) => (
                 <tr
                   key={camp.id}
                   className="hover:bg-slate-50/50 transition-colors group"
                 >
                   <td className="px-8 py-6">
                     <div className="flex flex-col">
-                      <span className="font-bold text-slate-800 text-base group-hover:text-[#5D3FD3] transition-colors">
+                      <span className="font-bold text-slate-800 text-base group-hover:text-[#0066cc] transition-colors">
                         {camp.title}
                       </span>
                       <div className="flex flex-wrap items-center gap-3 text-slate-400 text-xs mt-1.5">
@@ -385,14 +483,33 @@ const CampaignManagement: React.FC = () => {
                   <td className="px-8 py-6 text-center">
                     <div className="flex items-center justify-center gap-2">
                       <button
+                        onClick={() => openProgressModal(camp)}
+                        title="Manage Progress"
+                        className="p-2 text-[#0066cc] hover:bg-[#0066cc]/10 rounded-xl transition-all"
+                      >
+                        <Activity size={18} />
+                      </button>
+                      <button
                         onClick={() => openPhotosManagement(camp)}
                         title="Manage Photos"
-                        className="p-2 text-slate-400 hover:text-[#5D3FD3] hover:bg-slate-50 rounded-xl transition-all"
+                        className="p-2 text-slate-400 hover:text-[#0066cc] hover:bg-slate-50 rounded-xl transition-all"
                       >
                         <ImageIcon size={18} />
                       </button>
-                      <button className="p-2 text-slate-300 hover:text-[#5D3FD3] transition-colors">
-                        <MoreHorizontal size={20} />
+                      <button
+                        onClick={() => openEditModal(camp)}
+                        title="Edit Campaign"
+                        className="p-2 text-amber-500 hover:text-amber-600 hover:bg-amber-50 rounded-xl transition-all"
+                      >
+                        <Edit2 size={18} />
+                      </button>
+                      <button
+                        onClick={() => handleDeleteCampaign(camp.id)}
+                        title="Delete Campaign"
+                        disabled={deleteCampaignMutation.isPending}
+                        className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all disabled:opacity-50"
+                      >
+                        <Trash2 size={18} />
                       </button>
                     </div>
                   </td>
@@ -417,15 +534,17 @@ const CampaignManagement: React.FC = () => {
                 </div>
                 <div>
                   <h2 className="text-xl font-bold tracking-tight">
-                    Create New Campaign
+                    {editingCampaign ? "Edit Campaign" : "Create New Campaign"}
                   </h2>
                   <p className="text-indigo-100 text-xs mt-0.5 opacity-80">
-                    Define goals and requirements
+                    {editingCampaign
+                      ? "Update campaign details"
+                      : "Define goals and requirements"}
                   </p>
                 </div>
               </div>
               <button
-                onClick={() => setShowCreateModal(false)}
+                onClick={closeModal}
                 className="hover:bg-white/10 p-2 rounded-full transition-colors"
               >
                 <X size={24} />
@@ -448,7 +567,7 @@ const CampaignManagement: React.FC = () => {
                     setFormData({ ...formData, title: e.target.value })
                   }
                   placeholder="Enter campaign title..."
-                  className="w-full px-5 py-3.5 bg-slate-50 border border-transparent rounded-2xl focus:ring-2 focus:ring-[#5D3FD3]/10 focus:bg-white focus:border-[#5D3FD3]/20 outline-none transition-all text-sm"
+                  className="w-full px-5 py-3.5 bg-slate-50 border border-transparent rounded-2xl focus:ring-2 focus:ring-[#0066cc]/10 focus:bg-white focus:border-[#0066cc]/20 outline-none transition-all text-sm"
                 />
               </div>
 
@@ -463,7 +582,7 @@ const CampaignManagement: React.FC = () => {
                   onChange={(e) =>
                     setFormData({ ...formData, description: e.target.value })
                   }
-                  className="w-full px-5 py-3.5 bg-slate-50 border border-transparent rounded-2xl focus:ring-2 focus:ring-[#5D3FD3]/10 focus:bg-white focus:border-[#5D3FD3]/20 outline-none transition-all text-sm resize-none"
+                  className="w-full px-5 py-3.5 bg-slate-50 border border-transparent rounded-2xl focus:ring-2 focus:ring-[#0066cc]/10 focus:bg-white focus:border-[#0066cc]/20 outline-none transition-all text-sm resize-none"
                   placeholder="What is this campaign about?"
                 ></textarea>
               </div>
@@ -484,7 +603,7 @@ const CampaignManagement: React.FC = () => {
                     onChange={(e) =>
                       setFormData({ ...formData, location: e.target.value })
                     }
-                    className="w-full pl-11 pr-5 py-3.5 bg-slate-50 border border-transparent rounded-2xl focus:bg-white focus:border-[#5D3FD3]/20 outline-none text-sm"
+                    className="w-full pl-11 pr-5 py-3.5 bg-slate-50 border border-transparent rounded-2xl focus:bg-white focus:border-[#0066cc]/20 outline-none text-sm"
                     placeholder="Physical or Virtual location"
                   />
                 </div>
@@ -568,17 +687,22 @@ const CampaignManagement: React.FC = () => {
               <div className="md:col-span-2 flex gap-4 mt-4 pt-6 border-t border-slate-50">
                 <button
                   type="button"
-                  onClick={() => setShowCreateModal(false)}
+                  onClick={closeModal}
                   className="flex-1 px-6 py-4 border border-slate-100 text-slate-500 font-bold rounded-2xl hover:bg-slate-50 transition-all text-sm"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
+                  disabled={isFormSubmitting}
                   style={{ backgroundColor: primaryPurple }}
-                  className="flex-1 px-6 py-4 text-white font-bold rounded-2xl shadow-lg shadow-indigo-100 hover:opacity-90 transition-all text-sm"
+                  className="flex-1 px-6 py-4 text-white font-bold rounded-2xl shadow-lg shadow-indigo-100 hover:opacity-90 transition-all text-sm disabled:opacity-50"
                 >
-                  Confirm & Create
+                  {isFormSubmitting
+                    ? "Saving..."
+                    : editingCampaign
+                      ? "Save Changes"
+                      : "Confirm & Create"}
                 </button>
               </div>
             </form>
@@ -617,7 +741,7 @@ const CampaignManagement: React.FC = () => {
 
             <div className="p-8 space-y-6 max-h-[70vh] overflow-y-auto">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="p-6 border-2 border-dashed border-slate-200 hover:border-[#5D3FD3]/40 rounded-2xl transition-colors relative flex flex-col items-center justify-center gap-2 group cursor-pointer">
+                <div className="p-6 border-2 border-dashed border-slate-200 hover:border-[#0066cc]/40 rounded-2xl transition-colors relative flex flex-col items-center justify-center gap-2 group cursor-pointer">
                   <input
                     type="file"
                     multiple
@@ -649,7 +773,7 @@ const CampaignManagement: React.FC = () => {
                       placeholder="https://example.com/image.jpg"
                       value={photoUrlInput}
                       onChange={(e) => setPhotoUrlInput(e.target.value)}
-                      className="flex-1 px-4 py-2.5 bg-white border border-slate-200 rounded-xl outline-none focus:border-[#5D3FD3]/40 text-xs"
+                      className="flex-1 px-4 py-2.5 bg-white border border-slate-200 rounded-xl outline-none focus:border-[#0066cc]/40 text-xs"
                     />
                     <button
                       onClick={handleUrlSubmit}
@@ -691,6 +815,136 @@ const CampaignManagement: React.FC = () => {
                   </div>
                 )}
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {progressCampaign && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-300">
+          <div className="bg-white w-full max-w-xl rounded-[32px] shadow-2xl overflow-hidden animate-in zoom-in-95">
+            <div
+              style={{ backgroundColor: primaryPurple }}
+              className="p-6 flex justify-between items-center text-white"
+            >
+              <div className="flex items-center gap-4">
+                <div className="bg-white/20 p-3 rounded-2xl">
+                  <Activity size={22} />
+                </div>
+                <div>
+                  <h2 className="text-lg font-bold tracking-tight">
+                    Campaign Progress
+                  </h2>
+                  <p className="text-indigo-100 text-xs mt-0.5 opacity-80">
+                    {progressCampaign.title}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={closeProgressModal}
+                className="hover:bg-white/10 p-2 rounded-full transition-colors"
+              >
+                <X size={22} />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-5">
+              <div className="bg-slate-50 rounded-2xl p-5">
+                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">
+                  Latest Progress
+                </p>
+                <p
+                  className="text-4xl font-extrabold"
+                  style={{ color: primaryPurple }}
+                >
+                  {latestProgress ? `${latestProgress.percentage}%` : "—"}
+                </p>
+                {latestProgress?.notes && (
+                  <p className="text-sm text-slate-500 mt-2">
+                    {latestProgress.notes}
+                  </p>
+                )}
+                {latestProgress && (
+                  <p className="text-xs text-slate-400 mt-2">
+                    Updated{" "}
+                    {new Date(latestProgress.createdAt).toLocaleString()}
+                  </p>
+                )}
+              </div>
+
+              <form onSubmit={handleProgressSubmit} className="space-y-4">
+                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                  Log new entry
+                </p>
+                <div className="grid grid-cols-3 gap-3">
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    step="1"
+                    required
+                    placeholder="0-100"
+                    value={progressForm.percentage}
+                    onChange={(e) =>
+                      setProgressForm({
+                        ...progressForm,
+                        percentage: Number(e.target.value),
+                      })
+                    }
+                    className="col-span-1 px-4 py-3 bg-slate-50 border border-slate-100 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-[#0066cc]/20 font-bold text-slate-700"
+                  />
+                  <input
+                    type="text"
+                    placeholder="Optional notes"
+                    value={progressForm.notes}
+                    onChange={(e) =>
+                      setProgressForm({
+                        ...progressForm,
+                        notes: e.target.value,
+                      })
+                    }
+                    className="col-span-2 px-4 py-3 bg-slate-50 border border-slate-100 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-[#0066cc]/20"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  disabled={createProgress.isPending}
+                  style={{ backgroundColor: primaryPurple }}
+                  className="w-full px-6 py-3 text-white font-bold rounded-2xl shadow-md hover:opacity-90 transition-all text-sm disabled:opacity-50"
+                >
+                  {createProgress.isPending ? "Saving..." : "Add Progress Entry"}
+                </button>
+              </form>
+
+              {progressHistory.length > 1 && (
+                <div>
+                  <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
+                    History
+                  </p>
+                  <div className="space-y-2 max-h-48 overflow-y-auto">
+                    {progressHistory.slice(1).map((p) => (
+                      <div
+                        key={p.progressId}
+                        className="flex items-start justify-between gap-3 px-4 py-3 bg-slate-50/60 rounded-xl text-sm"
+                      >
+                        <div>
+                          <span className="font-bold text-slate-800">
+                            {p.percentage}%
+                          </span>
+                          {p.notes && (
+                            <p className="text-slate-500 text-xs mt-0.5">
+                              {p.notes}
+                            </p>
+                          )}
+                        </div>
+                        <span className="text-[10px] text-slate-400 whitespace-nowrap">
+                          {new Date(p.createdAt).toLocaleDateString()}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>

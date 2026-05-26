@@ -1,44 +1,65 @@
-// src/apis/campaign/campaign.queries.ts
-
-import { useQuery } from "@tanstack/react-query";
-import campaignApis from "./Campaign.apis"; // استدعاء ملف الـ API الذي جهزناه سوياً
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import campaignApis from "./Campaign.apis";
 import type { IPagination } from "../../common.interfaces";
+import type { Campaign, CreateCampaignInput } from "../../Types2/campaign";
 
-// تجميع مفاتيح الكاش (Query Keys) لضمان تنظيمها وعدم تكرارها
 export const campaignQueryKeys = {
-  useGetAllCampaigns: (param: IPagination) =>
-    ["get-all-campaigns", param] as const,
-  useGetCampaignById: (id: number) => ["get-campaign-by-id", id] as const,
+  list: (param: IPagination) => ["campaigns", "list", param] as const,
+  detail: (id: number) => ["campaigns", "detail", id] as const,
 };
 
-// 1. هوك جلب كل الحملات مع الـ Pagination والـ Filters
-const useGetAllCampaigns = (param: IPagination) => {
-  const queryResult = useQuery({
-    queryKey: campaignQueryKeys.useGetAllCampaigns(param),
+const useGetAllCampaigns = (param: IPagination) =>
+  useQuery({
+    queryKey: campaignQueryKeys.list(param),
     queryFn: () => campaignApis.getAllCampaigns(param),
-    // يمكنكِ إبقاء السطر أدناه إذا أردتِ عمل فلترة أو تعديل شكل البيانات قبل وصولها للـ Component
-    select: (res) => res,
   });
 
-  return queryResult;
+const useGetCampaignById = (campaignId: number) =>
+  useQuery({
+    queryKey: campaignQueryKeys.detail(campaignId),
+    queryFn: () => campaignApis.getCampaign(campaignId),
+    enabled: !!campaignId,
+  });
+
+const useAddCampaign = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: CreateCampaignInput) =>
+      campaignApis.addCampaign(payload),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["campaigns"] }),
+  });
 };
 
-// 2. هوك جلب حملة واحدة محددة عبر الـ ID (مثلاً لصفحة تفاصيل الحملة)
-const useGetCampaignById = (campaignId: number) => {
-  const queryResult = useQuery({
-    queryKey: campaignQueryKeys.useGetCampaignById(campaignId),
-    queryFn: () => campaignApis.getCampaign(campaignId),
-    select: (res) => res,
-    // الـ Hook لن يعمل إلا إذا كان الـ ID متاحاً وموجوداً (يمنع طلب قيم صفرية أو undefined)
-    enabled: !!campaignId && campaignId !== 0,
+const useUpdateCampaign = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      id,
+      payload,
+      existing,
+    }: {
+      id: number;
+      payload: CreateCampaignInput;
+      existing: Campaign;
+    }) => campaignApis.updateCampaign(id, payload, existing),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["campaigns"] }),
   });
+};
 
-  return queryResult;
+const useDeleteCampaign = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => campaignApis.deleteCampaign(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["campaigns"] }),
+  });
 };
 
 const campaignQueries = {
   useGetAllCampaigns,
   useGetCampaignById,
+  useAddCampaign,
+  useUpdateCampaign,
+  useDeleteCampaign,
 };
 
 export default campaignQueries;

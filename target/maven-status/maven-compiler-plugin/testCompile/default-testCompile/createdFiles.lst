@@ -1,0 +1,9 @@
+com\uni\impact\application\ApplicationServiceTest$Withdraw.class
+com\uni\impact\application\ApplicationServiceTest.class
+com\uni\impact\dashboard\DashboardServiceTest.class
+com\uni\impact\application\ApplicationServiceTest$Delete.class
+com\uni\impact\category\CategoryServiceTest.class
+com\uni\impact\campaign\CampaignServiceTest.class
+com\uni\impact\application\ApplicationServiceTest$ChangeStatus.class
+com\uni\impact\auth\AuthControllerTest.class
+com\uni\impact\application\ApplicationServiceTest$ApplyToCampaign.class

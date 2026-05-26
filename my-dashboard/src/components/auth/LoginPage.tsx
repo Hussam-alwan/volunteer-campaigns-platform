@@ -2,11 +2,11 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import authApis from "@/API/Authorization/authorization.apis";
 import type { ILoginPayload } from "../../API/Authorization/authorization.interface";
-// 1️⃣ استيراد الـ Store الافتراضي لتحديث الحالة الأمنية للتطبيق
 import useAuthStore from "../../store/auth.store";
 
 const LoginPage = () => {
   const navigate = useNavigate();
+  const setAuth = useAuthStore((state) => state.setAuth);
   const [formData, setFormData] = useState<ILoginPayload>({
     email: "",
     password: "",
@@ -17,77 +17,34 @@ const LoginPage = () => {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setLoading(true);
 
     try {
-      // 1️⃣ إرسال طلب تسجيل الدخول واستلام الاستجابة
-      const response = await authApis.login(formData);
-      console.log("Full Server Response Body:", response);
+      const { accessToken, ...user } = await authApis.login(formData);
 
-      // 2️⃣ استخراج التوكن بشكل آمن تماماً
-      // إذا كان الباكيند يرسل التوكن داخل الـ response body أو كـ الرد نفسه:
-      let realToken =
-        response?.accessToken ||
-        response?.access_token ||
-        response?.token ||
-        response?.jwt;
-
-      // 💡 إذا لم يعثر عليه بالداخل، قد يكون الـ response هو التوكن مباشرة كـ string، أو قادم عبر الهيدرز من دالة الـ API
-      if (!realToken && typeof response === "string") {
-        realToken = response;
+      if (!accessToken) {
+        setError("Server did not return an authorization token.");
+        return;
       }
 
-      // إذا استمر عدم وجود توكن، نضع النص الاحتياطي لتجنب انهيار الكود، لكن يفضل التأكد من الـ Network
-      if (!realToken) {
-        realToken = "cookie_session_active";
-      }
-
-      const user = response;
-
-      if (user && (user.userId || user.email || typeof user === "string")) {
-        // 3️⃣ الطريقة الآمنة والمستقرة لتحديث الـ Zustand Store دون استخدام setState المباشر الذي يسبب المشاكل:
-        const store = useAuthStore.getState();
-
-        // فحص الميثودز المتوفرة داخل الـ Store الخاص بك وتحديثها ديناميكياً
-        if (typeof (store as any).setAuth === "function") {
-          (store as any).setAuth(user, realToken);
-        } else if (typeof (store as any).login === "function") {
-          (store as any).login(user, realToken);
-        } else {
-          // تحديث يدوي للحقول في حال لم يكن هناك دالة تحديث مخصصة داخل الـ Store
-          useAuthStore.setState({
-            token: realToken,
-            user: typeof user === "object" ? user : { email: formData.email },
-            isAuthenticated: true,
-            loading: false,
-          });
-        }
-
-        // 4️⃣ حفظ التوكن الحقيقي في الـ localStorage لكي يلتقطه الـ Request Interceptor في Axios
-        localStorage.setItem("token", realToken);
-        console.log("Successfully Authorized with Token:", realToken);
-
-        // التوجيه الفوري للداشبورد
-        navigate("/dashboard", { replace: true });
-      } else {
-        setError("Failed to resolve user layout.");
-      }
+      setAuth(user, accessToken);
+      navigate("/dashboard", { replace: true });
     } catch (err: any) {
-      console.error("Axios login error:", err);
       setError(err?.response?.data?.message || "Invalid email or password.");
     } finally {
       setLoading(false);
     }
   };
   return (
-    <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center p-4 font-sans antialiased">
+    <div className="min-h-screen bg-[#f5f5f7] flex items-center justify-center p-4 font-sans antialiased">
       <div className="bg-white p-8 rounded-[32px] shadow-[0_8px_30px_rgb(0,0,0,0.02)] border border-gray-100 w-full max-w-md">
         {/* Header/Logo section matching Sidebar Header */}
         <div className="text-center mb-8">
-          <div className="bg-[#5D3FD3] inline-flex p-3 rounded-2xl text-white mb-4 shadow-lg shadow-indigo-100">
+          <div className="bg-[#0066cc] inline-flex p-3 rounded-2xl text-white mb-4 shadow-lg shadow-indigo-100">
             <div className="w-6 h-6 border-2 border-white rotate-45 flex items-center justify-center">
               <div className="w-2 h-2 bg-white" />
             </div>
@@ -118,7 +75,7 @@ const LoginPage = () => {
               value={formData.email}
               onChange={handleChange}
               placeholder="name@example.com"
-              className="w-full px-5 py-3.5 rounded-2xl bg-slate-50 border border-slate-200 text-slate-800 placeholder-slate-400 focus:outline-none focus:border-[#5D3FD3] focus:bg-white transition-all text-[15px]"
+              className="w-full px-5 py-3.5 rounded-2xl bg-slate-50 border border-slate-200 text-slate-800 placeholder-slate-400 focus:outline-none focus:border-[#0066cc] focus:bg-white transition-all text-[15px]"
             />
           </div>
 
@@ -133,14 +90,14 @@ const LoginPage = () => {
               value={formData.password}
               onChange={handleChange}
               placeholder="••••••••"
-              className="w-full px-5 py-3.5 rounded-2xl bg-slate-50 border border-slate-200 text-slate-800 placeholder-slate-400 focus:outline-none focus:border-[#5D3FD3] focus:bg-white transition-all text-[15px]"
+              className="w-full px-5 py-3.5 rounded-2xl bg-slate-50 border border-slate-200 text-slate-800 placeholder-slate-400 focus:outline-none focus:border-[#0066cc] focus:bg-white transition-all text-[15px]"
             />
           </div>
 
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-[#5D3FD3] hover:bg-[#4c32b3] text-white font-bold py-3.5 rounded-2xl transition-all shadow-lg shadow-indigo-100 hover:shadow-indigo-200 flex items-center justify-center text-[15px] mt-2 disabled:opacity-70"
+            className="w-full bg-[#0066cc] hover:bg-[#004999] text-white font-bold py-3.5 rounded-full transition-all shadow-lg shadow-indigo-100 hover:shadow-indigo-200 flex items-center justify-center text-[15px] mt-2 disabled:opacity-70"
           >
             {loading ? "Signing In..." : "Sign In"}
           </button>
@@ -151,7 +108,7 @@ const LoginPage = () => {
             Don't have an account?{" "}
             <span
               onClick={() => navigate("/register")}
-              className="text-[#5D3FD3] font-bold cursor-pointer hover:underline ml-1"
+              className="text-[#0066cc] font-bold cursor-pointer hover:underline ml-1"
             >
               Create an account
             </span>

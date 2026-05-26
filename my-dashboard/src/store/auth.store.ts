@@ -1,40 +1,35 @@
-import { create, type StateCreator } from "zustand";
+import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
-import { type IAuth } from "../API/auth.interface";
+import type { IUser } from "../API/Authorization/authorization.interface";
 
 export const $AuthStoreKey = "volunteer_auth_state";
 
-const initialState: IAuth = {
-  token: "",
-  data: {
-    id: 0,
-    name: "",
-    email: "",
-    phoneNumber: "",
-    image: null,
-  },
-};
-
-type AuthActions = {
-  login: (data: IAuth) => void;
+interface AuthState {
+  token: string | null;
+  user: IUser | null;
+  setAuth: (user: IUser, token: string) => void;
   logout: () => void;
-};
+}
 
-const stateCreator: StateCreator<IAuth & AuthActions> = (set) => ({
-  ...initialState,
-  login: (authData) => {
-    set(authData);
-  },
-  logout: () => {
-    set({ ...initialState });
-  },
-});
-
-const useAuthStore = create<IAuth & AuthActions>()(
-  persist(stateCreator, {
-    name: $AuthStoreKey,
-    storage: createJSONStorage(() => localStorage),
-  }),
+const useAuthStore = create<AuthState>()(
+  persist(
+    (set) => ({
+      token: null,
+      user: null,
+      setAuth: (user, token) => {
+        localStorage.setItem("token", token);
+        set({ user, token });
+      },
+      logout: () => {
+        localStorage.removeItem("token");
+        set({ user: null, token: null });
+      },
+    }),
+    {
+      name: $AuthStoreKey,
+      storage: createJSONStorage(() => localStorage),
+    },
+  ),
 );
 
 export default useAuthStore;

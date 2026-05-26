@@ -1,22 +1,37 @@
-// ❌ إذا كانت الدالة هكذا وتعود بـ data فقط، فلن ترى التوكن القادم في الهيدر:
-// const login = async (payload: ILoginPayload) => {
-//   const { data } = await ApiInstance.post("/auth/login", payload);
-//   return data;
-// };
+import ApiInstance from "../api.instance";
+import { AuthApiRoutes } from "./authorization.api-routes";
+import type {
+  ILoginPayload,
+  IRegisterPayload,
+  IUser,
+} from "./authorization.interface";
 
-//  التحويل الصحيح لقراءة الاستجابة كاملة إذا كان التوكن بالهيدرز:
-const login = async (payload: ILoginPayload) => {
-  const response = await ApiInstance.post("/auth/login", payload);
+export interface ILoginResponse extends IUser {
+  accessToken: string;
+}
 
-  // إذا وجدنا هيدر Authorization في استجابة السيرفر، نقوم بدمجه مع البيانات المعادة
+export const SESSION_TOKEN = "cookie_session_active";
+
+const login = async (payload: ILoginPayload): Promise<ILoginResponse> => {
+  const response = await ApiInstance.post<IUser>(AuthApiRoutes.login, payload);
+
   const tokenFromHeader =
     response.headers["authorization"] || response.headers["Authorization"];
+  const accessToken = tokenFromHeader
+    ? String(tokenFromHeader).replace(/^Bearer\s+/i, "")
+    : SESSION_TOKEN;
 
-  if (tokenFromHeader) {
-    // تنظيف كلمة Bearer إن وجدت لتخزين الصافي
-    const cleanToken = tokenFromHeader.replace("Bearer ", "");
-    return { ...response.data, accessToken: cleanToken };
-  }
+  return { ...response.data, accessToken };
+};
 
+const register = async (payload: IRegisterPayload): Promise<IUser> => {
+  const response = await ApiInstance.post<IUser>(
+    AuthApiRoutes.register,
+    payload,
+  );
   return response.data;
 };
+
+const authApis = { login, register };
+
+export default authApis;

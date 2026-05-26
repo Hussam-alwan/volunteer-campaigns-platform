@@ -1,11 +1,7 @@
 // src/apis/college/Collegesqueries.ts
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import collegesApis from "./Colleges.apis";
-import type {
-  IPageableParams,
-  ICreateCollegeInput,
-  IUpdateCollegeInput,
-} from "./Colleges.interfaces";
+import type { IPageableParams, ICollegeInput } from "./Colleges.interfaces";
 
 export const useCollegesFields = {
   COLLEGES_LIST: "COLLEGES_LIST",
@@ -24,8 +20,7 @@ export const useGetColleges = (params: IPageableParams) => {
 export const useAddCollege = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (payload: ICreateCollegeInput) =>
-      collegesApis.addCollege(payload),
+    mutationFn: (payload: ICollegeInput) => collegesApis.addCollege(payload),
     onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: [useCollegesFields.COLLEGES_LIST],
@@ -38,13 +33,8 @@ export const useAddCollege = () => {
 export const useUpdateCollege = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({
-      id,
-      payload,
-    }: {
-      id: number;
-      payload: IUpdateCollegeInput;
-    }) => collegesApis.updateCollege(id, payload),
+    mutationFn: ({ id, payload }: { id: number; payload: ICollegeInput }) =>
+      collegesApis.updateCollege(id, payload),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({
         queryKey: [useCollegesFields.COLLEGES_LIST],

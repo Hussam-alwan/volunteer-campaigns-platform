@@ -1,1 +1,62 @@
 @import "tailwindcss";
+
+:root {
+  /* Apple design tokens */
+  --color-primary: #0066cc;
+  --color-primary-active: #004999;
+  --color-primary-focus: #0071e3;
+  --color-primary-on-dark: #2997ff;
+
+  --color-canvas: #ffffff;
+  --color-canvas-parchment: #f5f5f7;
+  --color-surface-pearl: #fafafc;
+  --color-surface-tile-dark: #272729;
+  --color-surface-black: #000000;
+
+  --color-ink: #1d1d1f;
+  --color-ink-muted-80: #333333;
+  --color-ink-muted-48: #7a7a7a;
+  --color-on-dark: #ffffff;
+  --color-on-dark-muted: #cccccc;
+
+  --color-hairline: #e0e0e0;
+  --color-divider-soft: #f0f0f0;
+
+  --shadow-product: rgba(0, 0, 0, 0.22) 3px 5px 30px 0;
+}
+
+html,
+body,
+#root {
+  background-color: var(--color-canvas-parchment);
+  color: var(--color-ink);
+  font-family:
+    "SF Pro Text", system-ui, -apple-system, BlinkMacSystemFont, "Inter",
+    "Helvetica Neue", Arial, sans-serif;
+  font-size: 17px;
+  line-height: 1.47;
+  letter-spacing: -0.022em;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-family:
+    "SF Pro Display", system-ui, -apple-system, BlinkMacSystemFont, "Inter",
+    "Helvetica Neue", Arial, sans-serif;
+  letter-spacing: -0.022em;
+  font-weight: 600;
+}
+
+button:not(:disabled),
+[role="button"]:not([aria-disabled="true"]) {
+  cursor: pointer;
+}
+
+button {
+  font-family: inherit;
+  letter-spacing: -0.016em;
+}

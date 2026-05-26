@@ -17,30 +17,30 @@ const Sidebar = () => {
   // 1. حالة للتحكم في ظهور النافذة
   const [showLogoutModal, setShowLogoutModal] = useState(false);
 
-  const primaryPurple = "#5D3FD3";
+  const primaryPurple = "#0066cc";
 
   const mainMenuItems = [
-    { title: "Dashboard", icon: <LayoutGrid size={20} />, path: "/" },
-    { title: "Users", icon: <Users size={20} />, path: "/users" },
+    { title: "Dashboard", icon: <LayoutGrid size={18} />, path: "/dashboard" },
+    { title: "Students", icon: <Users size={18} />, path: "/students" },
     {
       title: "Applications",
-      icon: <FileText size={20} />,
+      icon: <FileText size={18} />,
       path: "/applications",
     },
-    { title: "Campaigns", icon: <Target size={20} />, path: "/campaigns" },
-    { title: "Colleges", icon: <School size={20} />, path: "/colleges" },
+    { title: "Campaigns", icon: <Target size={18} />, path: "/campaigns" },
+    { title: "Colleges", icon: <School size={18} />, path: "/colleges" },
     {
       title: "Attendance",
-      icon: <CalendarCheck size={20} />,
+      icon: <CalendarCheck size={18} />,
       path: "/attendance",
     },
-    { title: "Reports", icon: <BarChart3 size={20} />, path: "/reports" },
+    { title: "Reports", icon: <BarChart3 size={18} />, path: "/reports" },
   ];
 
   const activeLinkClass =
-    "relative w-full flex items-center gap-3 px-6 py-3 text-[#5D3FD3] font-semibold bg-[#F5F3FF] transition-all";
+    "relative w-full flex items-center gap-3 mx-3 px-4 py-2.5 text-[#0066cc] font-semibold bg-[#0066cc]/8 rounded-full transition-colors";
   const inactiveLinkClass =
-    "w-full flex items-center gap-3 px-6 py-3 text-[#64748B] hover:text-[#5D3FD3] transition-all font-medium";
+    "w-full flex items-center gap-3 mx-3 px-4 py-2.5 text-[#1d1d1f] hover:text-[#0066cc] hover:bg-[#f5f5f7] rounded-full transition-colors";
 
   // 2. دالة تنفيذ تسجيل الخروج الفعلي
   const handleFinalLogout = () => {
@@ -50,21 +50,22 @@ const Sidebar = () => {
 
   return (
     <>
-      <aside className="w-64 h-[95vh] bg-white flex flex-col my-auto ml-4 rounded-[30px] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100 overflow-hidden">
-        {/* Header Area */}
-        <div className="flex items-center gap-3 px-6 py-8 mb-4 bg-[#5D3FD3] text-white">
-          <div className="bg-white/20 p-1.5 rounded-lg">
-            <div className="w-5 h-5 border-2 border-white rotate-45 flex items-center justify-center">
-              <div className="w-2 h-2 bg-white" />
+      <aside className="w-64 h-[95vh] bg-white flex flex-col my-auto ml-4 rounded-[18px] border border-[#e0e0e0] overflow-hidden">
+        <div className="flex items-center gap-3 px-6 py-7">
+          <div className="bg-[#0066cc] p-1.5 rounded-lg">
+            <div className="w-4 h-4 border-2 border-white rotate-45 flex items-center justify-center">
+              <div className="w-1.5 h-1.5 bg-white" />
             </div>
           </div>
-          <span className="text-xl font-bold tracking-tight">Volunteer</span>
+          <span className="text-lg font-semibold tracking-tight text-[#1d1d1f]">
+            Volunteer
+          </span>
         </div>
 
-        <nav className="flex-1 space-y-1">
-          {mainMenuItems.map((item, index) => (
+        <nav className="flex-1 space-y-1 mt-2">
+          {mainMenuItems.map((item) => (
             <NavLink
-              key={index}
+              key={item.path}
               to={item.path}
               className={({ isActive }) =>
                 isActive ? activeLinkClass : inactiveLinkClass
@@ -72,11 +73,8 @@ const Sidebar = () => {
             >
               {({ isActive }) => (
                 <>
-                  {isActive && (
-                    <div className="absolute left-0 w-1.5 h-7 bg-[#5D3FD3] rounded-r-full" />
-                  )}
                   <span
-                    className={isActive ? "text-[#5D3FD3]" : "text-[#94A3B8]"}
+                    className={isActive ? "text-[#0066cc]" : "text-[#7a7a7a]"}
                   >
                     {item.icon}
                   </span>
@@ -87,15 +85,14 @@ const Sidebar = () => {
           ))}
         </nav>
 
-        {/* 3. تعديل زر Log Out لفتح النافذة */}
-        <div className="mt-auto pb-10 px-6">
+        <div className="mt-auto pb-8 px-6">
           <button
             onClick={() => setShowLogoutModal(true)}
-            className="flex items-center gap-3 text-[#64748B] hover:text-red-600 transition-all font-medium group w-full"
+            className="flex items-center gap-3 text-[#7a7a7a] hover:text-red-600 transition-colors font-medium group w-full"
           >
             <LogOut
-              size={20}
-              className="group-hover:translate-x-1 transition-transform"
+              size={18}
+              className="group-hover:translate-x-0.5 transition-transform"
             />
             <span className="text-[15px]">Log Out</span>
           </button>
@@ -107,7 +104,7 @@ const Sidebar = () => {
         <div className="fixed inset-0 z-[999] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-white w-full max-w-sm rounded-[32px] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300">
             {/* الجزء العلوي */}
-            <div className="bg-[#5D3FD3] p-6 flex justify-between items-center text-white">
+            <div className="bg-[#0066cc] p-6 flex justify-between items-center text-white">
               <div className="flex items-center gap-3">
                 <AlertCircle size={20} />
                 <h2 className="font-bold">Confirmation</h2>

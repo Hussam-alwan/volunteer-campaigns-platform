@@ -23,7 +23,7 @@ import {
 import ReportsService from "@/API/Reports/Reports.api"; // تأكدي من صحة مسار استيراد الـ Service عندك
 
 function Reports() {
-  const primaryPurple = "#5D3FD3";
+  const primaryPurple = "#0066cc";
 
   // 1. جلب الداتا الحقيقية من السيرفر باستخدام React Query
   const {
@@ -31,7 +31,6 @@ function Reports() {
     isLoading,
     isError,
     refetch,
-    isFetching,
   } = useQuery({
     queryKey: ["dashboardStats"],
     queryFn: ReportsService.getDashboardStats,
@@ -64,42 +63,41 @@ function Reports() {
     );
   }
 
-  // 4. تحويل داتا الكليات الراجعة من السيرفر لتناسب الـ BarChart عندك
   const collegeData =
-    stats?.studentsPerCollege.map((item) => ({
-      name: item.collegeName.replace("يي", ""), // تنظيف الاسم إذا الـ backend باعت حروف زيادة مثل "Medicineيي"
+    stats?.studentsPerCollege?.map((item) => ({
+      name: item.collegeName.replace("يي", ""),
       students: item.studentCount,
     })) || [];
 
-  // 5. تحويل داتا الـ Application Status لتناسب الـ PieChart
+  const applicationCounts = stats?.applicationStatusCounts || {};
   const applicationStats = stats
     ? [
         {
           status: "Approved",
-          value: stats.applicationStatusCounts.APPROVED,
-          color: "#5D3FD3",
-        }, // البنفسجي الأساسي للمقبولين
+          value: applicationCounts.APPROVED || 0,
+          color: "#0066cc",
+        },
         {
           status: "Pending",
-          value: stats.applicationStatusCounts.PENDING,
-          color: "#A78BFA",
-        }, // بنفسجي فاتح للمنتظرين
+          value: applicationCounts.PENDING || 0,
+          color: "#2997ff",
+        },
         {
           status: "Rejected",
-          value: stats.applicationStatusCounts.REJECTED,
+          value: applicationCounts.REJECTED || 0,
           color: "#E2E8F0",
-        }, // رمادي كاشف للمرفوضين
+        },
       ]
     : [];
 
   // ألوان الـ Bar Chart للكليات
   const barColors = [
-    "#5D3FD3",
-    "#7C3AED",
-    "#8B5CF6",
-    "#A78BFA",
-    "#C084FC",
-    "#E9D5FF",
+    "#0066cc",
+    "#004999",
+    "#2997ff",
+    "#2997ff",
+    "#2997ff",
+    "#cce0f5",
   ];
 
   return (
@@ -113,17 +111,6 @@ function Reports() {
           <p className="text-slate-500 mt-1 font-medium italic">
             Visualizing live data: Colleges, Campaigns & Applications
           </p>
-        </div>
-        <div className="flex gap-2">
-          <button
-            onClick={() => refetch()}
-            disabled={isFetching}
-            style={{ backgroundColor: primaryPurple }}
-            className="px-6 py-2.5 text-white rounded-xl font-bold text-sm shadow-lg shadow-indigo-100 hover:opacity-90 transition-all flex items-center gap-2 disabled:opacity-50"
-          >
-            {isFetching && <Loader2 className="animate-spin" size={16} />}
-            Refresh Data
-          </button>
         </div>
       </div>
 
@@ -153,7 +140,10 @@ function Reports() {
           },
           {
             label: "Avg. Attendance",
-            value: `${stats?.avgAttendance.toFixed(1)}%` || "0%",
+            value:
+              stats?.avgAttendance != null
+                ? `${stats.avgAttendance.toFixed(1)}%`
+                : "0%",
             icon: CheckCircle2,
             color: "text-red-500",
             bg: "bg-red-50",
@@ -222,7 +212,7 @@ function Reports() {
                   }}
                 />
                 <Tooltip
-                  cursor={{ fill: "#f8fafc" }}
+                  cursor={{ fill: "#f5f5f7" }}
                   contentStyle={{
                     borderRadius: "16px",
                     border: "none",

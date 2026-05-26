@@ -1,95 +1,68 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import attendanceApis from "./Attendance.apis";
 import type { IPagination } from "../../common.interfaces";
-import type {
-  IAttendanceInputs,
-  IBulkAttendanceInputs,
-} from "./Attendance.interfaces";
+import type { IAttendanceInput } from "./Attendance.interfaces";
 
 export const attendanceQueryKeys = {
-  useGetAttendance: (campaignId: number | string, param?: IPagination) =>
-    ["get-attendance", campaignId, param] as const,
-  useGetProgress: (campaignId: number | string, param?: IPagination) =>
-    ["get-progress", campaignId, param] as const,
+  attendance: (campaignId: number | string) =>
+    ["attendance", campaignId] as const,
+  progress: (campaignId: number | string) => ["progress", campaignId] as const,
 };
 
-// 1. هوك جلب سجل الحضور والغياب
-const useGetAttendance = (campaignId: number | string, param?: IPagination) => {
-  return useQuery({
-    queryKey: attendanceQueryKeys.useGetAttendance(campaignId, param),
+const useGetAttendance = (
+  campaignId: number | string,
+  param?: IPagination,
+) =>
+  useQuery({
+    queryKey: [...attendanceQueryKeys.attendance(campaignId), param],
     queryFn: () => attendanceApis.getAttendance(campaignId, param),
-    enabled: !!campaignId && campaignId !== 0,
+    enabled: !!campaignId,
   });
-};
 
-// 2. هوك جلب سجلات التقدم
-const useGetProgress = (campaignId: number | string, param?: IPagination) => {
-  return useQuery({
-    queryKey: attendanceQueryKeys.useGetProgress(campaignId, param),
+const useGetProgress = (campaignId: number | string, param?: IPagination) =>
+  useQuery({
+    queryKey: [...attendanceQueryKeys.progress(campaignId), param],
     queryFn: () => attendanceApis.getProgress(campaignId, param),
-    enabled: !!campaignId && campaignId !== 0,
+    enabled: !!campaignId,
   });
-};
 
-// 3. هوك إضافة حضور فردي
-export const useCreateAttendance = (campaignId: number | string) => {
-  const queryClient = useQueryClient();
+const useCreateAttendance = (campaignId: number | string) => {
+  const qc = useQueryClient();
   return useMutation({
-    mutationFn: (payload: IAttendanceInputs) =>
+    mutationFn: (payload: IAttendanceInput) =>
       attendanceApis.createAttendance(campaignId, payload),
     onSuccess: () => {
-      // 🔥 التعديل السحري: نمرر المفتاح الرئيسي ونضيف exact: false لتحديث كل الجداول المرتبطة بالحملة فوراً
-      queryClient.invalidateQueries({
-        queryKey: ["get-attendance", campaignId],
-        exact: false,
+      qc.invalidateQueries({
+        queryKey: attendanceQueryKeys.attendance(campaignId),
       });
-      queryClient.invalidateQueries({
-        queryKey: ["get-progress", campaignId],
-        exact: false,
+      qc.invalidateQueries({
+        queryKey: attendanceQueryKeys.progress(campaignId),
       });
     },
   });
 };
 
-// 4. هوك إضافة حضور جماعي Bulk
 const useCreateAttendanceBulk = (campaignId: number | string) => {
-  const queryClient = useQueryClient();
+  const qc = useQueryClient();
   return useMutation({
-    mutationFn: (payload: IBulkAttendanceInputs) =>
-      attendanceApis.createAttendanceBulk(campaignId, payload),
+    mutationFn: (payloads: IAttendanceInput[]) =>
+      attendanceApis.createAttendanceBulk(campaignId, payloads),
     onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: ["get-attendance", campaignId],
-        exact: false,
-      });
-      queryClient.invalidateQueries({
-        queryKey: ["get-progress", campaignId],
-        exact: false,
+      qc.invalidateQueries({
+        queryKey: attendanceQueryKeys.attendance(campaignId),
       });
     },
   });
 };
 
-// 5. هوك تعديل الحضور
-export const useUpdateAttendance = (campaignId: number | string) => {
-  const queryClient = useQueryClient();
+const useCreateProgress = (campaignId: number) => {
+  const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({
-      id,
-      payload,
-    }: {
-      id: number | string;
-      payload: IAttendanceInputs;
-    }) => attendanceApis.updateAttendance(campaignId, id, payload),
+    mutationFn: ({ percentage, notes }: { percentage: number; notes?: string }) =>
+      attendanceApis.createProgress(campaignId, percentage, notes),
     onSuccess: () => {
-      // 🔥 التعديل السحري: إجبار الـ React Query على تحديث الكاش حتى لو كان يحتوي على params أو pagination
-      queryClient.invalidateQueries({
-        queryKey: ["get-attendance", campaignId],
-        exact: false,
-      });
-      queryClient.invalidateQueries({
-        queryKey: ["get-progress", campaignId],
-        exact: false,
+      qc.invalidateQueries({
+        queryKey: attendanceQueryKeys.progress(campaignId),
       });
     },
   });
@@ -100,7 +73,7 @@ const attendanceQueries = {
   useGetProgress,
   useCreateAttendance,
   useCreateAttendanceBulk,
-  useUpdateAttendance,
+  useCreateProgress,
 };
 
 export default attendanceQueries;

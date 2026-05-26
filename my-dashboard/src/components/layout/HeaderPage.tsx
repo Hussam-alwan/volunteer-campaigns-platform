@@ -20,7 +20,7 @@ function HeaderPage() {
           <input
             type="text"
             placeholder="Search here..."
-            className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2  focus:ring-[#5D3FD3] focus:border-[#5D3FD3]-transparent"
+            className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2  focus:ring-[#0066cc] focus:border-[#0066cc]-transparent"
           />
         </div>
 

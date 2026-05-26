@@ -1,11 +1,8 @@
-import React, { useState } from "react";
-import { useParams } from "react-router-dom";
-import { useQueryClient } from "@tanstack/react-query";
+import { useState, useMemo, type FormEvent } from "react";
 import {
   Clock,
   Users,
   TrendingUp,
-  MoreHorizontal,
   Search,
   ArrowUpRight,
   Plus,
@@ -14,111 +11,81 @@ import {
 } from "lucide-react";
 
 import attendanceQueries from "@/API/Attendance/Attendancequeries";
+import campaignQueries from "@/API/Campaingns/Campaingnqueries";
+import { useGetAllUsers } from "@/API/Users/Users.apis";
+import type { IAttendanceInput } from "@/API/Attendance/Attendance.interfaces";
+
+const emptyForm: IAttendanceInput & { student: number | "" } = {
+  student: "",
+  status: "PRESENT",
+  hoursThatDay: 1,
+  notes: "",
+  attendanceDate: new Date().toISOString().split("T")[0],
+};
 
 const AttendanceProgress = () => {
-  // جلب الـ campaignId وتحويله لرقم بشكل آمن ليتوافق مع الـ API
-  const { campaignId } = useParams();
-  const currentCampaignId = campaignId ? parseInt(campaignId) : 1;
-
-  const queryClient = useQueryClient();
+  const [selectedCampaignId, setSelectedCampaignId] = useState<number | null>(
+    null,
+  );
   const [searchTerm, setSearchTerm] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingLogId, setEditingLogId] = useState(null);
+  const [formData, setFormData] = useState(emptyForm);
 
-  // تحديث الـ Initial State لتشمل الـ recordedBy الافتراضي من نظام الـ Auth عندكِ
-  const initialFormState = {
-    student: "",
-    status: "PRESENT",
-    hoursThatDay: "1",
-    notes: "",
-    attendanceDate: new Date().toISOString().split("T")[0],
-    recordedBy: 2, // يمكنكِ مستقبلاً جلب الـ ID الخاص بالمشرف الحالي من الـ Auth Context/Zustand 🌟
-  };
+  const { data: campaignsPage, isLoading: campaignsLoading } =
+    campaignQueries.useGetAllCampaigns({ page: 0, size: 50 });
+  const campaigns = campaignsPage?.content || [];
 
-  const [formData, setFormData] = useState(initialFormState);
+  const activeCampaignId =
+    selectedCampaignId ?? (campaigns[0]?.id || 0);
 
-  // 1. 🔥 الاستدعاء النظيف والمعدل هنا: تم إلغاء تمرير الكائن المعقد لأن ملف الـ API صار يتعامل معه تلقائياً
-  const { data: attendanceData, isLoading: isAttendanceLoading } =
-    attendanceQueries.useGetAttendance(currentCampaignId);
+  const { data: attendancePage, isLoading: attendanceLoading } =
+    attendanceQueries.useGetAttendance(activeCampaignId);
+  const { data: progressPage } = attendanceQueries.useGetProgress(
+    activeCampaignId,
+  );
+  const { data: usersPage } = useGetAllUsers();
 
-  const { data: progressData, isLoading: isProgressLoading } =
-    attendanceQueries.useGetProgress(currentCampaignId);
+  const createAttendance =
+    attendanceQueries.useCreateAttendance(activeCampaignId);
 
-  // 2. استدعاء الـ Mutations
-  const createAttendanceMutation =
-    attendanceQueries.useCreateAttendance(currentCampaignId);
+  const attendanceLogs = useMemo(
+    () => [...(attendancePage?.content || [])].reverse(),
+    [attendancePage],
+  );
+  const progressLogs = progressPage?.content || [];
+  const users = usersPage?.content || [];
 
-  const updateAttendanceMutation =
-    attendanceQueries.useUpdateAttendance(currentCampaignId);
-
-  // 🔥 استخراج المصفوفة الخام وعكسها لتظهر السجلات الجديدة في الأعلى دائماً ومباشرة
-  const rawAttendanceLogs =
-    attendanceData?.content ||
-    attendanceData?.data?.content ||
-    attendanceData?.data ||
-    [];
-
-  const attendanceLogs = [...rawAttendanceLogs].reverse();
-
-  const progressLogs =
-    progressData?.content ||
-    progressData?.data?.content ||
-    progressData?.data ||
-    [];
-
-  // --- تأمين قائمة الطلاب ---
-  const staticStudents = [
-    { id: 1, name: "Aisha Rahman" },
-    { id: 2, name: "Yousef Nabil" },
-    { id: 3, name: "Hana Sami" },
-    { id: 5, name: "Noor Fawzy" },
-    { id: 11, name: "Lina Khaled" },
-    { id: 12, name: "Ziad Helmy" },
-  ];
-
-  const dynamicStudentsMap = new Map();
-  staticStudents.forEach((st) => dynamicStudentsMap.set(st.id, st));
-
-  attendanceLogs.forEach((log) => {
-    if (log.student && log.studentName) {
-      dynamicStudentsMap.set(log.student, {
-        id: log.student,
-        name: log.studentName,
-      });
-    }
-  });
-
-  const uniqueStudents = Array.from(dynamicStudentsMap.values());
-  // ----------------------------------------------------------------
-
-  // الحسابات الديناميكية للمؤشرات
   const totalHours = attendanceLogs.reduce(
-    (acc, curr) => acc + (parseFloat(curr.hoursThatDay) || 0),
+    (acc, log) => acc + (log.hoursThatDay || 0),
     0,
   );
+  const activeVolunteers = new Set(attendanceLogs.map((l) => l.student)).size;
+  const latestProgress = progressLogs[0]
+    ? `${progressLogs[0].percentage}%`
+    : "0%";
 
-  const activeVolunteers = new Set(attendanceLogs.map((log) => log.student))
-    .size;
-
-  const latestProgress =
-    progressLogs && progressLogs.length > 0
-      ? `${progressLogs[0].percentage}%`
-      : "35%";
+  const filteredLogs = attendanceLogs.filter((log) => {
+    const term = searchTerm.toLowerCase();
+    return (
+      log.studentName?.toLowerCase().includes(term) ||
+      String(log.student).includes(term)
+    );
+  });
 
   const stats = [
     {
       label: "Total Volunteer Hours",
       value: totalHours.toLocaleString(),
       icon: <Clock size={22} />,
-      change: "+12%",
+      change: "live",
       bg: "bg-purple-50",
-      textColor: "text-[#5D3FD3]",
+      textColor: "text-[#0066cc]",
     },
     {
-      label: "Latest Progress Rate",
+      label: "Latest Progress",
       value: latestProgress,
       icon: <TrendingUp size={22} />,
-      change: "+5%",
+      change: "live",
       bg: "bg-fuchsia-50",
       textColor: "text-fuchsia-600",
     },
@@ -126,152 +93,103 @@ const AttendanceProgress = () => {
       label: "Active Volunteers",
       value: activeVolunteers.toString(),
       icon: <Users size={22} />,
-      change: "+18%",
+      change: "live",
       bg: "bg-emerald-50",
       textColor: "text-emerald-600",
     },
   ];
 
-  const filteredLogs = attendanceLogs.filter(
-    (log) =>
-      log.student
-        ?.toString()
-        .toLowerCase()
-        .includes(searchTerm.toLowerCase()) ||
-      log.studentName?.toLowerCase().includes(searchTerm.toLowerCase()),
-  );
-
-  const getStatusStyle = (status) => {
+  const getStatusStyle = (status: string) => {
     switch (status?.toUpperCase()) {
       case "PRESENT":
-        return "bg-emerald-50 text-emerald-600 border-emerald-100 w-20 inline-block text-center";
+        return "bg-emerald-50 text-emerald-600 border-emerald-100";
       case "ABSENT":
-        return "bg-rose-50 text-rose-600 border-rose-100 w-20 inline-block text-center";
+        return "bg-rose-50 text-rose-600 border-rose-100";
       case "LATE":
-        return "bg-amber-50 text-amber-600 border-amber-200 w-20 inline-block text-center";
+        return "bg-amber-50 text-amber-600 border-amber-200";
+      case "EXCUSED":
+        return "bg-blue-50 text-blue-600 border-blue-100";
       default:
-        return "bg-slate-50 text-slate-500 border-slate-100 w-20 inline-block text-center";
+        return "bg-slate-50 text-slate-500 border-slate-100";
     }
   };
 
-  const handleEditClick = (log) => {
-    setEditingLogId(log.attendanceId || log.id || null);
-    setFormData({
-      student: log.student ? log.student.toString() : "",
-      status: log.status || "PRESENT",
-      hoursThatDay: log.hoursThatDay ? log.hoursThatDay.toString() : "1",
-      notes: log.notes && log.notes !== "No notes" ? log.notes : "",
-      attendanceDate:
-        log.attendanceDate || new Date().toISOString().split("T")[0],
-      recordedBy: log.recordedBy || 2,
-    });
-    setIsModalOpen(true);
-  };
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-
-    const studentId = parseInt(formData.student);
-    const hours = parseFloat(formData.hoursThatDay);
-
-    if (isNaN(studentId)) {
-      alert("Please select a valid student from the list.");
-      return;
-    }
-
-    if (isNaN(hours)) {
-      alert("Please enter a valid number for hours.");
-      return;
-    }
-
-    const payload = {
-      attendanceDate: formData.attendanceDate,
-      status: formData.status.toUpperCase(),
-      hoursThatDay: hours,
-      notes: formData.notes.trim() || "No notes",
-      student: studentId,
-      recordedBy: formData.recordedBy,
-    };
-
-    const handleSuccess = (message) => {
-      alert(message);
-
-      // تصفير الكاش بالأسماء الصريحة المتوافقة مع ملف الـ Queries المحسّن
-      queryClient.invalidateQueries({
-        queryKey: ["get-attendance", currentCampaignId],
-      });
-
-      queryClient.invalidateQueries({
-        queryKey: ["get-progress", currentCampaignId],
-      });
-
-      handleSuccessClose();
-    };
-
-    const handleError = (error) => {
-      console.error("API Error Details:", error);
-      const serverMessage =
-        error?.response?.data?.message ||
-        error?.response?.data?.code ||
-        "Internal Server Error";
-      alert(`Operation failed: ${serverMessage}`);
-    };
-
-    if (editingLogId && updateAttendanceMutation.mutate) {
-      updateAttendanceMutation.mutate(
-        { id: editingLogId, payload },
-        {
-          onSuccess: () =>
-            handleSuccess("Attendance record updated successfully!"),
-          onError: (err) => handleError(err),
-        },
-      );
-    } else {
-      createAttendanceMutation.mutate(payload, {
-        onSuccess: () =>
-          handleSuccess("Attendance record logged successfully!"),
-        onError: (err) => handleError(err),
-      });
-    }
-  };
-
-  const handleSuccessClose = () => {
+  const closeModal = () => {
     setIsModalOpen(false);
-    setEditingLogId(null);
-    setFormData(initialFormState);
+    setFormData(emptyForm);
   };
 
-  const isSaving =
-    createAttendanceMutation.isPending || updateAttendanceMutation?.isPending;
+  const handleSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    if (!activeCampaignId) {
+      alert("Pick a campaign first.");
+      return;
+    }
+    if (formData.student === "") {
+      alert("Select a student.");
+      return;
+    }
+    const payload: IAttendanceInput = {
+      attendanceDate: formData.attendanceDate,
+      status: formData.status,
+      hoursThatDay: Number(formData.hoursThatDay),
+      notes: formData.notes?.trim() || undefined,
+      student: Number(formData.student),
+    };
+    createAttendance.mutate(payload, {
+      onSuccess: () => closeModal(),
+      onError: (err: any) =>
+        alert(err?.response?.data?.message || "Failed to save attendance."),
+    });
+  };
 
-  if (isAttendanceLoading || isProgressLoading) {
+  if (campaignsLoading) {
     return (
       <div className="w-full h-96 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-b-[#5D3FD3]"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-b-[#0066cc]"></div>
+      </div>
+    );
+  }
+
+  if (campaigns.length === 0) {
+    return (
+      <div className="w-full p-8 text-center bg-amber-50 text-amber-700 rounded-[24px] border border-amber-100">
+        <p className="font-bold">
+          No campaigns exist yet — create one in the Campaigns page first.
+        </p>
       </div>
     );
   }
 
   return (
     <div className="w-full space-y-8 p-2 animate-in fade-in duration-700">
-      {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-end gap-4">
         <div>
           <h1 className="text-3xl font-bold text-slate-900 tracking-tight">
-            Attendance & <span className="text-[#5D3FD3]">Progress</span>
+            Attendance & <span className="text-[#0066cc]">Progress</span>
           </h1>
           <p className="text-slate-500 mt-1 font-medium">
-            Monitor volunteer activity and milestones based on campaign data.
+            Monitor volunteer activity for a campaign.
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 items-center">
+          <select
+            value={activeCampaignId || ""}
+            onChange={(e) => setSelectedCampaignId(Number(e.target.value))}
+            className="px-4 py-3 bg-white border border-slate-200 rounded-2xl text-sm font-semibold text-slate-700 outline-none focus:ring-2 focus:ring-[#0066cc]/20"
+          >
+            {campaigns.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.title} (#{c.id})
+              </option>
+            ))}
+          </select>
           <button
             onClick={() => {
-              setEditingLogId(null);
-              setFormData(initialFormState);
+              setFormData(emptyForm);
               setIsModalOpen(true);
             }}
-            className="flex items-center gap-2 px-6 py-3 bg-[#5D3FD3] text-white rounded-2xl font-semibold hover:bg-[#4C32B3] transition-all shadow-lg shadow-indigo-100"
+            className="flex items-center gap-2 px-6 py-2.5 bg-[#0066cc] text-white rounded-full font-semibold hover:bg-[#004999] transition-colors"
           >
             <Plus size={18} />
             Log Attendance
@@ -279,7 +197,6 @@ const AttendanceProgress = () => {
         </div>
       </div>
 
-      {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {stats.map((stat, i) => (
           <div
@@ -308,11 +225,10 @@ const AttendanceProgress = () => {
         ))}
       </div>
 
-      {/* Attendance Table */}
       <div className="bg-white rounded-[30px] border border-gray-100 shadow-sm overflow-hidden">
         <div className="p-8 border-b border-gray-50 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <h3 className="text-xl font-bold text-slate-900">
-            Recent Attendance Logs
+            Attendance Logs for Campaign #{activeCampaignId}
           </h3>
           <div className="relative w-full sm:w-auto">
             <Search
@@ -324,7 +240,7 @@ const AttendanceProgress = () => {
               placeholder="Search name or ID..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-9 pr-4 py-2 bg-slate-50 border-none rounded-xl text-sm focus:ring-2 focus:ring-[#5D3FD3]/10 outline-none w-full sm:w-64"
+              className="pl-9 pr-4 py-2 bg-slate-50 border-none rounded-xl text-sm focus:ring-2 focus:ring-[#0066cc]/10 outline-none w-full sm:w-64"
             />
           </div>
         </div>
@@ -333,15 +249,24 @@ const AttendanceProgress = () => {
           <table className="w-full text-left">
             <thead>
               <tr className="bg-slate-50/50 text-slate-400 text-[11px] uppercase tracking-wider">
-                <th className="px-8 py-4 font-bold">Student Name & ID</th>
-                <th className="px-8 py-4 font-bold">Campaign ID</th>
+                <th className="px-8 py-4 font-bold">Student</th>
+                <th className="px-8 py-4 font-bold">Date</th>
                 <th className="px-8 py-4 font-bold text-center">Hours</th>
                 <th className="px-8 py-4 font-bold">Status</th>
-                <th className="px-8 py-4"></th>
+                <th className="px-8 py-4 font-bold">Notes</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
-              {filteredLogs.length === 0 ? (
+              {attendanceLoading ? (
+                <tr>
+                  <td
+                    colSpan={5}
+                    className="px-8 py-8 text-center text-slate-400 font-medium"
+                  >
+                    Loading…
+                  </td>
+                </tr>
+              ) : filteredLogs.length === 0 ? (
                 <tr>
                   <td
                     colSpan={5}
@@ -351,25 +276,20 @@ const AttendanceProgress = () => {
                   </td>
                 </tr>
               ) : (
-                filteredLogs.map((log, index) => (
+                filteredLogs.map((log) => (
                   <tr
-                    key={log.attendanceId || `log-${index}`}
-                    className="hover:bg-slate-50/50 transition-colors group"
+                    key={log.attendanceId}
+                    className="hover:bg-slate-50/50 transition-colors"
                   >
                     <td className="px-8 py-5">
-                      <div className="flex flex-col">
-                        <span className="font-semibold text-slate-800">
-                          {log.studentName || "Unknown Student"}
-                        </span>
-                        <span className="text-xs text-slate-400 font-medium mt-0.5">
-                          #{log.student}
-                        </span>
-                      </div>
+                      <span className="font-semibold text-slate-800">
+                        {log.studentName || "Unknown Student"}
+                      </span>
                     </td>
                     <td className="px-8 py-5 text-slate-500 text-sm">
-                      #{log.campaign}
+                      {log.attendanceDate}
                     </td>
-                    <td className="px-8 py-5 text-center font-bold text-[#5D3FD3]">
+                    <td className="px-8 py-5 text-center font-bold text-[#0066cc]">
                       {log.hoursThatDay}h
                     </td>
                     <td className="px-8 py-5">
@@ -379,13 +299,8 @@ const AttendanceProgress = () => {
                         {log.status}
                       </span>
                     </td>
-                    <td className="px-8 py-5 text-right">
-                      <button
-                        onClick={() => handleEditClick(log)}
-                        className="text-slate-600 hover:text-[#5D3FD3] transition-colors p-1 rounded-lg hover:bg-slate-100"
-                      >
-                        <MoreHorizontal size={20} />
-                      </button>
+                    <td className="px-8 py-5 text-slate-500 text-sm max-w-xs truncate">
+                      {log.notes || "—"}
                     </td>
                   </tr>
                 ))
@@ -395,22 +310,16 @@ const AttendanceProgress = () => {
         </div>
       </div>
 
-      {/* Modal - تسجيل وتعديل الحضور */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-slate-900/30 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-in fade-in duration-200">
           <div className="bg-white rounded-[24px] w-full max-w-md p-6 shadow-xl space-y-4 animate-in zoom-in-95 duration-150">
             <div className="flex justify-between items-center">
               <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-                <UserPlus size={20} className="text-[#5D3FD3]" />{" "}
-                {editingLogId
-                  ? "Edit Attendance Record"
-                  : "New Attendance Record"}
+                <UserPlus size={20} className="text-[#0066cc]" /> New
+                Attendance Record
               </h3>
               <button
-                onClick={() => {
-                  setIsModalOpen(false);
-                  setEditingLogId(null);
-                }}
+                onClick={closeModal}
                 className="text-slate-400 hover:text-slate-600 transition-colors"
               >
                 <X size={18} />
@@ -420,22 +329,25 @@ const AttendanceProgress = () => {
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label className="block text-xs font-bold text-slate-400 uppercase mb-1.5 tracking-wider">
-                  Select Student *
+                  Student
                 </label>
                 <select
                   required
                   value={formData.student}
                   onChange={(e) =>
-                    setFormData({ ...formData, student: e.target.value })
+                    setFormData({
+                      ...formData,
+                      student: e.target.value ? Number(e.target.value) : "",
+                    })
                   }
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-[#5D3FD3]/20 font-medium text-slate-700"
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-[#0066cc]/20 font-medium text-slate-700"
                 >
                   <option value="" disabled>
-                    -- Choose Volunteer by Name --
+                    -- Choose Volunteer --
                   </option>
-                  {uniqueStudents.map((student) => (
-                    <option key={student.id} value={student.id}>
-                      {student.name} (#{student.id})
+                  {users.map((u) => (
+                    <option key={u.userId} value={u.userId}>
+                      {u.firstName} {u.lastName} (#{u.userId})
                     </option>
                   ))}
                 </select>
@@ -449,13 +361,17 @@ const AttendanceProgress = () => {
                   <select
                     value={formData.status}
                     onChange={(e) =>
-                      setFormData({ ...formData, status: e.target.value })
+                      setFormData({
+                        ...formData,
+                        status: e.target.value as IAttendanceInput["status"],
+                      })
                     }
-                    className="w-full px-3 py-2.5 bg-slate-50 border border-slate-100 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-[#5D3FD3]/20 font-medium text-slate-700"
+                    className="w-full px-3 py-2.5 bg-slate-50 border border-slate-100 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-[#0066cc]/20 font-medium text-slate-700"
                   >
                     <option value="PRESENT">PRESENT</option>
                     <option value="ABSENT">ABSENT</option>
                     <option value="LATE">LATE</option>
+                    <option value="EXCUSED">EXCUSED</option>
                   </select>
                 </div>
                 <div>
@@ -465,14 +381,33 @@ const AttendanceProgress = () => {
                   <input
                     type="number"
                     step="0.1"
+                    min="0"
                     required
                     value={formData.hoursThatDay}
                     onChange={(e) =>
-                      setFormData({ ...formData, hoursThatDay: e.target.value })
+                      setFormData({
+                        ...formData,
+                        hoursThatDay: Number(e.target.value),
+                      })
                     }
-                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-100 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-[#5D3FD3]/20 font-medium"
+                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-100 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-[#0066cc]/20 font-medium"
                   />
                 </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-400 uppercase mb-1.5 tracking-wider">
+                  Date
+                </label>
+                <input
+                  type="date"
+                  required
+                  value={formData.attendanceDate}
+                  onChange={(e) =>
+                    setFormData({ ...formData, attendanceDate: e.target.value })
+                  }
+                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-100 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-[#0066cc]/20"
+                />
               </div>
 
               <div>
@@ -481,38 +416,36 @@ const AttendanceProgress = () => {
                 </label>
                 <input
                   type="text"
-                  placeholder="Optional notes"
+                  placeholder="Optional"
                   value={formData.notes}
                   onChange={(e) =>
                     setFormData({ ...formData, notes: e.target.value })
                   }
-                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-100 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-[#5D3FD3]/20"
+                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-100 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-[#0066cc]/20"
                 />
               </div>
 
               <div className="flex gap-3 pt-2">
                 <button
                   type="button"
-                  onClick={() => {
-                    setIsModalOpen(false);
-                    setEditingLogId(null);
-                  }}
+                  onClick={closeModal}
                   className="flex-1 py-2.5 bg-slate-100 text-slate-600 font-semibold rounded-xl text-sm hover:bg-slate-200/70 transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  disabled={isSaving}
-                  className="flex-1 py-2.5 bg-[#5D3FD3] text-white font-semibold rounded-xl text-sm hover:bg-[#4C32B3] disabled:opacity-50 transition-all shadow-md shadow-indigo-50"
+                  disabled={createAttendance.isPending}
+                  className="flex-1 py-2.5 bg-[#0066cc] text-white font-semibold rounded-xl text-sm hover:bg-[#004999] disabled:opacity-50 transition-all shadow-md shadow-indigo-50"
                 >
-                  {isSaving ? "Saving..." : "Save Record"}
+                  {createAttendance.isPending ? "Saving..." : "Save Record"}
                 </button>
               </div>
             </form>
           </div>
         </div>
       )}
+
     </div>
   );
 };

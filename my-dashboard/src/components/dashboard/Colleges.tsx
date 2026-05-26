@@ -1,6 +1,6 @@
 // src/pages/Colleges.tsx
 
-import React, { useState, useEffect, type FormEvent } from "react";
+import { useState, type FormEvent } from "react";
 import {
   Plus,
   Search,
@@ -15,10 +15,10 @@ import {
 import collegesQueries from "../../API/Colleges/Collegesqueries";
 import type { ICollege } from "../../API/Colleges/Colleges.interfaces";
 
-const Colleges: React.FC = () => {
-  const primaryPurple = "#5D3FD3";
+const Colleges = () => {
+  const primaryPurple = "#0066cc";
 
-  const [pagination, setPagination] = useState({
+  const [pagination] = useState({
     pageIndex: 0,
     pageSize: 10,
   });
@@ -104,23 +104,15 @@ const Colleges: React.FC = () => {
 
   const handleFormSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    const currentIsoTime = new Date().toISOString().split(".")[0];
-
-    const finalPayload = {
-      name: formData.name,
-      description: formData.description,
-      createdAt: isEditMode ? editTimestamps.createdAt : currentIsoTime,
-      updatedAt: currentIsoTime,
-    };
 
     try {
       if (isEditMode && selectedCollegeId) {
         await updateCollegeMutation.mutateAsync({
           id: selectedCollegeId,
-          payload: finalPayload,
+          payload: formData,
         });
       } else {
-        await addCollegeMutation.mutateAsync(finalPayload);
+        await addCollegeMutation.mutateAsync(formData);
       }
       handleCloseModal();
     } catch (err) {
@@ -194,7 +186,7 @@ const Colleges: React.FC = () => {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search by college name..."
-            className="w-full pl-12 pr-4 py-3 bg-slate-50 border-none rounded-xl outline-none focus:ring-2 focus:ring-[#5D3FD3]/10 text-sm"
+            className="w-full pl-12 pr-4 py-3 bg-slate-50 border-none rounded-xl outline-none focus:ring-2 focus:ring-[#0066cc]/10 text-sm"
           />
         </div>
         {(loading || fetching) && (
@@ -213,9 +205,6 @@ const Colleges: React.FC = () => {
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-slate-50/50">
-                <th className="px-6 py-5 font-bold text-slate-400 text-[11px] uppercase tracking-wider">
-                  ID
-                </th>
                 <th className="px-6 py-5 font-extrabold text-slate-800 text-[13px] uppercase tracking-wider">
                   College Name
                 </th>
@@ -238,7 +227,7 @@ const Colleges: React.FC = () => {
               {filteredColleges.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={6}
+                    colSpan={5}
                     className="text-center py-10 font-bold text-slate-400"
                   >
                     No colleges found matching your search.
@@ -254,11 +243,6 @@ const Colleges: React.FC = () => {
                       key={college.collegeId}
                       className="hover:bg-slate-50/30 transition-colors group"
                     >
-                      <td className="px-6 py-6">
-                        <span className="font-bold text-slate-300 italic">
-                          #{college.collegeId}
-                        </span>
-                      </td>
                       <td className="px-6 py-6">
                         <span
                           style={{ color: "black" }}
@@ -373,7 +357,7 @@ const Colleges: React.FC = () => {
                     setFormData({ ...formData, name: e.target.value })
                   }
                   placeholder="e.g., College of Information Technology"
-                  className="w-full px-5 py-3.5 bg-slate-50 border border-transparent rounded-2xl focus:ring-2 focus:ring-[#5D3FD3]/10 focus:bg-white focus:border-[#5D3FD3]/20 outline-none transition-all text-sm"
+                  className="w-full px-5 py-3.5 bg-slate-50 border border-transparent rounded-2xl focus:ring-2 focus:ring-[#0066cc]/10 focus:bg-white focus:border-[#0066cc]/20 outline-none transition-all text-sm"
                 />
               </div>
 
@@ -388,7 +372,7 @@ const Colleges: React.FC = () => {
                   onChange={(e) =>
                     setFormData({ ...formData, description: e.target.value })
                   }
-                  className="w-full px-5 py-3.5 bg-slate-50 border border-transparent rounded-2xl focus:ring-2 focus:ring-[#5D3FD3]/10 focus:bg-white focus:border-[#5D3FD3]/20 outline-none transition-all text-base resize-none"
+                  className="w-full px-5 py-3.5 bg-slate-50 border border-transparent rounded-2xl focus:ring-2 focus:ring-[#0066cc]/10 focus:bg-white focus:border-[#0066cc]/20 outline-none transition-all text-base resize-none"
                   placeholder="Provide a summary of the college's major disciplines and mission..."
                 ></textarea>
               </div>

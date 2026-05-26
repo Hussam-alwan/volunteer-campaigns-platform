@@ -49,7 +49,7 @@ const RegisterPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center p-6 font-sans antialiased">
+    <div className="min-h-screen bg-[#f5f5f7] flex items-center justify-center p-6 font-sans antialiased">
       <div className="bg-white p-8 rounded-[32px] shadow-[0_8px_30px_rgb(0,0,0,0.02)] border border-gray-100 w-full max-w-2xl">
         <div className="text-center mb-8">
           <h2 className="text-2xl font-bold text-slate-800 tracking-tight">
@@ -81,7 +81,7 @@ const RegisterPage = () => {
               value={formData.firstName}
               onChange={handleChange}
               placeholder="John"
-              className="w-full px-4 py-3 rounded-2xl bg-slate-50 border border-slate-200 text-slate-800 text-[15px] focus:outline-none focus:border-[#5D3FD3] focus:bg-white transition-all"
+              className="w-full px-4 py-3 rounded-2xl bg-slate-50 border border-slate-200 text-slate-800 text-[15px] focus:outline-none focus:border-[#0066cc] focus:bg-white transition-all"
             />
           </div>
 
@@ -96,7 +96,7 @@ const RegisterPage = () => {
               value={formData.lastName}
               onChange={handleChange}
               placeholder="Doe"
-              className="w-full px-4 py-3 rounded-2xl bg-slate-50 border border-slate-200 text-slate-800 text-[15px] focus:outline-none focus:border-[#5D3FD3] focus:bg-white transition-all"
+              className="w-full px-4 py-3 rounded-2xl bg-slate-50 border border-slate-200 text-slate-800 text-[15px] focus:outline-none focus:border-[#0066cc] focus:bg-white transition-all"
             />
           </div>
 
@@ -111,7 +111,7 @@ const RegisterPage = () => {
               value={formData.studentNumber}
               onChange={handleChange}
               placeholder="e.g. 2024101"
-              className="w-full px-4 py-3 rounded-2xl bg-slate-50 border border-slate-200 text-slate-800 text-[15px] focus:outline-none focus:border-[#5D3FD3] focus:bg-white transition-all"
+              className="w-full px-4 py-3 rounded-2xl bg-slate-50 border border-slate-200 text-slate-800 text-[15px] focus:outline-none focus:border-[#0066cc] focus:bg-white transition-all"
             />
           </div>
 
@@ -126,7 +126,7 @@ const RegisterPage = () => {
               value={formData.phone}
               onChange={handleChange}
               placeholder="09xxxxxxxx"
-              className="w-full px-4 py-3 rounded-2xl bg-slate-50 border border-slate-200 text-slate-800 text-[15px] focus:outline-none focus:border-[#5D3FD3] focus:bg-white transition-all"
+              className="w-full px-4 py-3 rounded-2xl bg-slate-50 border border-slate-200 text-slate-800 text-[15px] focus:outline-none focus:border-[#0066cc] focus:bg-white transition-all"
             />
           </div>
 
@@ -141,7 +141,7 @@ const RegisterPage = () => {
               value={formData.email}
               onChange={handleChange}
               placeholder="student@university.edu"
-              className="w-full px-4 py-3 rounded-2xl bg-slate-50 border border-slate-200 text-slate-800 text-[15px] focus:outline-none focus:border-[#5D3FD3] focus:bg-white transition-all"
+              className="w-full px-4 py-3 rounded-2xl bg-slate-50 border border-slate-200 text-slate-800 text-[15px] focus:outline-none focus:border-[#0066cc] focus:bg-white transition-all"
             />
           </div>
 
@@ -156,7 +156,7 @@ const RegisterPage = () => {
               value={formData.password}
               onChange={handleChange}
               placeholder="••••••••"
-              className="w-full px-4 py-3 rounded-2xl bg-slate-50 border border-slate-200 text-slate-800 text-[15px] focus:outline-none focus:border-[#5D3FD3] focus:bg-white transition-all"
+              className="w-full px-4 py-3 rounded-2xl bg-slate-50 border border-slate-200 text-slate-800 text-[15px] focus:outline-none focus:border-[#0066cc] focus:bg-white transition-all"
             />
           </div>
 
@@ -168,7 +168,7 @@ const RegisterPage = () => {
               name="academicYear"
               value={formData.academicYear}
               onChange={handleChange}
-              className="w-full px-4 py-3 rounded-2xl bg-slate-50 border border-slate-200 text-slate-800 text-[15px] focus:outline-none focus:border-[#5D3FD3] focus:bg-white transition-all appearance-none cursor-pointer"
+              className="w-full px-4 py-3 rounded-2xl bg-slate-50 border border-slate-200 text-slate-800 text-[15px] focus:outline-none focus:border-[#0066cc] focus:bg-white transition-all appearance-none cursor-pointer"
             >
               <option value={1}>1st Year</option>
               <option value={2}>2nd Year</option>
@@ -186,7 +186,7 @@ const RegisterPage = () => {
               name="college"
               value={formData.college}
               onChange={handleChange}
-              className="w-full px-4 py-3 rounded-2xl bg-slate-50 border border-slate-200 text-slate-800 text-[15px] focus:outline-none focus:border-[#5D3FD3] focus:bg-white transition-all appearance-none cursor-pointer"
+              className="w-full px-4 py-3 rounded-2xl bg-slate-50 border border-slate-200 text-slate-800 text-[15px] focus:outline-none focus:border-[#0066cc] focus:bg-white transition-all appearance-none cursor-pointer"
             >
               <option value={1}>Information Technology Engineering</option>
               <option value={2}>Architecture Engineering</option>
@@ -199,7 +199,7 @@ const RegisterPage = () => {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-[#5D3FD3] hover:bg-[#4c32b3] text-white font-bold py-3.5 rounded-2xl transition-all shadow-lg shadow-indigo-100 hover:shadow-indigo-200 flex items-center justify-center text-[15px] disabled:opacity-70"
+              className="w-full bg-[#0066cc] hover:bg-[#004999] text-white font-bold py-3.5 rounded-full transition-all shadow-lg shadow-indigo-100 hover:shadow-indigo-200 flex items-center justify-center text-[15px] disabled:opacity-70"
             >
               {loading ? "Creating Account..." : "Sign Up"}
             </button>
@@ -211,7 +211,7 @@ const RegisterPage = () => {
             Already have an account?{" "}
             <span
               onClick={() => navigate("/login")}
-              className="text-[#5D3FD3] font-bold cursor-pointer hover:underline ml-1"
+              className="text-[#0066cc] font-bold cursor-pointer hover:underline ml-1"
             >
               Sign In
             </span>

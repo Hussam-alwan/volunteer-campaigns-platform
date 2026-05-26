@@ -1,15 +1,13 @@
-import { TAutoComplete } from "hooks/use-generic-form/types";
-
 export const AttendanceStatus = {
   PRESENT: "PRESENT",
   ABSENT: "ABSENT",
+  EXCUSED: "EXCUSED",
   LATE: "LATE",
 } as const;
 
 export type TAttendanceStatus =
   (typeof AttendanceStatus)[keyof typeof AttendanceStatus];
 
-// 1. الـ Response الراجع من السيرفر (كامل وجاهز)
 export interface IAttendance {
   attendanceId: number;
   attendanceDate: string;
@@ -36,22 +34,26 @@ export interface IProgress {
   updatedBy: number;
 }
 
-// 2. الـ Inputs المطلوبة عند الإرسال (POST / PUT) 🔥
-export interface IAttendanceInputs {
-  attendanceDate: string; // صيغة "YYYY-MM-DD"
+export interface IAttendanceInput {
+  attendanceDate: string;
   status: TAttendanceStatus;
   hoursThatDay: number;
   notes?: string;
-  student: number; // ID الطالب مباشرة
-  recordedBy: number; // ID المشرف/المستخدم الحالي (مهم جداً للسواغر) 🌟
+  student: number;
 }
 
-export interface IProgressInputs {
-  percentage: number;
-  notes?: string;
-  campaign: number; // من السواغر: يحتاج ID الحملة بالـ Body أيضاً بالـ POST
-  updatedBy: number; // من السواغر: يحتاج ID المستخدم بالـ Body
+export interface IAttendancePage {
+  content: IAttendance[];
+  totalElements: number;
+  totalPages: number;
+  size: number;
+  number: number;
 }
 
-// 3. كائن الـ Bulk (عبارة عن Array من العناصر السابقة)
-export type IBulkAttendanceInputs = IAttendanceInputs[];
+export interface IProgressPage {
+  content: IProgress[];
+  totalElements: number;
+  totalPages: number;
+  size: number;
+  number: number;
+}

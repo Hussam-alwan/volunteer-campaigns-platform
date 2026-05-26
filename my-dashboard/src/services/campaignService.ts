@@ -1,5 +1,5 @@
 // src/services/campaignService.ts
-import API from "../API/axios";
+import API from "../API/api.instance";
 import {
   type Campaign,
   type CampaignPhoto,
