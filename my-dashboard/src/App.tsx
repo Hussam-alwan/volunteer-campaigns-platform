@@ -11,7 +11,7 @@ import Sidebar from "./components/layout/Sidebar";
 
 // Pages
 import Dashboard from "./pages/Dashboard";
-import StudentsPage from "./components/dashboard/StudentsPage";
+import UsersPage from "./components/dashboard/UsersPage";
 import CampaignManagement from "./components/dashboard/CampaignManagement";
 import AttendanceProgress from "./components/dashboard/AttendanceProgress";
 import Colleges from "./components/dashboard/Colleges";
@@ -60,7 +60,11 @@ function App() {
           <Route path="/campaigns" element={<CampaignManagement />} />
           <Route path="/applications" element={<ApplicationStatus />} />
           <Route path="/attendance" element={<AttendanceProgress />} />
-          <Route path="/students" element={<StudentsPage />} />
+          <Route path="/users" element={<UsersPage />} />
+          <Route
+            path="/students"
+            element={<Navigate to="/users" replace />}
+          />
           <Route path="/colleges" element={<Colleges />} />
           <Route path="/categories" element={<Categories />} />
           <Route path="/reports" element={<Reports />} />

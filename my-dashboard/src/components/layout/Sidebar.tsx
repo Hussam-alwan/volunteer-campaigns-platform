@@ -20,7 +20,7 @@ const Sidebar = () => {
 
   const mainMenuItems = [
     { title: "Dashboard", icon: <LayoutGrid size={18} />, path: "/dashboard" },
-    { title: "Students", icon: <Users size={18} />, path: "/students" },
+    { title: "Users", icon: <Users size={18} />, path: "/users" },
     {
       title: "Applications",
       icon: <FileText size={18} />,

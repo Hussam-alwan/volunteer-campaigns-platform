@@ -32,7 +32,9 @@ public class WebConfig implements WebMvcConfigurer {
             uploadPath = uploadPath + "/";
         }
 
-        registry.addResourceHandler("/uploads/**")
+        // Stored photoUrl is "/uploads/photos/<file>" and the upload dir already
+        // ends in /photos — match the full prefix so the path joins correctly.
+        registry.addResourceHandler("/uploads/photos/**")
                 .addResourceLocations(uploadPath)
                 .setCachePeriod(3600);
     }

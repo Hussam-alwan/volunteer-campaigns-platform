@@ -11,3 +11,12 @@ export const SERVER_BASE_URL = import.meta.env.VITE_SERVER_BASE_URL ?? "";
 // - Any other target: set VITE_API_BASE_URL=https://your.host/api/v1.
 export const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL ?? "/api/v1";
+
+// Resolve a photo URL coming from the API. Uploaded files are stored as
+// "/uploads/photos/<file>" and must be served from the backend origin; photos
+// added via external URL are already absolute and pass through unchanged.
+export const resolvePhotoUrl = (url: string): string => {
+  if (!url) return url;
+  if (/^https?:\/\//i.test(url)) return url;
+  return `${SERVER_BASE_URL}${url}`;
+};

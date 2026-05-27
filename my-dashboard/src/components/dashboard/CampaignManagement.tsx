@@ -25,6 +25,7 @@ import attendanceQueries from "../../API/Attendance/Attendancequeries";
 import attendanceApis from "../../API/Attendance/Attendance.apis";
 import { useGetCategories } from "../../API/Categories/Categories.apis";
 import { campaignService } from "../../services/campaignService";
+import { resolvePhotoUrl } from "../../constants/domain";
 import type {
   Campaign,
   CreateCampaignInput,
@@ -933,7 +934,7 @@ const CampaignManagement = () => {
                         className="aspect-square bg-slate-100 rounded-2xl overflow-hidden border border-slate-100 relative group shadow-sm"
                       >
                         <img
-                          src={photo.photoUrl}
+                          src={resolvePhotoUrl(photo.photoUrl)}
                           alt="Campaign"
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                         />
