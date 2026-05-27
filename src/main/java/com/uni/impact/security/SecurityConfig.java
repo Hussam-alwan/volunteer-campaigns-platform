@@ -9,6 +9,7 @@ import org.springframework.security.config.annotation.method.configuration.Enabl
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.CsrfConfigurer;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -42,6 +43,9 @@ public class SecurityConfig {
                                 "/api-docs/**",
                                 "/uploads/**"
                         ).permitAll()
+                        // Register page needs to read colleges before the user is authenticated.
+                        .requestMatchers(HttpMethod.GET, "/api/v1/colleges", "/api/v1/colleges/**")
+                        .permitAll()
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(session ->
