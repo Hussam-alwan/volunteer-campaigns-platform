@@ -5,6 +5,8 @@
 // };
 
 //  التحويل الصحيح لقراءة الاستجابة كاملة إذا كان التوكن بالهيدرز:
+import type { ILoginPayload } from "./authorization.interface";
+import ApiInstance from "../api.instance";
 const login = async (payload: ILoginPayload) => {
   const response = await ApiInstance.post("/auth/login", payload);
 
@@ -20,3 +22,5 @@ const login = async (payload: ILoginPayload) => {
 
   return response.data;
 };
+
+export default login;

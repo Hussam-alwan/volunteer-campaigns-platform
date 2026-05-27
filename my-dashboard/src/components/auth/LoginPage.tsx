@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import authApis from "@/API/Authorization/authorization.apis";
+import auth
 import type { ILoginPayload } from "../../API/Authorization/authorization.interface";
 // 1️⃣ استيراد الـ Store الافتراضي لتحديث الحالة الأمنية للتطبيق
 import useAuthStore from "../../store/auth.store";
