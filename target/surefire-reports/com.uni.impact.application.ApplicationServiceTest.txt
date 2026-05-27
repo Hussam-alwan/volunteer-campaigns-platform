@@ -1,4 +1,0 @@
--------------------------------------------------------------------------------
-Test set: com.uni.impact.application.ApplicationServiceTest
--------------------------------------------------------------------------------
-Tests run: 0, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 1.410 s -- in com.uni.impact.application.ApplicationServiceTest
