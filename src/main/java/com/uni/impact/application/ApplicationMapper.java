@@ -1,0 +1,39 @@
+package com.uni.impact.application;
+
+import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
+import org.mapstruct.MappingTarget;
+import org.mapstruct.NullValuePropertyMappingStrategy;
+
+@Mapper(componentModel = "spring", nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
+public interface ApplicationMapper {
+
+    @Mapping(target = "student", source = "student.userId")
+    @Mapping(target = "campaign", source = "campaign.campaignId")
+    @Mapping(target = "reviewedBy", source = "reviewedBy.userId")
+    @Mapping(target = "removedBy", source = "removedBy.userId")
+    ApplicationResponseDTO toDto(Application entity);
+
+
+    @Mapping(target = "id", ignore = true)
+    @Mapping(target = "withdrawnAt", ignore = true)
+    @Mapping(target = "createdAt", ignore = true)
+    @Mapping(target = "updatedAt", ignore = true)
+    @Mapping(target = "removedAt", ignore = true)
+    @Mapping(target = "student", ignore = true)
+    @Mapping(target = "campaign", ignore = true)
+    @Mapping(target = "reviewedBy", ignore = true)
+    @Mapping(target = "removedBy", ignore = true)
+    Application toEntity(ApplicationRequestDTO dto);
+
+    @Mapping(target = "id", ignore = true)
+    @Mapping(target = "withdrawnAt", ignore = true)
+    @Mapping(target = "createdAt", ignore = true)
+    @Mapping(target = "updatedAt", ignore = true)
+    @Mapping(target = "removedAt", ignore = true)
+    @Mapping(target = "student", ignore = true)
+    @Mapping(target = "campaign", ignore = true)
+    @Mapping(target = "reviewedBy", ignore = true)
+    @Mapping(target = "removedBy", ignore = true)
+    void updateEntity(@MappingTarget Application entity, ApplicationRequestDTO dto);
+}

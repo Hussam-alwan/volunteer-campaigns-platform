@@ -1,0 +1,54 @@
+package com.uni.impact.progress;
+
+import com.uni.impact.campaign.Campaign;
+import com.uni.impact.campaign_photo.CampaignPhoto;
+import com.uni.impact.user.User;
+import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.Setter;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
+
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+
+@Entity
+@EntityListeners(AuditingEntityListener.class)
+@Getter
+@Setter
+public class Progress {
+
+    @Id
+    @Column(nullable = false, updatable = false)
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "progress_id_gen")
+    @SequenceGenerator(name = "progress_id_gen", sequenceName = "progress_id_seq", initialValue = 101, allocationSize = 1)
+    private Long progressId;
+
+    @Column(nullable = false)
+    private Integer percentage;
+
+    @Column(columnDefinition = "text")
+    private String notes;
+
+    @Column(nullable = false, updatable = false)
+    @CreatedDate
+    private LocalDateTime createdAt;
+
+    @Column(nullable = false)
+    @LastModifiedDate
+    private LocalDateTime updatedAt;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "campaign_id", nullable = false)
+    private Campaign campaign;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "updated_by_id", nullable = false)
+    private User updatedBy;
+
+    @OneToMany(mappedBy = "progress")
+    private List<CampaignPhoto> progressCampaignPhotos = new ArrayList<>();
+
+}
