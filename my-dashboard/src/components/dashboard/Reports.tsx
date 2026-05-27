@@ -1,4 +1,3 @@
-import React from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   BarChart,
@@ -39,7 +38,7 @@ function Reports() {
   // 2. معالجة حالة الـ Loading (انتظار تحميل البيانات أول مرة)
   if (isLoading) {
     return (
-      <div className="w-full h-screen flex flex-col justify-center items-center bg-slate-50/50 gap-3">
+      <div className="w-full h-screen flex flex-col justify-center items-center bg-transparent gap-3">
         <Loader2 className="animate-spin text-indigo-600" size={40} />
         <p className="text-slate-500 font-bold">Loading System Analytics...</p>
       </div>
@@ -49,7 +48,7 @@ function Reports() {
   // 3. معالجة حالة الـ Error (إذا السيرفر معطل أو طفا)
   if (isError) {
     return (
-      <div className="w-full h-screen flex flex-col justify-center items-center bg-slate-50/50 gap-4">
+      <div className="w-full h-screen flex flex-col justify-center items-center bg-transparent gap-4">
         <p className="text-red-500 font-bold text-lg">
           Failed to load reports data from server.
         </p>
@@ -69,39 +68,39 @@ function Reports() {
       students: item.studentCount,
     })) || [];
 
-  const applicationCounts = stats?.applicationStatusCounts || {};
+  const applicationCounts: Record<string, number> =
+    stats?.applicationStatusCounts || {};
   const applicationStats = stats
     ? [
         {
           status: "Approved",
           value: applicationCounts.APPROVED || 0,
-          color: "#0066cc",
+          color: "#34c759",
         },
         {
           status: "Pending",
           value: applicationCounts.PENDING || 0,
-          color: "#2997ff",
+          color: "#ff9500",
         },
         {
           status: "Rejected",
           value: applicationCounts.REJECTED || 0,
-          color: "#E2E8F0",
+          color: "#ff3b30",
         },
       ]
     : [];
 
-  // ألوان الـ Bar Chart للكليات
   const barColors = [
     "#0066cc",
-    "#004999",
-    "#2997ff",
-    "#2997ff",
-    "#2997ff",
-    "#cce0f5",
+    "#34c759",
+    "#ff9500",
+    "#af52de",
+    "#ff2d55",
+    "#5ac8fa",
   ];
 
   return (
-    <div className="w-full space-y-8 p-6 bg-slate-50/50 min-h-screen animate-in fade-in duration-700">
+    <div className="w-full space-y-8 animate-in fade-in duration-700">
       {/* Header Section */}
       <div className="flex justify-between items-end">
         <div>
@@ -151,7 +150,7 @@ function Reports() {
         ].map((stat, i) => (
           <div
             key={i}
-            className="bg-white p-6 rounded-[24px] border border-slate-100 shadow-sm hover:shadow-md transition-all"
+            className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-all"
           >
             <div className="flex justify-between items-start">
               <div className={`${stat.bg} ${stat.color} p-3 rounded-2xl`}>
@@ -175,7 +174,7 @@ function Reports() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* 1. Bar Chart - Students per College */}
-        <div className="bg-white p-8 rounded-[32px] border border-slate-100 shadow-sm">
+        <div className="bg-white p-8 rounded-2xl border border-slate-100 shadow-sm">
           <div className="flex items-center gap-3 mb-8">
             <div className="p-2 bg-orange-50 text-orange-500 rounded-lg">
               <School size={20} />
@@ -220,7 +219,7 @@ function Reports() {
                   }}
                 />
                 <Bar dataKey="students" radius={[10, 10, 0, 0]} barSize={35}>
-                  {collegeData.map((entry, index) => (
+                  {collegeData.map((_, index) => (
                     <Cell
                       key={`cell-${index}`}
                       fill={barColors[index % barColors.length]}
@@ -233,7 +232,7 @@ function Reports() {
         </div>
 
         {/* 2. Pie Chart - Application Status */}
-        <div className="bg-white p-8 rounded-[32px] border border-slate-100 shadow-sm">
+        <div className="bg-white p-8 rounded-2xl border border-slate-100 shadow-sm">
           <div className="flex items-center gap-3 mb-8">
             <div className="p-2 bg-green-50 text-green-500 rounded-lg">
               <FileText size={20} />

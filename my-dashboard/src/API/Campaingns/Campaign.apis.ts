@@ -130,12 +130,21 @@ const deleteCampaign = async (id: number): Promise<void> => {
   await ApiInstance.delete(`${CampaignApiRoutes.GetAll}/${id}`);
 };
 
+const updateStatus = async (id: number, status: string): Promise<Campaign> => {
+  const { data } = await ApiInstance.patch<BackendCampaign>(
+    `${CampaignApiRoutes.GetAll}/${id}/status`,
+    { status },
+  );
+  return toCampaign(data);
+};
+
 const campaignApis = {
   getAllCampaigns,
   getCampaign,
   addCampaign,
   updateCampaign,
   deleteCampaign,
+  updateStatus,
 };
 
 export default campaignApis;

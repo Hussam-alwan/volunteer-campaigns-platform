@@ -1,14 +1,14 @@
 @import "tailwindcss";
 
 :root {
-  /* Apple design tokens */
+  /* Design tokens */
   --color-primary: #0066cc;
   --color-primary-active: #004999;
   --color-primary-focus: #0071e3;
   --color-primary-on-dark: #2997ff;
 
   --color-canvas: #ffffff;
-  --color-canvas-parchment: #f5f5f7;
+  --color-canvas-page: #fbfbfd;
   --color-surface-pearl: #fafafc;
   --color-surface-tile-dark: #272729;
   --color-surface-black: #000000;
@@ -21,14 +21,12 @@
 
   --color-hairline: #e0e0e0;
   --color-divider-soft: #f0f0f0;
-
-  --shadow-product: rgba(0, 0, 0, 0.22) 3px 5px 30px 0;
 }
 
 html,
 body,
 #root {
-  background-color: var(--color-canvas-parchment);
+  background-color: var(--color-canvas-page);
   color: var(--color-ink);
   font-family:
     "SF Pro Text", system-ui, -apple-system, BlinkMacSystemFont, "Inter",

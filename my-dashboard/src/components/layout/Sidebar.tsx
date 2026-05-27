@@ -1,4 +1,4 @@
-import React, { useState } from "react"; // أضفنا useState هنا
+import { useState } from "react";
 import { NavLink } from "react-router-dom";
 import {
   LayoutGrid,
@@ -9,15 +9,14 @@ import {
   LogOut,
   CalendarCheck,
   School,
-  X, // أيقونة للإغلاق
-  AlertCircle, // أيقونة للتنبيه
+  Tag,
+  HandHeart,
+  X,
+  AlertCircle,
 } from "lucide-react";
 
 const Sidebar = () => {
-  // 1. حالة للتحكم في ظهور النافذة
   const [showLogoutModal, setShowLogoutModal] = useState(false);
-
-  const primaryPurple = "#0066cc";
 
   const mainMenuItems = [
     { title: "Dashboard", icon: <LayoutGrid size={18} />, path: "/dashboard" },
@@ -29,6 +28,7 @@ const Sidebar = () => {
     },
     { title: "Campaigns", icon: <Target size={18} />, path: "/campaigns" },
     { title: "Colleges", icon: <School size={18} />, path: "/colleges" },
+    { title: "Categories", icon: <Tag size={18} />, path: "/categories" },
     {
       title: "Attendance",
       icon: <CalendarCheck size={18} />,
@@ -38,9 +38,9 @@ const Sidebar = () => {
   ];
 
   const activeLinkClass =
-    "relative w-full flex items-center gap-3 mx-3 px-4 py-2.5 text-[#0066cc] font-semibold bg-[#0066cc]/8 rounded-full transition-colors";
+    "flex items-center gap-3 mx-3 px-3.5 py-2.5 text-[#0066cc] font-semibold bg-[#0066cc]/10 rounded-full transition-colors text-[14px]";
   const inactiveLinkClass =
-    "w-full flex items-center gap-3 mx-3 px-4 py-2.5 text-[#1d1d1f] hover:text-[#0066cc] hover:bg-[#f5f5f7] rounded-full transition-colors";
+    "flex items-center gap-3 mx-3 px-3.5 py-2.5 text-[#3a3a3c] hover:text-[#0066cc] hover:bg-[#f5f5f7] rounded-full transition-colors text-[14px]";
 
   // 2. دالة تنفيذ تسجيل الخروج الفعلي
   const handleFinalLogout = () => {
@@ -50,14 +50,12 @@ const Sidebar = () => {
 
   return (
     <>
-      <aside className="w-64 h-[95vh] bg-white flex flex-col my-auto ml-4 rounded-[18px] border border-[#e0e0e0] overflow-hidden">
-        <div className="flex items-center gap-3 px-6 py-7">
-          <div className="bg-[#0066cc] p-1.5 rounded-lg">
-            <div className="w-4 h-4 border-2 border-white rotate-45 flex items-center justify-center">
-              <div className="w-1.5 h-1.5 bg-white" />
-            </div>
+      <aside className="w-56 h-screen bg-white flex flex-col border-r border-[#e0e0e0] overflow-hidden flex-shrink-0">
+        <div className="flex items-center gap-2.5 px-5 py-6">
+          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#0066cc] to-[#34c759] flex items-center justify-center shadow-sm">
+            <HandHeart size={18} className="text-white" strokeWidth={2.4} />
           </div>
-          <span className="text-lg font-semibold tracking-tight text-[#1d1d1f]">
+          <span className="text-[17px] font-semibold tracking-tight text-[#1d1d1f]">
             Volunteer
           </span>
         </div>
@@ -78,7 +76,7 @@ const Sidebar = () => {
                   >
                     {item.icon}
                   </span>
-                  <span className="text-[15px]">{item.title}</span>
+                  <span className="text-[14px]">{item.title}</span>
                 </>
               )}
             </NavLink>
@@ -94,7 +92,7 @@ const Sidebar = () => {
               size={18}
               className="group-hover:translate-x-0.5 transition-transform"
             />
-            <span className="text-[15px]">Log Out</span>
+            <span className="text-[14px]">Log Out</span>
           </button>
         </div>
       </aside>
@@ -102,7 +100,7 @@ const Sidebar = () => {
       {/* 4. نافذة التأكيد (Logout Confirmation Modal) */}
       {showLogoutModal && (
         <div className="fixed inset-0 z-[999] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white w-full max-w-sm rounded-[32px] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300">
+          <div className="bg-white w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300">
             {/* الجزء العلوي */}
             <div className="bg-[#0066cc] p-6 flex justify-between items-center text-white">
               <div className="flex items-center gap-3">

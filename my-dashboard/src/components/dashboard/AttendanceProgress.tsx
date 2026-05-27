@@ -13,9 +13,20 @@ import {
 import attendanceQueries from "@/API/Attendance/Attendancequeries";
 import campaignQueries from "@/API/Campaingns/Campaingnqueries";
 import { useGetAllUsers } from "@/API/Users/Users.apis";
-import type { IAttendanceInput } from "@/API/Attendance/Attendance.interfaces";
+import type {
+  IAttendanceInput,
+  TAttendanceStatus,
+} from "@/API/Attendance/Attendance.interfaces";
 
-const emptyForm: IAttendanceInput & { student: number | "" } = {
+type AttendanceFormState = {
+  student: number | "";
+  status: TAttendanceStatus;
+  hoursThatDay: number;
+  notes: string;
+  attendanceDate: string;
+};
+
+const emptyForm: AttendanceFormState = {
   student: "",
   status: "PRESENT",
   hoursThatDay: 1,
@@ -138,8 +149,11 @@ const AttendanceProgress = () => {
     };
     createAttendance.mutate(payload, {
       onSuccess: () => closeModal(),
-      onError: (err: any) =>
-        alert(err?.response?.data?.message || "Failed to save attendance."),
+      onError: (err) => {
+        const detail = (err as { response?: { data?: { message?: string } } })
+          ?.response?.data?.message;
+        alert(detail || "Failed to save attendance.");
+      },
     });
   };
 
@@ -153,7 +167,7 @@ const AttendanceProgress = () => {
 
   if (campaigns.length === 0) {
     return (
-      <div className="w-full p-8 text-center bg-amber-50 text-amber-700 rounded-[24px] border border-amber-100">
+      <div className="w-full p-8 text-center bg-amber-50 text-amber-700 rounded-2xl border border-amber-100">
         <p className="font-bold">
           No campaigns exist yet — create one in the Campaigns page first.
         </p>
@@ -201,7 +215,7 @@ const AttendanceProgress = () => {
         {stats.map((stat, i) => (
           <div
             key={i}
-            className="bg-white p-6 rounded-[30px] border border-gray-100 shadow-sm group hover:shadow-md transition-all"
+            className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm group hover:shadow-md transition-all"
           >
             <div className="flex justify-between items-start">
               <div
@@ -225,7 +239,7 @@ const AttendanceProgress = () => {
         ))}
       </div>
 
-      <div className="bg-white rounded-[30px] border border-gray-100 shadow-sm overflow-hidden">
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
         <div className="p-8 border-b border-gray-50 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <h3 className="text-xl font-bold text-slate-900">
             Attendance Logs for Campaign #{activeCampaignId}
@@ -312,7 +326,7 @@ const AttendanceProgress = () => {
 
       {isModalOpen && (
         <div className="fixed inset-0 bg-slate-900/30 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-in fade-in duration-200">
-          <div className="bg-white rounded-[24px] w-full max-w-md p-6 shadow-xl space-y-4 animate-in zoom-in-95 duration-150">
+          <div className="bg-white rounded-2xl w-full max-w-md p-6 shadow-xl space-y-4 animate-in zoom-in-95 duration-150">
             <div className="flex justify-between items-center">
               <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
                 <UserPlus size={20} className="text-[#0066cc]" /> New

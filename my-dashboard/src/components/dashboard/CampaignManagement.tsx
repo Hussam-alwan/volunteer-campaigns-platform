@@ -1,6 +1,7 @@
 // src/pages/CampaignManagement.tsx
 
 import { useState, type ChangeEvent, type FormEvent } from "react";
+import { useQueries } from "@tanstack/react-query";
 import {
   Plus,
   Search,
@@ -21,6 +22,8 @@ import {
 
 import campaignQueries from "../../API/Campaingns/Campaingnqueries";
 import attendanceQueries from "../../API/Attendance/Attendancequeries";
+import attendanceApis from "../../API/Attendance/Attendance.apis";
+import { useGetCategories } from "../../API/Categories/Categories.apis";
 import { campaignService } from "../../services/campaignService";
 import type {
   Campaign,
@@ -40,7 +43,7 @@ const emptyFormData: CreateCampaignInput = {
 
 const CampaignManagement = () => {
   // التحكم بحالة الـ Pagination مع الحفاظ على التصميم المتناسق للجدول
-  const [pagination] = useState({
+  const [pagination, setPagination] = useState({
     pageIndex: 0,
     pageSize: 10,
   });
@@ -58,8 +61,50 @@ const CampaignManagement = () => {
   const addCampaignMutation = campaignQueries.useAddCampaign();
   const updateCampaignMutation = campaignQueries.useUpdateCampaign();
   const deleteCampaignMutation = campaignQueries.useDeleteCampaign();
+  const updateStatusMutation = campaignQueries.useUpdateCampaignStatus();
+  const { data: categoriesPage } = useGetCategories(0, 100);
+  const categoryOptions = categoriesPage?.content || [];
+
+  const STATUS_OPTIONS = [
+    "PENDING",
+    "APPROVED",
+    "REJECTED",
+    "ONGOING",
+    "COMPLETED",
+    "CANCELED",
+  ];
+
+  const handleChangeStatus = (id: number, status: string) => {
+    updateStatusMutation.mutate(
+      { id, status },
+      {
+        onError: (err) => {
+          console.error("Status update failed:", err);
+          alert(describeError(err, "Failed to update status."));
+        },
+      },
+    );
+  };
 
   const campaigns = campaignsResponse?.content || [];
+
+  const progressResults = useQueries({
+    queries: campaigns.map((c) => ({
+      queryKey: ["progress", c.id, { page: 0, size: 50 }],
+      queryFn: () => attendanceApis.getProgress(c.id, { page: 0, size: 50 }),
+      enabled: !!c.id,
+    })),
+  });
+  const latestProgressById = new Map<number, number>();
+  progressResults.forEach((res, i) => {
+    const camp = campaigns[i];
+    if (!camp || !res.data?.content) return;
+    const sorted = [...res.data.content].sort(
+      (a, b) =>
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+    );
+    if (sorted[0]) latestProgressById.set(camp.id, sorted[0].percentage);
+  });
 
   const [showCreateModal, setShowCreateModal] = useState<boolean>(false);
   const [showPhotosModal, setShowPhotosModal] = useState<boolean>(false);
@@ -103,7 +148,7 @@ const CampaignManagement = () => {
   const primaryPurple = "#0066cc";
 
   // حساب العدادات العلوية ديناميكياً من بيانات الـ API المحدثة تلقائياً كاش
-  const totalCampaigns = campaigns.length;
+  const totalCampaigns = campaignsResponse?.totalElements ?? campaigns.length;
   const ongoingCampaigns = campaigns.filter(
     (c) => c.status?.toLowerCase() === "ongoing",
   ).length;
@@ -182,7 +227,7 @@ const CampaignManagement = () => {
         await campaignService.uploadMultiplePhotos(selectedCampaign.id, files);
       }
       openPhotosManagement(selectedCampaign);
-    } catch (err) {
+    } catch {
       alert("Failed to upload image files");
     }
   };
@@ -193,7 +238,7 @@ const CampaignManagement = () => {
       await campaignService.addPhotoByUrl(selectedCampaign.id, photoUrlInput);
       setPhotoUrlInput("");
       openPhotosManagement(selectedCampaign);
-    } catch (err) {
+    } catch {
       alert("Failed to add photo URL");
     }
   };
@@ -218,6 +263,22 @@ const CampaignManagement = () => {
     setShowCreateModal(true);
   };
 
+  const describeError = (err: unknown, fallback: string) => {
+    const e = err as {
+      response?: { status?: number; data?: { message?: string; error?: string } | string };
+      message?: string;
+    };
+    const status = e?.response?.status;
+    const data = e?.response?.data;
+    const detail =
+      (typeof data === "object" && data?.message) ||
+      (typeof data === "object" && data?.error) ||
+      (typeof data === "string" ? data : "") ||
+      e?.message ||
+      fallback;
+    return status ? `[${status}] ${detail}` : detail;
+  };
+
   const handleCreateSubmit = async (e: FormEvent) => {
     e.preventDefault();
     try {
@@ -231,12 +292,15 @@ const CampaignManagement = () => {
         await addCampaignMutation.mutateAsync(formData);
       }
       closeModal();
-    } catch (err: any) {
+    } catch (err) {
+      console.error("Campaign save failed:", err);
       alert(
-        err?.response?.data?.message ||
-          (editingCampaign
+        describeError(
+          err,
+          editingCampaign
             ? "Error updating campaign"
-            : "Error creating campaign"),
+            : "Error creating campaign",
+        ),
       );
     }
   };
@@ -245,8 +309,8 @@ const CampaignManagement = () => {
     if (!window.confirm("Delete this campaign?")) return;
     try {
       await deleteCampaignMutation.mutateAsync(id);
-    } catch (err: any) {
-      alert(err?.response?.data?.message || "Error deleting campaign");
+    } catch (err) {
+      alert(describeError(err, "Error deleting campaign"));
     }
   };
 
@@ -271,9 +335,11 @@ const CampaignManagement = () => {
     createProgress.mutate(
       { percentage, notes: progressForm.notes.trim() || undefined },
       {
-        onSuccess: () => setProgressForm({ percentage: 0, notes: "" }),
-        onError: (err: any) =>
-          alert(err?.response?.data?.message || "Failed to save progress."),
+        onSuccess: () => closeProgressModal(),
+        onError: (err) => {
+          console.error("Progress save failed:", err);
+          alert(describeError(err, "Failed to save progress."));
+        },
       },
     );
   };
@@ -294,7 +360,7 @@ const CampaignManagement = () => {
 
   if (hasError) {
     return (
-      <div className="w-full p-8 text-center bg-red-50 text-red-600 rounded-[24px] border border-red-100">
+      <div className="w-full p-8 text-center bg-red-50 text-red-600 rounded-2xl border border-red-100">
         <p className="font-bold">Failed to fetch campaigns from the server</p>
         <button
           onClick={() => fetchCampaigns()}
@@ -322,13 +388,16 @@ const CampaignManagement = () => {
         <button
           onClick={() => {
             setEditingCampaign(null);
-            setFormData(emptyFormData);
+            setFormData({
+              ...emptyFormData,
+              categoryId: categoryOptions[0]?.categoryId ?? 0,
+            });
             setShowCreateModal(true);
           }}
           style={{ backgroundColor: primaryPurple }}
-          className="flex items-center gap-2 text-white px-6 py-3 rounded-2xl font-bold shadow-lg shadow-indigo-100 transition-all active:scale-95 hover:opacity-90"
+          className="flex items-center gap-2 text-white px-6 py-2.5 rounded-full font-semibold text-[15px] hover:bg-[#004999] transition-colors"
         >
-          <Plus size={20} />
+          <Plus size={18} />
           Create New Campaign
         </button>
       </div>
@@ -338,7 +407,7 @@ const CampaignManagement = () => {
         {stats.map((stat, i) => (
           <div
             key={i}
-            className="bg-white p-6 rounded-[30px] border border-gray-100 shadow-[0_8px_30px_rgb(0,0,0,0.02)] group hover:border-[#0066cc]/20 transition-all flex items-center gap-4"
+            className="bg-white p-6 rounded-2xl border border-gray-100 shadow-[0_8px_30px_rgb(0,0,0,0.02)] group hover:border-[#0066cc]/20 transition-all flex items-center gap-4"
           >
             <div
               className={`p-4 rounded-2xl ${stat.bg} group-hover:scale-110 transition-transform`}
@@ -358,7 +427,7 @@ const CampaignManagement = () => {
       </div>
 
       {/* Search */}
-      <div className="flex flex-wrap gap-4 bg-white p-4 rounded-[24px] border border-gray-100 shadow-sm">
+      <div className="flex flex-wrap gap-4 bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
         <div className="relative flex-1 min-w-[280px]">
           <Search
             className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
@@ -375,23 +444,23 @@ const CampaignManagement = () => {
       </div>
 
       {/* Campaigns Table */}
-      <div className="bg-white rounded-[30px] border border-gray-100 shadow-sm overflow-hidden">
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left">
             <thead>
               <tr className="bg-slate-50/50 text-slate-400 text-[11px] uppercase tracking-wider">
-                <th className="px-8 py-5 font-bold text-slate-500">
+                <th className="px-5 py-4 font-bold text-slate-500">
                   Campaign Details
                 </th>
-                <th className="px-8 py-5 font-bold text-slate-500">Category</th>
-                <th className="px-8 py-5 font-bold text-slate-500">
+                <th className="px-5 py-4 font-bold text-slate-500">Category</th>
+                <th className="px-5 py-4 font-bold text-slate-500">
                   Volunteers
                 </th>
-                <th className="px-8 py-5 font-bold text-slate-500">
+                <th className="px-5 py-4 font-bold text-slate-500">
                   Actual Progress
                 </th>
-                <th className="px-8 py-5 font-bold text-slate-500">Status</th>
-                <th className="px-8 py-5 font-bold text-center">Actions</th>
+                <th className="px-5 py-4 font-bold text-slate-500">Status</th>
+                <th className="px-5 py-4 font-bold text-center">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
@@ -400,7 +469,7 @@ const CampaignManagement = () => {
                   key={camp.id}
                   className="hover:bg-slate-50/50 transition-colors group"
                 >
-                  <td className="px-8 py-6">
+                  <td className="px-5 py-5">
                     <div className="flex flex-col">
                       <span className="font-bold text-slate-800 text-base group-hover:text-[#0066cc] transition-colors">
                         {camp.title}
@@ -416,7 +485,7 @@ const CampaignManagement = () => {
                       </div>
                     </div>
                   </td>
-                  <td className="px-8 py-6">
+                  <td className="px-5 py-5">
                     <span className="px-3 py-1 bg-slate-100 text-slate-500 rounded-lg text-[10px] font-bold uppercase tracking-wider">
                       {camp.categoryId === 1
                         ? "Environment"
@@ -427,8 +496,8 @@ const CampaignManagement = () => {
                             : `Category ${camp.categoryId}`}
                     </span>
                   </td>
-                  <td className="px-8 py-6">
-                    <div className="flex flex-col gap-2 w-36">
+                  <td className="px-5 py-5">
+                    <div className="flex flex-col gap-2 w-28">
                       <div className="flex justify-between text-[10px] font-bold text-slate-500 uppercase">
                         <span>
                           {camp.current_volunteers || 0} / {camp.max_volunteers}
@@ -454,33 +523,49 @@ const CampaignManagement = () => {
                       </div>
                     </div>
                   </td>
-                  <td className="px-8 py-6">
-                    <div className="flex flex-col gap-2 w-32">
-                      <div className="flex justify-between text-[10px] font-bold text-slate-500 uppercase">
-                        <span>Progress</span>
-                        <span style={{ color: primaryPurple }}>
-                          {camp.actual_progress || 0}%
-                        </span>
-                      </div>
-                      <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                        <div
-                          style={{
-                            width: `${camp.actual_progress || 0}%`,
-                            backgroundColor: primaryPurple,
-                          }}
-                          className="h-full rounded-full"
-                        ></div>
-                      </div>
-                    </div>
+                  <td className="px-5 py-5">
+                    {(() => {
+                      const pct = latestProgressById.get(camp.id) ?? 0;
+                      return (
+                        <div className="flex flex-col gap-2 w-24">
+                          <div className="flex justify-between text-[10px] font-bold text-slate-500 uppercase">
+                            <span>Progress</span>
+                            <span style={{ color: primaryPurple }}>
+                              {pct}%
+                            </span>
+                          </div>
+                          <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                            <div
+                              style={{
+                                width: `${pct}%`,
+                                backgroundColor: primaryPurple,
+                              }}
+                              className="h-full rounded-full"
+                            ></div>
+                          </div>
+                        </div>
+                      );
+                    })()}
                   </td>
-                  <td className="px-8 py-6">
-                    <span
-                      className={`px-4 py-1.5 rounded-lg text-[10px] font-bold border ${getStatusStyle(camp.status)}`}
+                  <td className="px-5 py-5">
+                    <select
+                      value={camp.status?.toUpperCase() || "PENDING"}
+                      disabled={updateStatusMutation.isPending}
+                      onChange={(e) => handleChangeStatus(camp.id, e.target.value)}
+                      className={`px-3 py-1 rounded-lg text-[11px] font-bold border outline-none cursor-pointer appearance-none pr-7 bg-[length:14px_14px] bg-no-repeat bg-[right_6px_center] ${getStatusStyle(camp.status)}`}
+                      style={{
+                        backgroundImage:
+                          "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'><polyline points='6 9 12 15 18 9'/></svg>\")",
+                      }}
                     >
-                      {camp.status}
-                    </span>
+                      {STATUS_OPTIONS.map((s) => (
+                        <option key={s} value={s}>
+                          {s}
+                        </option>
+                      ))}
+                    </select>
                   </td>
-                  <td className="px-8 py-6 text-center">
+                  <td className="px-5 py-5 text-center">
                     <div className="flex items-center justify-center gap-2">
                       <button
                         onClick={() => openProgressModal(camp)}
@@ -518,12 +603,53 @@ const CampaignManagement = () => {
             </tbody>
           </table>
         </div>
+        {campaignsResponse && campaignsResponse.totalPages > 0 && (
+          <div className="flex items-center justify-between px-6 py-4 border-t border-[#e0e0e0] text-[13px] text-[#6e6e73]">
+            <span>
+              Page {pagination.pageIndex + 1} of{" "}
+              {campaignsResponse.totalPages || 1} ·{" "}
+              {campaignsResponse.totalElements} total
+            </span>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() =>
+                  setPagination((p) => ({
+                    ...p,
+                    pageIndex: Math.max(0, p.pageIndex - 1),
+                  }))
+                }
+                disabled={pagination.pageIndex === 0}
+                className="px-4 py-1.5 rounded-full border border-[#e0e0e0] hover:bg-[#fafafc] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              >
+                Previous
+              </button>
+              <button
+                onClick={() =>
+                  setPagination((p) => ({
+                    ...p,
+                    pageIndex: Math.min(
+                      (campaignsResponse.totalPages || 1) - 1,
+                      p.pageIndex + 1,
+                    ),
+                  }))
+                }
+                disabled={
+                  pagination.pageIndex >=
+                  (campaignsResponse.totalPages || 1) - 1
+                }
+                className="px-4 py-1.5 rounded-full border border-[#e0e0e0] hover:bg-[#fafafc] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Modal - Create Campaign */}
       {showCreateModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-300">
-          <div className="bg-white w-full max-w-2xl rounded-[32px] shadow-2xl overflow-hidden animate-in zoom-in-95">
+          <div className="bg-white w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95">
             <div
               style={{ backgroundColor: primaryPurple }}
               className="p-8 flex justify-between items-center text-white"
@@ -623,9 +749,17 @@ const CampaignManagement = () => {
                   }
                   className="w-full px-5 py-3.5 bg-slate-50 border border-transparent rounded-2xl outline-none text-sm appearance-none cursor-pointer"
                 >
-                  <option value={1}>Environment</option>
-                  <option value={2}>Education</option>
-                  <option value={3}>Health</option>
+                  {categoryOptions.length === 0 ? (
+                    <option value={0} disabled>
+                      No categories yet — add one first
+                    </option>
+                  ) : (
+                    categoryOptions.map((cat) => (
+                      <option key={cat.categoryId} value={cat.categoryId}>
+                        {cat.name}
+                      </option>
+                    ))
+                  )}
                 </select>
               </div>
 
@@ -713,7 +847,7 @@ const CampaignManagement = () => {
       {/* Modal - Photos Management */}
       {showPhotosModal && selectedCampaign && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-300">
-          <div className="bg-white w-full max-w-3xl rounded-[32px] shadow-2xl overflow-hidden animate-in zoom-in-95">
+          <div className="bg-white w-full max-w-3xl rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95">
             <div
               style={{ backgroundColor: primaryPurple }}
               className="p-8 flex justify-between items-center text-white"
@@ -795,7 +929,7 @@ const CampaignManagement = () => {
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
                     {selectedCampaign.photos.map((photo) => (
                       <div
-                        key={photo.id}
+                        key={photo.photoId}
                         className="aspect-square bg-slate-100 rounded-2xl overflow-hidden border border-slate-100 relative group shadow-sm"
                       >
                         <img
@@ -822,7 +956,7 @@ const CampaignManagement = () => {
 
       {progressCampaign && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-300">
-          <div className="bg-white w-full max-w-xl rounded-[32px] shadow-2xl overflow-hidden animate-in zoom-in-95">
+          <div className="bg-white w-full max-w-xl rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95">
             <div
               style={{ backgroundColor: primaryPurple }}
               className="p-6 flex justify-between items-center text-white"

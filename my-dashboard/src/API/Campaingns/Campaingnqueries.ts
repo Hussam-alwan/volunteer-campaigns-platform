@@ -54,12 +54,22 @@ const useDeleteCampaign = () => {
   });
 };
 
+const useUpdateCampaignStatus = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, status }: { id: number; status: string }) =>
+      campaignApis.updateStatus(id, status),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["campaigns"] }),
+  });
+};
+
 const campaignQueries = {
   useGetAllCampaigns,
   useGetCampaignById,
   useAddCampaign,
   useUpdateCampaign,
   useDeleteCampaign,
+  useUpdateCampaignStatus,
 };
 
 export default campaignQueries;

@@ -15,6 +15,7 @@ import StudentsPage from "./components/dashboard/StudentsPage";
 import CampaignManagement from "./components/dashboard/CampaignManagement";
 import AttendanceProgress from "./components/dashboard/AttendanceProgress";
 import Colleges from "./components/dashboard/Colleges";
+import Categories from "./components/dashboard/Categories";
 import Reports from "./components/dashboard/Reports";
 import ApplicationStatus from "./components/dashboard/ApplicationStatus";
 
@@ -28,7 +29,7 @@ const ProtectedLayout = () => {
     return <Navigate to="/login" replace />;
   }
   return (
-    <div className="flex h-screen w-full bg-[#f5f5f7] overflow-hidden p-2">
+    <div className="flex h-screen w-full bg-[#fbfbfd] overflow-hidden">
       <Sidebar />
       <main className="flex-1 overflow-y-auto p-10">
         <Outlet />
@@ -61,6 +62,7 @@ function App() {
           <Route path="/attendance" element={<AttendanceProgress />} />
           <Route path="/students" element={<StudentsPage />} />
           <Route path="/colleges" element={<Colleges />} />
+          <Route path="/categories" element={<Categories />} />
           <Route path="/reports" element={<Reports />} />
         </Route>
 

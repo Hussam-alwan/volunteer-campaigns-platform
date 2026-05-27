@@ -12,8 +12,7 @@ export interface IUser {
   updatedAt: string;
 }
 
-// بناءً على الـ Swagger، الـ Response المباشر للـ 200 OK هو الـ User نفسه
-export interface IAuth extends IUser {}
+export type IAuth = IUser;
 
 export interface ILoginPayload {
   email: string;

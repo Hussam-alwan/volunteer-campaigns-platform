@@ -1,5 +1,6 @@
-import React, { useState } from "react";
+import { useState, type ChangeEvent, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
+import { HandHeart } from "lucide-react";
 import authApis from "@/API/Authorization/authorization.apis";
 import type { ILoginPayload } from "../../API/Authorization/authorization.interface";
 import useAuthStore from "../../store/auth.store";
@@ -14,106 +15,105 @@ const LoginPage = () => {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError(null);
     setLoading(true);
 
     try {
       const { accessToken, ...user } = await authApis.login(formData);
-
       if (!accessToken) {
         setError("Server did not return an authorization token.");
         return;
       }
-
       setAuth(user, accessToken);
       navigate("/dashboard", { replace: true });
-    } catch (err: any) {
-      setError(err?.response?.data?.message || "Invalid email or password.");
+    } catch (err) {
+      const detail = (err as { response?: { data?: { message?: string } } })
+        ?.response?.data?.message;
+      setError(detail || "Invalid email or password.");
     } finally {
       setLoading(false);
     }
   };
+
   return (
-    <div className="min-h-screen bg-[#f5f5f7] flex items-center justify-center p-4 font-sans antialiased">
-      <div className="bg-white p-8 rounded-[32px] shadow-[0_8px_30px_rgb(0,0,0,0.02)] border border-gray-100 w-full max-w-md">
-        {/* Header/Logo section matching Sidebar Header */}
-        <div className="text-center mb-8">
-          <div className="bg-[#0066cc] inline-flex p-3 rounded-2xl text-white mb-4 shadow-lg shadow-indigo-100">
-            <div className="w-6 h-6 border-2 border-white rotate-45 flex items-center justify-center">
-              <div className="w-2 h-2 bg-white" />
+    <div className="min-h-screen bg-[#fbfbfd] flex items-center justify-center p-4">
+      <div className="w-full max-w-sm">
+        <div className="flex flex-col items-center mb-8">
+          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#0066cc] to-[#34c759] flex items-center justify-center mb-5">
+            <HandHeart size={24} className="text-white" strokeWidth={2.4} />
+          </div>
+          <h1 className="text-[28px] font-semibold text-[#1d1d1f] tracking-tight">
+            Welcome back
+          </h1>
+          <p className="text-[15px] text-[#6e6e73] mt-1">
+            Sign in to continue.
+          </p>
+        </div>
+
+        <div className="bg-white border border-[#e0e0e0] rounded-2xl p-6">
+          {error && (
+            <div className="bg-red-50 text-red-600 text-[13px] p-3 rounded-xl mb-4 text-center border border-red-100">
+              {error}
             </div>
-          </div>
-          <h2 className="text-2xl font-bold text-slate-800 tracking-tight">
-            Welcome Back
-          </h2>
-          <p className="text-sm text-slate-400 mt-1">
-            Sign in to continue to Volunteer platform
-          </p>
-        </div>
+          )}
 
-        {error && (
-          <div className="bg-red-50 text-red-600 text-sm p-4 rounded-2xl mb-5 text-center border border-red-100 font-medium">
-            {error}
-          </div>
-        )}
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="block text-[12px] font-medium text-[#6e6e73] mb-1.5 uppercase tracking-wider">
+                Email
+              </label>
+              <input
+                type="email"
+                name="email"
+                required
+                value={formData.email}
+                onChange={handleChange}
+                placeholder="name@example.com"
+                className="w-full px-4 py-3 rounded-xl bg-[#f5f5f7] border border-transparent text-[#1d1d1f] text-[15px] placeholder-[#a1a1a6] focus:outline-none focus:bg-white focus:border-[#0066cc]/40 focus:ring-2 focus:ring-[#0066cc]/15 transition-colors"
+              />
+            </div>
 
-        <form onSubmit={handleSubmit} className="space-y-5">
-          <div>
-            <label className="block text-xs font-bold text-slate-400 mb-2 uppercase tracking-wider">
-              Email Address
-            </label>
-            <input
-              type="email"
-              name="email"
-              required
-              value={formData.email}
-              onChange={handleChange}
-              placeholder="name@example.com"
-              className="w-full px-5 py-3.5 rounded-2xl bg-slate-50 border border-slate-200 text-slate-800 placeholder-slate-400 focus:outline-none focus:border-[#0066cc] focus:bg-white transition-all text-[15px]"
-            />
-          </div>
+            <div>
+              <label className="block text-[12px] font-medium text-[#6e6e73] mb-1.5 uppercase tracking-wider">
+                Password
+              </label>
+              <input
+                type="password"
+                name="password"
+                required
+                value={formData.password}
+                onChange={handleChange}
+                placeholder="••••••••"
+                className="w-full px-4 py-3 rounded-xl bg-[#f5f5f7] border border-transparent text-[#1d1d1f] text-[15px] placeholder-[#a1a1a6] focus:outline-none focus:bg-white focus:border-[#0066cc]/40 focus:ring-2 focus:ring-[#0066cc]/15 transition-colors"
+              />
+            </div>
 
-          <div>
-            <label className="block text-xs font-bold text-slate-400 mb-2 uppercase tracking-wider">
-              Password
-            </label>
-            <input
-              type="password"
-              name="password"
-              required
-              value={formData.password}
-              onChange={handleChange}
-              placeholder="••••••••"
-              className="w-full px-5 py-3.5 rounded-2xl bg-slate-50 border border-slate-200 text-slate-800 placeholder-slate-400 focus:outline-none focus:border-[#0066cc] focus:bg-white transition-all text-[15px]"
-            />
-          </div>
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-[#0066cc] hover:bg-[#004999] text-white font-bold py-3.5 rounded-full transition-all shadow-lg shadow-indigo-100 hover:shadow-indigo-200 flex items-center justify-center text-[15px] mt-2 disabled:opacity-70"
-          >
-            {loading ? "Signing In..." : "Sign In"}
-          </button>
-        </form>
-
-        <div className="text-center mt-6">
-          <p className="text-sm text-slate-400">
-            Don't have an account?{" "}
-            <span
-              onClick={() => navigate("/register")}
-              className="text-[#0066cc] font-bold cursor-pointer hover:underline ml-1"
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-[#0066cc] hover:bg-[#004999] text-white font-semibold py-3 rounded-full transition-colors text-[15px] mt-2 disabled:opacity-60"
             >
-              Create an account
-            </span>
-          </p>
+              {loading ? "Signing in…" : "Sign In"}
+            </button>
+          </form>
         </div>
+
+        <p className="text-center mt-5 text-[14px] text-[#6e6e73]">
+          Don't have an account?{" "}
+          <button
+            type="button"
+            onClick={() => navigate("/register")}
+            className="text-[#0066cc] font-medium hover:underline"
+          >
+            Create one
+          </button>
+        </p>
       </div>
     </div>
   );

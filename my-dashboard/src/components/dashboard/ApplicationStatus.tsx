@@ -17,7 +17,7 @@ import {
   Avatar,
   AvatarFallback,
   AvatarImage,
-} from "@/components/layout/Avaert";
+} from "@/components/layout/Avatar";
 import { cn } from "@/pages/lib/utils";
 import {
   getApplications,
@@ -60,14 +60,40 @@ function ApplicationStatus() {
   });
   const [sortOrder, setSortOrder] = useState<"newest" | "oldest">("newest");
   const [updatingIds, setUpdatingIds] = useState<number[]>([]);
+  const [viewingMotivation, setViewingMotivation] =
+    useState<IApplication | null>(null);
 
   const { data: usersPage } = useGetAllUsers();
   const { data: campaignsPage } = campaignQueries.useGetAllCampaigns({
     page: 0,
     size: 50,
   });
-  const usersList = usersPage?.content || [];
-  const campaignsList = campaignsPage?.content || [];
+  const usersList = useMemo(() => usersPage?.content || [], [usersPage]);
+  const campaignsList = useMemo(
+    () => campaignsPage?.content || [],
+    [campaignsPage],
+  );
+
+  const userMap = useMemo(() => {
+    const m = new Map<number, { firstName: string; lastName: string }>();
+    usersList.forEach((u) =>
+      m.set(u.userId, { firstName: u.firstName, lastName: u.lastName }),
+    );
+    return m;
+  }, [usersList]);
+
+  const campaignMap = useMemo(() => {
+    const m = new Map<number, string>();
+    campaignsList.forEach((c) => m.set(c.id, c.title));
+    return m;
+  }, [campaignsList]);
+
+  const studentLabel = (id: number) => {
+    const u = userMap.get(id);
+    return u ? `${u.firstName} ${u.lastName}` : `Student #${id}`;
+  };
+  const campaignLabel = (id: number) =>
+    campaignMap.get(id) ?? `Campaign #${id}`;
 
   useEffect(() => {
     const fetchApplications = async () => {
@@ -180,32 +206,6 @@ function ApplicationStatus() {
     safeCurrentPage * itemsPerPage,
     searchedApplications.length,
   );
-
-  const pageNumbers = useMemo(() => {
-    if (totalPages <= 5) {
-      return Array.from({ length: totalPages }, (_, index) => index + 1);
-    }
-
-    const pages = [1];
-    const start = Math.max(2, safeCurrentPage - 1);
-    const end = Math.min(totalPages - 1, safeCurrentPage + 1);
-
-    if (start > 2) {
-      pages.push(-1);
-    }
-
-    for (let page = start; page <= end; page += 1) {
-      pages.push(page);
-    }
-
-    if (end < totalPages - 1) {
-      pages.push(-1);
-    }
-
-    pages.push(totalPages);
-
-    return pages;
-  }, [safeCurrentPage, totalPages]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -472,13 +472,10 @@ function ApplicationStatus() {
                   <thead>
                     <tr className="border-b border-gray-200">
                       <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-3">
-                        Student Name
+                        Student
                       </th>
                       <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-3">
-                        College
-                      </th>
-                      <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-3">
-                        Motivation Letter (Preview)
+                        Campaign
                       </th>
                       <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-3">
                         Applied On
@@ -492,127 +489,114 @@ function ApplicationStatus() {
                     </tr>
                   </thead>
                   <tbody>
-                    {paginatedApplications.map((application) => (
-                      <tr
-                        key={application.id}
-                        className="border-b border-gray-100 hover:bg-gray-50 transition-colors"
-                      >
-                        <td className="px-4 py-3">
-                          <div className="flex items-center gap-3">
-                            <Avatar className="w-9 h-9">
-                              <AvatarImage src="" />
-                              <AvatarFallback>
-                                S{application.student}
-                              </AvatarFallback>
-                            </Avatar>
-                            <div>
+                    {paginatedApplications.map((application) => {
+                      const name = studentLabel(application.student);
+                      const initials = name
+                        .split(" ")
+                        .map((s) => s[0])
+                        .filter(Boolean)
+                        .slice(0, 2)
+                        .join("")
+                        .toUpperCase();
+                      return (
+                        <tr
+                          key={application.id}
+                          className="border-b border-gray-100 hover:bg-gray-50 transition-colors"
+                        >
+                          <td className="px-4 py-3">
+                            <div className="flex items-center gap-3">
+                              <Avatar className="w-9 h-9">
+                                <AvatarImage src="" />
+                                <AvatarFallback>{initials || "S"}</AvatarFallback>
+                              </Avatar>
                               <p className="text-sm font-medium text-gray-900">
-                                Student #{application.student}
-                              </p>
-                              <p className="text-xs text-gray-500">
-                                Campaign #{application.campaign}
+                                {name}
                               </p>
                             </div>
-                          </div>
-                        </td>
-                        <td className="px-4 py-3 text-sm text-gray-600">
-                          Campaign #{application.campaign}
-                        </td>
-                        <td className="px-4 py-3 text-sm text-gray-600 max-w-xs truncate">
-                          {application.motivationLetter}
-                        </td>
-                        <td className="px-4 py-3 text-sm text-gray-600">
-                          {getApplicationDate(application).toLocaleDateString()}
-                        </td>
-                        <td className="px-4 py-3">
-                          <span
-                            className={cn(
-                              "px-2.5 py-1 rounded-full text-xs font-medium",
-                              statusStyles[
-                                application.status as keyof typeof statusStyles
-                              ] ?? "bg-gray-100 text-gray-700",
-                            )}
-                          >
-                            {application.status}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3">
-                          <div className="flex items-center gap-2">
-                            <button
-                              disabled={
-                                loading || updatingIds.includes(application.id)
-                              }
-                              onClick={() => acceptApplication(application.id)}
-                              className="p-1.5 bg-green-500 text-white rounded-md hover:bg-green-600 transition-colors disabled:opacity-50"
+                          </td>
+                          <td className="px-4 py-3 text-sm text-gray-700">
+                            {campaignLabel(application.campaign)}
+                          </td>
+                          <td className="px-4 py-3 text-sm text-gray-600">
+                            {getApplicationDate(application).toLocaleDateString()}
+                          </td>
+                          <td className="px-4 py-3">
+                            <span
+                              className={cn(
+                                "px-2.5 py-1 rounded-full text-xs font-medium",
+                                statusStyles[
+                                  application.status as keyof typeof statusStyles
+                                ] ?? "bg-gray-100 text-gray-700",
+                              )}
                             >
-                              <Check className="w-4 h-4" />
-                            </button>
-                            <button
-                              disabled={
-                                loading || updatingIds.includes(application.id)
-                              }
-                              onClick={() => rejectApplication(application.id)}
-                              className="p-1.5 bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors disabled:opacity-50"
-                            >
-                              <X className="w-4 h-4" />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
+                              {application.status}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3">
+                            <div className="flex items-center gap-2">
+                              <button
+                                onClick={() => setViewingMotivation(application)}
+                                title="View motivation letter"
+                                className="p-1.5 bg-[#f5f5f7] text-[#0066cc] rounded-md hover:bg-[#e5e5ea] transition-colors"
+                              >
+                                <FileText className="w-4 h-4" />
+                              </button>
+                              <button
+                                disabled={
+                                  loading ||
+                                  updatingIds.includes(application.id)
+                                }
+                                onClick={() => acceptApplication(application.id)}
+                                className="p-1.5 bg-green-500 text-white rounded-md hover:bg-green-600 transition-colors disabled:opacity-50"
+                              >
+                                <Check className="w-4 h-4" />
+                              </button>
+                              <button
+                                disabled={
+                                  loading ||
+                                  updatingIds.includes(application.id)
+                                }
+                                onClick={() => rejectApplication(application.id)}
+                                className="p-1.5 bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors disabled:opacity-50"
+                              >
+                                <X className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
 
-              <div className="flex items-center justify-between px-4 py-3 border-t border-gray-200">
-                <p className="text-sm text-gray-500">
-                  Showing {startItem}-{endItem} of {visibleApplications.length}{" "}
-                  applications
-                </p>
-                <div className="flex items-center gap-1">
+              <div className="flex items-center justify-between px-6 py-4 border-t border-[#e0e0e0] text-[13px] text-[#6e6e73]">
+                <span>
+                  Showing {startItem}-{endItem} of{" "}
+                  {visibleApplications.length} applications
+                </span>
+                <div className="flex items-center gap-2">
                   <button
                     type="button"
                     onClick={() =>
                       setCurrentPage((page) => Math.max(1, page - 1))
                     }
                     disabled={safeCurrentPage === 1}
-                    className="p-2 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                    className="px-4 py-1.5 rounded-full border border-[#e0e0e0] hover:bg-[#fafafc] disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center gap-1"
                   >
-                    <ChevronLeft className="w-4 h-4 text-gray-500" />
+                    <ChevronLeft className="w-3.5 h-3.5" />
+                    Previous
                   </button>
-                  {pageNumbers.map((page, index) =>
-                    page === -1 ? (
-                      <span
-                        key={`ellipsis-${index}`}
-                        className="px-2 text-gray-400"
-                      >
-                        ...
-                      </span>
-                    ) : (
-                      <button
-                        key={page}
-                        type="button"
-                        onClick={() => setCurrentPage(page)}
-                        className={cn(
-                          "w-8 h-8 rounded-lg text-sm font-medium transition-colors",
-                          safeCurrentPage === page
-                            ? "bg-[#0066cc] text-white"
-                            : "hover:bg-gray-100 text-gray-600",
-                        )}
-                      >
-                        {page}
-                      </button>
-                    ),
-                  )}
                   <button
                     type="button"
                     onClick={() =>
                       setCurrentPage((page) => Math.min(totalPages, page + 1))
                     }
                     disabled={safeCurrentPage === totalPages}
-                    className="p-2 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                    className="px-4 py-1.5 rounded-full border border-[#e0e0e0] hover:bg-[#fafafc] disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center gap-1"
                   >
-                    <ChevronRight className="w-4 h-4 text-gray-500" />
+                    Next
+                    <ChevronRight className="w-3.5 h-3.5" />
                   </button>
                 </div>
               </div>
@@ -719,6 +703,42 @@ function ApplicationStatus() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {viewingMotivation && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200"
+          onClick={() => setViewingMotivation(null)}
+        >
+          <div
+            className="bg-white w-full max-w-lg rounded-2xl border border-[#e0e0e0] overflow-hidden animate-in zoom-in-95"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="bg-[#0066cc] p-5 flex justify-between items-center text-white">
+              <div className="flex items-center gap-3">
+                <FileText size={20} />
+                <div>
+                  <h2 className="text-base font-semibold">Motivation Letter</h2>
+                  <p className="text-xs text-white/80">
+                    {studentLabel(viewingMotivation.student)} ·{" "}
+                    {campaignLabel(viewingMotivation.campaign)}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setViewingMotivation(null)}
+                className="hover:bg-white/10 p-2 rounded-full transition-colors"
+              >
+                <X size={18} />
+              </button>
+            </div>
+            <div className="p-6 max-h-[60vh] overflow-y-auto">
+              <p className="text-[15px] text-[#1d1d1f] whitespace-pre-wrap leading-relaxed">
+                {viewingMotivation.motivationLetter || "(empty)"}
+              </p>
+            </div>
           </div>
         </div>
       )}

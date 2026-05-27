@@ -55,22 +55,22 @@ const Dashboard = () => {
       {
         name: "Accepted",
         value: summary?.byStatus.approved ?? 0,
-        color: "#0066cc",
+        color: "#34c759",
       },
       {
         name: "Pending",
         value: summary?.byStatus.pending ?? 0,
-        color: "#2997ff",
+        color: "#ff9500",
       },
       {
         name: "Rejected",
         value: summary?.byStatus.rejected ?? 0,
-        color: "#7a7a7a",
+        color: "#ff3b30",
       },
       {
         name: "Withdrawn",
         value: summary?.byStatus.withdrawn ?? 0,
-        color: "#cccccc",
+        color: "#8e8e93",
       },
     ];
   }, [summary]);
@@ -107,8 +107,8 @@ const Dashboard = () => {
   );
 
   return (
-    <div className="w-full bg-[#f5f5f7] min-h-screen">
-      <div className="p-8 space-y-8">
+    <div className="w-full">
+      <div className="space-y-8">
         <div className="flex justify-between items-center">
           <h2 className="text-3xl font-bold text-slate-800 tracking-tight">
             Dashboard
@@ -144,7 +144,7 @@ const Dashboard = () => {
           {cards.map((card, i) => (
             <div
               key={i}
-              className="bg-white p-6 rounded-3xl shadow-sm border border-slate-50 flex flex-col gap-3"
+              className="bg-white p-6 rounded-2xl shadow-sm border border-slate-50 flex flex-col gap-3"
             >
               <div className="bg-slate-50 w-10 h-10 rounded-xl flex items-center justify-center">
                 {card.icon}
@@ -156,20 +156,15 @@ const Dashboard = () => {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 bg-white p-8 rounded-4xl border border-slate-50 shadow-sm relative">
+          <div className="lg:col-span-2 bg-white p-8 rounded-2xl border border-slate-50 shadow-sm relative">
             <div className="flex justify-between items-center mb-8">
-              <h3 className="font-bold text-slate-800 text-lg">
-                Attendance Insights
+              <h3 className="font-semibold text-[#1d1d1f] text-[17px]">
+                Campaign Progress
               </h3>
-              <div className="flex gap-4 text-xs font-semibold">
-                <span className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-[#0066cc]" /> Hours
-                </span>
-                <span className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-slate-200" />{" "}
-                  Volunteers
-                </span>
-              </div>
+              <span className="flex items-center gap-2 text-xs font-semibold text-[#6e6e73]">
+                <div className="w-2 h-2 rounded-full bg-[#0066cc]" />
+                Latest %
+              </span>
             </div>
             {/* تم الإصلاح: إضافة w-full و minWidth */}
             <div className="h-72 w-full">
@@ -207,7 +202,7 @@ const Dashboard = () => {
             </div>
           </div>
 
-          <div className="bg-white p-8 rounded-4xl border border-slate-50 shadow-sm">
+          <div className="bg-white p-8 rounded-2xl border border-slate-50 shadow-sm">
             <h3 className="font-bold text-slate-800 text-lg mb-2">
               Application Summary
             </h3>

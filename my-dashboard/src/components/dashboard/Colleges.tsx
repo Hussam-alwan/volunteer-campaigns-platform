@@ -18,7 +18,7 @@ import type { ICollege } from "../../API/Colleges/Colleges.interfaces";
 const Colleges = () => {
   const primaryPurple = "#0066cc";
 
-  const [pagination] = useState({
+  const [pagination, setPagination] = useState({
     pageIndex: 0,
     pageSize: 10,
   });
@@ -75,7 +75,7 @@ const Colleges = () => {
       const date = parts[0];
       const time = parts[1] ? parts[1].split(".")[0] : "";
       return { date, time };
-    } catch (e) {
+    } catch {
       return { date: isoString, time: "" };
     }
   };
@@ -115,7 +115,7 @@ const Colleges = () => {
         await addCollegeMutation.mutateAsync(formData);
       }
       handleCloseModal();
-    } catch (err) {
+    } catch {
       alert(isEditMode ? "Error updating college" : "Error creating college");
     }
   };
@@ -125,7 +125,7 @@ const Colleges = () => {
       return;
     try {
       await deleteCollegeMutation.mutateAsync(id);
-    } catch (err) {
+    } catch {
       alert(
         "Error deleting college. It might be referenced by other entities.",
       );
@@ -139,7 +139,7 @@ const Colleges = () => {
 
   if (hasError) {
     return (
-      <div className="w-full p-8 text-center bg-red-50 text-red-600 rounded-[24px] border border-red-100">
+      <div className="w-full p-8 text-center bg-red-50 text-red-600 rounded-2xl border border-red-100">
         <p className="font-bold">Failed to fetch colleges from the server</p>
         <button
           onClick={() => window.location.reload()}
@@ -157,25 +157,25 @@ const Colleges = () => {
       {/* Header Section */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900 tracking-tight">
+          <h1 className="text-[34px] font-semibold text-[#1d1d1f] tracking-tight leading-tight">
             University <span style={{ color: primaryPurple }}>Colleges</span>
           </h1>
-          <p className="text-slate-500 mt-1 font-medium">
+          <p className="text-[#6e6e73] mt-2 text-[17px]">
             Manage and view all registered academic institutions.
           </p>
         </div>
         <button
           onClick={() => setShowCreateModal(true)}
           style={{ backgroundColor: primaryPurple }}
-          className="flex items-center gap-2 text-white px-6 py-3 rounded-2xl font-bold shadow-lg shadow-indigo-100 transition-all active:scale-95 hover:opacity-90"
+          className="flex items-center gap-2 text-white px-6 py-2.5 rounded-full font-semibold text-[15px] hover:bg-[#004999] transition-colors"
         >
-          <Plus size={20} />
+          <Plus size={18} />
           Add New College
         </button>
       </div>
 
       {/* Search Area */}
-      <div className="bg-white p-4 rounded-[24px] border border-gray-100 shadow-sm flex items-center gap-4">
+      <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex items-center gap-4">
         <div className="relative max-w-md flex-1">
           <Search
             className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
@@ -199,25 +199,25 @@ const Colleges = () => {
 
       {/* Table Area */}
       <div
-        className={`bg-white rounded-[30px] border border-gray-100 shadow-sm overflow-hidden transition-opacity duration-300 ${isActionLoading || loading || fetching ? "opacity-50 pointer-events-none" : ""}`}
+        className={`bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden transition-opacity duration-300 ${isActionLoading || loading || fetching ? "opacity-50 pointer-events-none" : ""}`}
       >
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-slate-50/50">
-                <th className="px-6 py-5 font-extrabold text-slate-800 text-[13px] uppercase tracking-wider">
+              <tr className="bg-[#fafafc] border-b border-[#e0e0e0]">
+                <th className="px-6 py-4 font-medium text-[#6e6e73] text-[12px] uppercase tracking-[0.06em]">
                   College Name
                 </th>
-                <th className="px-6 py-5 font-extrabold text-slate-800 text-[13px] uppercase tracking-wider">
+                <th className="px-6 py-4 font-medium text-[#6e6e73] text-[12px] uppercase tracking-[0.06em]">
                   Description
                 </th>
-                <th className="px-6 py-5 font-extrabold text-slate-800 text-[13px] uppercase tracking-wider">
-                  Created At
+                <th className="px-6 py-4 font-medium text-[#6e6e73] text-[12px] uppercase tracking-[0.06em]">
+                  Created
                 </th>
-                <th className="px-6 py-5 font-extrabold text-slate-800 text-[13px] uppercase tracking-wider">
-                  Updated At
+                <th className="px-6 py-4 font-medium text-[#6e6e73] text-[12px] uppercase tracking-[0.06em]">
+                  Updated
                 </th>
-                <th className="px-6 py-5 font-extrabold text-slate-800 text-[13px] uppercase tracking-wider text-center">
+                <th className="px-6 py-4 font-medium text-[#6e6e73] text-[12px] uppercase tracking-[0.06em] text-center">
                   Actions
                 </th>
               </tr>
@@ -228,7 +228,7 @@ const Colleges = () => {
                 <tr>
                   <td
                     colSpan={5}
-                    className="text-center py-10 font-bold text-slate-400"
+                    className="text-center py-10 text-[#6e6e73] text-[15px]"
                   >
                     No colleges found matching your search.
                   </td>
@@ -241,55 +241,48 @@ const Colleges = () => {
                   return (
                     <tr
                       key={college.collegeId}
-                      className="hover:bg-slate-50/30 transition-colors group"
+                      className="hover:bg-[#fafafc] transition-colors"
                     >
-                      <td className="px-6 py-6">
-                        <span
-                          style={{ color: "black" }}
-                          className="font-bold text-base"
-                        >
+                      <td className="px-6 py-5">
+                        <span className="font-semibold text-[#1d1d1f] text-[15px]">
                           {college.name}
                         </span>
                       </td>
-                      <td className="px-6 py-6">
-                        <p className="text-slate-700 text-base max-w-xs line-clamp-1 font-medium">
+                      <td className="px-6 py-5">
+                        <p className="text-[#3a3a3c] text-[14px] max-w-xs line-clamp-1">
                           {college.description}
                         </p>
                       </td>
-                      <td className="px-6 py-6">
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-1.5 text-indigo-700 text-xs font-semibold">
-                            <Calendar size={13} className="text-indigo-600" />
-                            {created.date}
-                          </div>
+                      <td className="px-6 py-5">
+                        <div className="flex items-center gap-1.5 text-[#6e6e73] text-[13px]">
+                          <Calendar size={13} />
+                          <span>{created.date}</span>
                           {created.time && (
-                            <div className="flex items-center gap-1.5 text-indigo-500 text-[11px] pl-5 font-medium">
+                            <span className="text-[#a1a1a6] text-[12px] ml-1 inline-flex items-center gap-1">
                               <Clock size={11} />
                               {created.time}
-                            </div>
+                            </span>
                           )}
                         </div>
                       </td>
-                      <td className="px-6 py-6">
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-1.5 text-indigo-700 text-xs font-semibold">
-                            <Calendar size={13} className="text-indigo-600" />
-                            {updated.date}
-                          </div>
+                      <td className="px-6 py-5">
+                        <div className="flex items-center gap-1.5 text-[#6e6e73] text-[13px]">
+                          <Calendar size={13} />
+                          <span>{updated.date}</span>
                           {updated.time && (
-                            <div className="flex items-center gap-1.5 text-indigo-500 text-[11px] pl-5 font-medium">
+                            <span className="text-[#a1a1a6] text-[12px] ml-1 inline-flex items-center gap-1">
                               <Clock size={11} />
                               {updated.time}
-                            </div>
+                            </span>
                           )}
                         </div>
                       </td>
-                      <td className="px-6 py-6 text-center">
-                        <div className="flex items-center justify-center gap-2">
+                      <td className="px-6 py-5 text-center">
+                        <div className="flex items-center justify-center gap-1">
                           <button
                             onClick={() => handleOpenEditModal(college)}
                             title="Edit College"
-                            className="p-2 text-green-500 hover:text-amber-600 hover:bg-amber-50 rounded-xl transition-all"
+                            className="p-2 text-[#6e6e73] hover:text-[#0066cc] hover:bg-[#f5f5f7] rounded-lg transition-colors"
                           >
                             <Edit2 size={16} />
                           </button>
@@ -298,7 +291,7 @@ const Colleges = () => {
                               handleDeleteCollege(college.collegeId)
                             }
                             title="Delete College"
-                            className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all"
+                            className="p-2 text-[#6e6e73] hover:text-[#ff3b30] hover:bg-[#f5f5f7] rounded-lg transition-colors"
                           >
                             <Trash2 size={16} />
                           </button>
@@ -311,12 +304,52 @@ const Colleges = () => {
             </tbody>
           </table>
         </div>
+        {collegesResponse && collegesResponse.totalPages > 0 && (
+          <div className="flex items-center justify-between px-6 py-4 border-t border-[#e0e0e0] text-[13px] text-[#6e6e73]">
+            <span>
+              Page {pagination.pageIndex + 1} of{" "}
+              {collegesResponse.totalPages || 1} ·{" "}
+              {collegesResponse.totalElements} total
+            </span>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() =>
+                  setPagination((p) => ({
+                    ...p,
+                    pageIndex: Math.max(0, p.pageIndex - 1),
+                  }))
+                }
+                disabled={pagination.pageIndex === 0}
+                className="px-4 py-1.5 rounded-full border border-[#e0e0e0] hover:bg-[#fafafc] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              >
+                Previous
+              </button>
+              <button
+                onClick={() =>
+                  setPagination((p) => ({
+                    ...p,
+                    pageIndex: Math.min(
+                      (collegesResponse.totalPages || 1) - 1,
+                      p.pageIndex + 1,
+                    ),
+                  }))
+                }
+                disabled={
+                  pagination.pageIndex >= (collegesResponse.totalPages || 1) - 1
+                }
+                className="px-4 py-1.5 rounded-full border border-[#e0e0e0] hover:bg-[#fafafc] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Modal - Create / Edit College */}
       {showCreateModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-300">
-          <div className="bg-white w-full max-w-xl rounded-[32px] shadow-2xl overflow-hidden animate-in zoom-in-95">
+          <div className="bg-white w-full max-w-xl rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95">
             <div
               style={{ backgroundColor: primaryPurple }}
               className="p-8 flex justify-between items-center text-white"

@@ -9,7 +9,6 @@ import type {
   ICampaignApplicationsPaginatedResponse,
   IPageableParams,
   ICreateCampaignProgressInput,
-  ICreateCampaignAttendanceInput,
 } from "./Reports.interfaces";
 
 const ReportsService = {
@@ -46,7 +45,7 @@ const ReportsService = {
   createCampaignProgress: async (
     campaignId: number,
     data: ICreateCampaignProgressInput,
-  ): Promise<any> => {
+  ): Promise<unknown> => {
     const response = await api.post(
       ReportsApiRoutes.CreateCampaignProgress(campaignId),
       data,
