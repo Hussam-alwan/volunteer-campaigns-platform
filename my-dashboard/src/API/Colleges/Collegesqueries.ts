@@ -1,43 +1,78 @@
-// src/apis/college/Colleges.queries.ts
+// src/apis/college/Collegesqueries.ts
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import collegesApis from "./Colleges.apis";
+import type {
+  IPageableParams,
+  ICreateCollegeInput,
+  IUpdateCollegeInput,
+} from "./Colleges.interfaces";
 
-import { useQuery } from "@tanstack/react-query";
-import collegesApis from "./Colleges.apis"; // استدعاء ملف الـ API الخاص بالكليات الذي جهزناه
-import type { IPageableParams } from "./Colleges.interfaces";
-
-// تجميع مفاتيح الكاش (Query Keys) لضمان تنظيمها وعدم تكرارها للكليات
-export const collegesQueryKeys = {
-  useGetAllColleges: (param: IPageableParams) =>
-    ["get-all-colleges", param] as const,
-  useGetCollegeById: (id: number) => ["get-college-by-id", id] as const,
+export const useCollegesFields = {
+  COLLEGES_LIST: "COLLEGES_LIST",
+  COLLEGE_DETAILS: "COLLEGE_DETAILS",
 };
 
-// 1. هوك جلب كل الكليات مع الـ Pagination والـ Filters
-const useGetAllColleges = (param: IPageableParams) => {
-  const queryResult = useQuery({
-    queryKey: collegesQueryKeys.useGetAllColleges(param),
-    queryFn: () => collegesApis.getAllColleges(param),
-    select: (res) => res,
+// Hook لجلب الكليات
+export const useGetColleges = (params: IPageableParams) => {
+  return useQuery({
+    queryKey: [useCollegesFields.COLLEGES_LIST, params],
+    queryFn: () => collegesApis.getAllColleges(params),
   });
-
-  return queryResult;
 };
 
-// 2. هوك جلب كلية واحدة محددة عبر الـ ID
-const useGetCollegeById = (collegeId: number) => {
-  const queryResult = useQuery({
-    queryKey: collegesQueryKeys.useGetCollegeById(collegeId),
-    queryFn: () => collegesApis.getCollege(collegeId),
-    select: (res) => res,
-    // الـ Hook لن يعمل إلا إذا كان الـ ID متاحاً وموجوداً (يمنع طلب قيم صفرية أو undefined)
-    enabled: !!collegeId && collegeId !== 0,
+// Hook لإضافة كلية
+export const useAddCollege = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: ICreateCollegeInput) =>
+      collegesApis.addCollege(payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: [useCollegesFields.COLLEGES_LIST],
+      });
+    },
   });
-
-  return queryResult;
 };
 
+// Hook لتعديل كلية
+export const useUpdateCollege = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      id,
+      payload,
+    }: {
+      id: number;
+      payload: IUpdateCollegeInput;
+    }) => collegesApis.updateCollege(id, payload),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: [useCollegesFields.COLLEGES_LIST],
+      });
+      queryClient.invalidateQueries({
+        queryKey: [useCollegesFields.COLLEGE_DETAILS, variables.id],
+      });
+    },
+  });
+};
+
+// Hook لحذف كلية
+export const useDeleteCollege = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => collegesApis.deleteCollege(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: [useCollegesFields.COLLEGES_LIST],
+      });
+    },
+  });
+};
 const collegesQueries = {
-  useGetAllColleges,
-  useGetCollegeById,
+  useGetColleges,
+  useAddCollege,
+  useUpdateCollege,
+  useDeleteCollege,
 };
 
 export default collegesQueries;

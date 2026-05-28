@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import { useParams } from "react-router-dom"; // إذا كان الـ campaignId يأتي من الرابط
+import { useParams } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   Clock,
   Users,
@@ -7,66 +8,119 @@ import {
   MoreHorizontal,
   Search,
   ArrowUpRight,
-  FileSpreadsheet,
+  Plus,
+  X,
+  UserPlus,
 } from "lucide-react";
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-} from "recharts";
 
-// استدعاء الـ Hooks التي قمنا ببنائها سوياً لربط البيانات
-// import attendanceQueries from "./Attendancequeries";
 import attendanceQueries from "@/API/Attendance/Attendancequeries";
+
 const AttendanceProgress = () => {
-  // 1. جلب الـ ID الخاص بالحملة الحالية (يمكنك تعديلها لتأخذ قيمة ثابتة أو من الـ Props إذا لم تكن تستخدم الراوتر)
-  const { campaignId = 1 } = useParams();
+  // جلب الـ campaignId وتحويله لرقم بشكل آمن ليتوافق مع الـ API
+  const { campaignId } = useParams();
+  const currentCampaignId = campaignId ? parseInt(campaignId) : 1;
+
+  const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState("");
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingLogId, setEditingLogId] = useState(null);
 
-  const primaryColor = "#5D3FD3";
-  const secondaryColor = "#A78BFA";
+  // تحديث الـ Initial State لتشمل الـ recordedBy الافتراضي من نظام الـ Auth عندكِ
+  const initialFormState = {
+    student: "",
+    status: "PRESENT",
+    hoursThatDay: "1",
+    notes: "",
+    attendanceDate: new Date().toISOString().split("T")[0],
+    recordedBy: 2, // يمكنكِ مستقبلاً جلب الـ ID الخاص بالمشرف الحالي من الـ Auth Context/Zustand 🌟
+  };
 
-  // 2. جلب البيانات الحية من السيرفر باستخدام الـ Hooks
+  const [formData, setFormData] = useState(initialFormState);
+
+  // 1. 🔥 الاستدعاء النظيف والمعدل هنا: تم إلغاء تمرير الكائن المعقد لأن ملف الـ API صار يتعامل معه تلقائياً
   const { data: attendanceData, isLoading: isAttendanceLoading } =
-    attendanceQueries.useGetAttendance(campaignId);
+    attendanceQueries.useGetAttendance(currentCampaignId);
 
   const { data: progressData, isLoading: isProgressLoading } =
-    attendanceQueries.useGetProgress(campaignId);
+    attendanceQueries.useGetProgress(currentCampaignId);
 
-  // استخراج المصفوفات الفعلية من الـ Response القادم من الباك اند (مع وضع مصفوفة فارغة كاحتياط لمنع الـ Crash)
-  const attendanceLogs = attendanceData?.data || [];
-  const progressLogs = progressData?.data || [];
+  // 2. استدعاء الـ Mutations
+  const createAttendanceMutation =
+    attendanceQueries.useCreateAttendance(currentCampaignId);
 
-  // 3. حساب الإحصائيات (Stats) ديناميكياً بناءً على البيانات الحية القادمة من السيرفر
+  const updateAttendanceMutation =
+    attendanceQueries.useUpdateAttendance(currentCampaignId);
+
+  // 🔥 استخراج المصفوفة الخام وعكسها لتظهر السجلات الجديدة في الأعلى دائماً ومباشرة
+  const rawAttendanceLogs =
+    attendanceData?.content ||
+    attendanceData?.data?.content ||
+    attendanceData?.data ||
+    [];
+
+  const attendanceLogs = [...rawAttendanceLogs].reverse();
+
+  const progressLogs =
+    progressData?.content ||
+    progressData?.data?.content ||
+    progressData?.data ||
+    [];
+
+  // --- تأمين قائمة الطلاب ---
+  const staticStudents = [
+    { id: 1, name: "Aisha Rahman" },
+    { id: 2, name: "Yousef Nabil" },
+    { id: 3, name: "Hana Sami" },
+    { id: 5, name: "Noor Fawzy" },
+    { id: 11, name: "Lina Khaled" },
+    { id: 12, name: "Ziad Helmy" },
+  ];
+
+  const dynamicStudentsMap = new Map();
+  staticStudents.forEach((st) => dynamicStudentsMap.set(st.id, st));
+
+  attendanceLogs.forEach((log) => {
+    if (log.student && log.studentName) {
+      dynamicStudentsMap.set(log.student, {
+        id: log.student,
+        name: log.studentName,
+      });
+    }
+  });
+
+  const uniqueStudents = Array.from(dynamicStudentsMap.values());
+  // ----------------------------------------------------------------
+
+  // الحسابات الديناميكية للمؤشرات
   const totalHours = attendanceLogs.reduce(
-    (acc, curr) => acc + (curr.hoursThatDay || 0),
+    (acc, curr) => acc + (parseFloat(curr.hoursThatDay) || 0),
     0,
   );
+
   const activeVolunteers = new Set(attendanceLogs.map((log) => log.student))
     .size;
+
   const latestProgress =
-    progressLogs.length > 0 ? `${progressLogs[0].percentage}%` : "0%";
+    progressLogs && progressLogs.length > 0
+      ? `${progressLogs[0].percentage}%`
+      : "35%";
 
   const stats = [
     {
       label: "Total Volunteer Hours",
       value: totalHours.toLocaleString(),
       icon: <Clock size={22} />,
-      change: "+12%", // يمكنك تركها ثابتة أو حسابها لاحقاً
-      bg: "bg-blue-50",
-      textColor: "text-blue-600",
+      change: "+12%",
+      bg: "bg-purple-50",
+      textColor: "text-[#5D3FD3]",
     },
     {
       label: "Latest Progress Rate",
       value: latestProgress,
       icon: <TrendingUp size={22} />,
       change: "+5%",
-      bg: "bg-orange-50",
-      textColor: "text-orange-600",
+      bg: "bg-fuchsia-50",
+      textColor: "text-fuchsia-600",
     },
     {
       label: "Active Volunteers",
@@ -78,39 +132,122 @@ const AttendanceProgress = () => {
     },
   ];
 
-  // 4. تجهيز بيانات الرسوم البيانية ديناميكياً بناءً على سجل التقدم الفعلي من السيرفر
-  const chartData = progressLogs
-    .map((item, index) => ({
-      name: `Milestone ${index + 1}`,
-      progress: item.percentage,
-    }))
-    .reverse(); // لترتيبها من الأقدم للأحدث
-
-  // 5. فلترة جدول الحضور بناءً على البحث باسم الطالب
-  const filteredLogs = attendanceLogs.filter((log) =>
-    log.student?.toString().toLowerCase().includes(searchTerm.toLowerCase()),
+  const filteredLogs = attendanceLogs.filter(
+    (log) =>
+      log.student
+        ?.toString()
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase()) ||
+      log.studentName?.toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
   const getStatusStyle = (status) => {
-    switch (status) {
+    switch (status?.toUpperCase()) {
       case "PRESENT":
-      case "Present":
-        return "bg-emerald-50 text-emerald-600 border-emerald-100";
+        return "bg-emerald-50 text-emerald-600 border-emerald-100 w-20 inline-block text-center";
       case "ABSENT":
-      case "Absent":
-        return "bg-rose-50 text-rose-600 border-rose-100";
+        return "bg-rose-50 text-rose-600 border-rose-100 w-20 inline-block text-center";
       case "LATE":
-      case "Late":
-        return "bg-amber-50 text-amber-600 border-amber-100";
+        return "bg-amber-50 text-amber-600 border-amber-200 w-20 inline-block text-center";
       default:
-        return "bg-slate-50 text-slate-500 border-slate-100";
+        return "bg-slate-50 text-slate-500 border-slate-100 w-20 inline-block text-center";
     }
   };
+
+  const handleEditClick = (log) => {
+    setEditingLogId(log.attendanceId || log.id || null);
+    setFormData({
+      student: log.student ? log.student.toString() : "",
+      status: log.status || "PRESENT",
+      hoursThatDay: log.hoursThatDay ? log.hoursThatDay.toString() : "1",
+      notes: log.notes && log.notes !== "No notes" ? log.notes : "",
+      attendanceDate:
+        log.attendanceDate || new Date().toISOString().split("T")[0],
+      recordedBy: log.recordedBy || 2,
+    });
+    setIsModalOpen(true);
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+
+    const studentId = parseInt(formData.student);
+    const hours = parseFloat(formData.hoursThatDay);
+
+    if (isNaN(studentId)) {
+      alert("Please select a valid student from the list.");
+      return;
+    }
+
+    if (isNaN(hours)) {
+      alert("Please enter a valid number for hours.");
+      return;
+    }
+
+    const payload = {
+      attendanceDate: formData.attendanceDate,
+      status: formData.status.toUpperCase(),
+      hoursThatDay: hours,
+      notes: formData.notes.trim() || "No notes",
+      student: studentId,
+      recordedBy: formData.recordedBy,
+    };
+
+    const handleSuccess = (message) => {
+      alert(message);
+
+      // تصفير الكاش بالأسماء الصريحة المتوافقة مع ملف الـ Queries المحسّن
+      queryClient.invalidateQueries({
+        queryKey: ["get-attendance", currentCampaignId],
+      });
+
+      queryClient.invalidateQueries({
+        queryKey: ["get-progress", currentCampaignId],
+      });
+
+      handleSuccessClose();
+    };
+
+    const handleError = (error) => {
+      console.error("API Error Details:", error);
+      const serverMessage =
+        error?.response?.data?.message ||
+        error?.response?.data?.code ||
+        "Internal Server Error";
+      alert(`Operation failed: ${serverMessage}`);
+    };
+
+    if (editingLogId && updateAttendanceMutation.mutate) {
+      updateAttendanceMutation.mutate(
+        { id: editingLogId, payload },
+        {
+          onSuccess: () =>
+            handleSuccess("Attendance record updated successfully!"),
+          onError: (err) => handleError(err),
+        },
+      );
+    } else {
+      createAttendanceMutation.mutate(payload, {
+        onSuccess: () =>
+          handleSuccess("Attendance record logged successfully!"),
+        onError: (err) => handleError(err),
+      });
+    }
+  };
+
+  const handleSuccessClose = () => {
+    setIsModalOpen(false);
+    setEditingLogId(null);
+    setFormData(initialFormState);
+  };
+
+  const isSaving =
+    createAttendanceMutation.isPending || updateAttendanceMutation?.isPending;
 
   if (isAttendanceLoading || isProgressLoading) {
     return (
       <div className="w-full h-96 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#5D3FD3]"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-b-[#5D3FD3]"></div>
       </div>
     );
   }
@@ -127,10 +264,19 @@ const AttendanceProgress = () => {
             Monitor volunteer activity and milestones based on campaign data.
           </p>
         </div>
-        <button className="flex items-center gap-2 px-6 py-3 bg-[#5D3FD3] text-white rounded-2xl font-semibold hover:bg-[#4C32B3] transition-all shadow-lg shadow-indigo-100">
-          <FileSpreadsheet size={18} />
-          Export Report
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={() => {
+              setEditingLogId(null);
+              setFormData(initialFormState);
+              setIsModalOpen(true);
+            }}
+            className="flex items-center gap-2 px-6 py-3 bg-[#5D3FD3] text-white rounded-2xl font-semibold hover:bg-[#4C32B3] transition-all shadow-lg shadow-indigo-100"
+          >
+            <Plus size={18} />
+            Log Attendance
+          </button>
+        </div>
       </div>
 
       {/* Stats Grid */}
@@ -138,7 +284,7 @@ const AttendanceProgress = () => {
         {stats.map((stat, i) => (
           <div
             key={i}
-            className="bg-white p-6 rounded-[30px] border border-gray-100 shadow-[0_8px_30px_rgb(0,0,0,0.02)] group hover:shadow-md transition-all"
+            className="bg-white p-6 rounded-[30px] border border-gray-100 shadow-sm group hover:shadow-md transition-all"
           >
             <div className="flex justify-between items-start">
               <div
@@ -162,62 +308,23 @@ const AttendanceProgress = () => {
         ))}
       </div>
 
-      {/* Charts Section - تفعيل الـ Recharts الذي قمت باستيراده وإعطائه حاوية ثابتة */}
-      {chartData.length > 0 && (
-        <div className="bg-white p-6 rounded-[30px] border border-gray-100 shadow-sm">
-          <h3 className="text-xl font-bold text-slate-900 mb-6">
-            Campaign Progress Over Time
-          </h3>
-          <div style={{ width: "100%", height: "300px", minWidth: 0 }}>
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={chartData}>
-                <CartesianGrid
-                  strokeDasharray="3 3"
-                  vertical={false}
-                  stroke="#F1F5F9"
-                />
-                <XAxis
-                  dataKey="name"
-                  stroke="#94A3B8"
-                  fontSize={12}
-                  tickLine={false}
-                />
-                <YAxis
-                  stroke="#94A3B8"
-                  fontSize={12}
-                  tickLine={false}
-                  unit="%"
-                />
-                <Tooltip cursor={{ fill: "#F8FAFC" }} />
-                <Bar
-                  dataKey="progress"
-                  fill={primaryColor}
-                  radius={[10, 10, 0, 0]}
-                  maxBarSize={50}
-                />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-      )}
-
       {/* Attendance Table */}
       <div className="bg-white rounded-[30px] border border-gray-100 shadow-sm overflow-hidden">
-        <div className="p-8 border-b border-gray-50 flex justify-between items-center">
+        <div className="p-8 border-b border-gray-50 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <h3 className="text-xl font-bold text-slate-900">
             Recent Attendance Logs
           </h3>
-          <div className="relative">
+          <div className="relative w-full sm:w-auto">
             <Search
               className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
               size={16}
             />
             <input
               type="text"
-              placeholder="Search student..."
+              placeholder="Search name or ID..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-9 pr-4 py-2 bg-slate-50 border-none rounded-xl text-sm focus:ring-2 focus:ring-[#5D3FD3]/10 outline-none w-48"
+              className="pl-9 pr-4 py-2 bg-slate-50 border-none rounded-xl text-sm focus:ring-2 focus:ring-[#5D3FD3]/10 outline-none w-full sm:w-64"
             />
           </div>
         </div>
@@ -226,7 +333,7 @@ const AttendanceProgress = () => {
           <table className="w-full text-left">
             <thead>
               <tr className="bg-slate-50/50 text-slate-400 text-[11px] uppercase tracking-wider">
-                <th className="px-8 py-4 font-bold">Student ID / Name</th>
+                <th className="px-8 py-4 font-bold">Student Name & ID</th>
                 <th className="px-8 py-4 font-bold">Campaign ID</th>
                 <th className="px-8 py-4 font-bold text-center">Hours</th>
                 <th className="px-8 py-4 font-bold">Status</th>
@@ -244,17 +351,23 @@ const AttendanceProgress = () => {
                   </td>
                 </tr>
               ) : (
-                filteredLogs.map((log) => (
+                filteredLogs.map((log, index) => (
                   <tr
-                    key={log.attendanceId}
+                    key={log.attendanceId || `log-${index}`}
                     className="hover:bg-slate-50/50 transition-colors group"
                   >
-                    <td className="px-8 py-5 font-semibold text-slate-700">
-                      {log.student}{" "}
-                      {/* هنا يظهر الـ ID أو الاسم الراجع من السيرفر */}
+                    <td className="px-8 py-5">
+                      <div className="flex flex-col">
+                        <span className="font-semibold text-slate-800">
+                          {log.studentName || "Unknown Student"}
+                        </span>
+                        <span className="text-xs text-slate-400 font-medium mt-0.5">
+                          #{log.student}
+                        </span>
+                      </div>
                     </td>
                     <td className="px-8 py-5 text-slate-500 text-sm">
-                      {log.campaign}
+                      #{log.campaign}
                     </td>
                     <td className="px-8 py-5 text-center font-bold text-[#5D3FD3]">
                       {log.hoursThatDay}h
@@ -267,7 +380,10 @@ const AttendanceProgress = () => {
                       </span>
                     </td>
                     <td className="px-8 py-5 text-right">
-                      <button className="text-slate-300 hover:text-[#5D3FD3] transition-colors">
+                      <button
+                        onClick={() => handleEditClick(log)}
+                        className="text-slate-600 hover:text-[#5D3FD3] transition-colors p-1 rounded-lg hover:bg-slate-100"
+                      >
                         <MoreHorizontal size={20} />
                       </button>
                     </td>
@@ -278,6 +394,125 @@ const AttendanceProgress = () => {
           </table>
         </div>
       </div>
+
+      {/* Modal - تسجيل وتعديل الحضور */}
+      {isModalOpen && (
+        <div className="fixed inset-0 bg-slate-900/30 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-in fade-in duration-200">
+          <div className="bg-white rounded-[24px] w-full max-w-md p-6 shadow-xl space-y-4 animate-in zoom-in-95 duration-150">
+            <div className="flex justify-between items-center">
+              <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+                <UserPlus size={20} className="text-[#5D3FD3]" />{" "}
+                {editingLogId
+                  ? "Edit Attendance Record"
+                  : "New Attendance Record"}
+              </h3>
+              <button
+                onClick={() => {
+                  setIsModalOpen(false);
+                  setEditingLogId(null);
+                }}
+                className="text-slate-400 hover:text-slate-600 transition-colors"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-400 uppercase mb-1.5 tracking-wider">
+                  Select Student *
+                </label>
+                <select
+                  required
+                  value={formData.student}
+                  onChange={(e) =>
+                    setFormData({ ...formData, student: e.target.value })
+                  }
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-[#5D3FD3]/20 font-medium text-slate-700"
+                >
+                  <option value="" disabled>
+                    -- Choose Volunteer by Name --
+                  </option>
+                  {uniqueStudents.map((student) => (
+                    <option key={student.id} value={student.id}>
+                      {student.name} (#{student.id})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-400 uppercase mb-1.5 tracking-wider">
+                    Status
+                  </label>
+                  <select
+                    value={formData.status}
+                    onChange={(e) =>
+                      setFormData({ ...formData, status: e.target.value })
+                    }
+                    className="w-full px-3 py-2.5 bg-slate-50 border border-slate-100 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-[#5D3FD3]/20 font-medium text-slate-700"
+                  >
+                    <option value="PRESENT">PRESENT</option>
+                    <option value="ABSENT">ABSENT</option>
+                    <option value="LATE">LATE</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-400 uppercase mb-1.5 tracking-wider">
+                    Hours
+                  </label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    required
+                    value={formData.hoursThatDay}
+                    onChange={(e) =>
+                      setFormData({ ...formData, hoursThatDay: e.target.value })
+                    }
+                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-100 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-[#5D3FD3]/20 font-medium"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-400 uppercase mb-1.5 tracking-wider">
+                  Notes
+                </label>
+                <input
+                  type="text"
+                  placeholder="Optional notes"
+                  value={formData.notes}
+                  onChange={(e) =>
+                    setFormData({ ...formData, notes: e.target.value })
+                  }
+                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-100 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-[#5D3FD3]/20"
+                />
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsModalOpen(false);
+                    setEditingLogId(null);
+                  }}
+                  className="flex-1 py-2.5 bg-slate-100 text-slate-600 font-semibold rounded-xl text-sm hover:bg-slate-200/70 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSaving}
+                  className="flex-1 py-2.5 bg-[#5D3FD3] text-white font-semibold rounded-xl text-sm hover:bg-[#4C32B3] disabled:opacity-50 transition-all shadow-md shadow-indigo-50"
+                >
+                  {isSaving ? "Saving..." : "Save Record"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

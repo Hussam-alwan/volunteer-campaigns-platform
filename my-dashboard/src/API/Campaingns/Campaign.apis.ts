@@ -1,13 +1,17 @@
 // src/apis/campaign/campaign.api.ts
 
 import ApiInstance from "../api.instance"; // تأكدي من مسار ملف الـ Axios الجديد الخاص بكِ
-import type { IPagination, IResponse } from "../../common.interfaces"; // تأكدي من وجود هذه الـ interfaces العامة لديكِ
+import type { IPagination } from "../../common.interfaces"; // تأكدي من وجود هذه الـ interfaces العامة لديكِ
 import CampaignApiRoutes from "./Campaign.api-routes"; // ملف الـ Routes البسيط الذي جهزناه
-import type { ICampaign } from "./Campaign.interfaces"; // الـ Interface الجديد الخاص بالحملات
-import type { ICampaignInputs } from "./Campaign.interfaces"; // الـ Interface الخاص ببيانات الإدخال لإنشاء أو تعديل حملة
-// 1. جلب كل الحملات مع الـ Pagination والـ Params
+import type {
+  ICampaign,
+  ICampaignPage,
+  ICampaignInputs,
+} from "./Campaign.interfaces"; // الـ Interface الجديد الخاص بالحملات
+
+// 1. جلب كل الحملات مع الـ Pagination والـ Params (رد Spring يكون Page<Campaign>)
 const getAllCampaigns = async (params?: IPagination) => {
-  const { data } = await ApiInstance.get<IResponse<ICampaign[]>>(
+  const { data } = await ApiInstance.get<ICampaignPage>(
     CampaignApiRoutes.GetAll,
     {
       params,

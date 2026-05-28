@@ -1,11 +1,11 @@
 // src/pages/Colleges.tsx
 
-import React, { useState, type ChangeEvent, type FormEvent } from "react";
+import React, { useState, useEffect, type FormEvent } from "react";
 import {
   Plus,
   Search,
-  MoreHorizontal,
   Calendar,
+  Clock,
   Edit2,
   Trash2,
   X,
@@ -13,114 +13,144 @@ import {
 } from "lucide-react";
 
 import collegesQueries from "../../API/Colleges/Collegesqueries";
-import collegesApis from "../../API/Colleges/Colleges.apis";
-import type {
-  ICollege,
-  ICreateCollegeInput,
-} from "../../API/Colleges/Colleges.interfaces";
+import type { ICollege } from "../../API/Colleges/Colleges.interfaces";
 
 const Colleges: React.FC = () => {
   const primaryPurple = "#5D3FD3";
 
-  // 1. التحكم بحالة الـ Pagination المتوافقة مع الباك-إيند
   const [pagination, setPagination] = useState({
-    pageIndex: 0, // السيرفرات تعتمد غالباً على 0 كأول صفحة
+    pageIndex: 0,
     pageSize: 10,
   });
 
-  // 2. جلب البيانات الاحترافي عبر TanStack Query بدون useEffect يدوي
+  // 1. الإبقاء على الـ State للبحث (تمت إزالة الـ debouncedQuery لأن الفلترة فورية وداخلية)
+  const [searchQuery, setSearchQuery] = useState<string>("");
+
+  // 2. جلب البيانات كاملة من السيرفر (بدون إرسال برامتر name لأن الباك إند لا يدعمه)
   const {
     data: collegesResponse,
     isLoading: loading,
+    isFetching: fetching,
     isError: hasError,
-    refetch: fetchColleges,
-  } = collegesQueries.useGetAllColleges({
+  } = collegesQueries.useGetColleges({
     page: pagination.pageIndex,
     size: pagination.pageSize,
   });
 
-  // استخراج المصفوفة الفعلية للكليات من الرد المدعوم بالـ pageable
-  const colleges = collegesResponse?.content || [];
+  const addCollegeMutation = collegesQueries.useAddCollege();
+  const updateCollegeMutation = collegesQueries.useUpdateCollege();
+  const deleteCollegeMutation = collegesQueries.useDeleteCollege();
 
-  // 3. حالات النوافذ المنبثقة والتحكم بالعمليات
+  const allColleges = collegesResponse?.content || [];
+
+  // 3. ✨ هنا السحر: تفلترة المصفوفة داخلياً في الفرونت إند بناءً على ما يكتبه المستخدم فورياً
+  const filteredColleges = allColleges.filter((college: ICollege) => {
+    const term = searchQuery.toLowerCase().trim();
+    return (
+      college.name.toLowerCase().includes(term) ||
+      college.description.toLowerCase().includes(term)
+    );
+  });
+
   const [showCreateModal, setShowCreateModal] = useState<boolean>(false);
   const [isEditMode, setIsEditMode] = useState<boolean>(false);
   const [selectedCollegeId, setSelectedCollegeId] = useState<number | null>(
     null,
   );
 
-  // فورم الإنشاء والتعديل الموحد المربوط بالـ State
-  const [formData, setFormData] = useState<ICreateCollegeInput>({
+  const [formData, setFormData] = useState({
     name: "",
     description: "",
   });
 
-  // 4. معالج فتح نافذة التعديل لتعبئة البيانات تلقائياً
+  const [editTimestamps, setEditTimestamps] = useState({
+    createdAt: "",
+    updatedAt: "",
+  });
+
+  const formatDateTime = (isoString: string) => {
+    if (!isoString) return { date: "N/A", time: "" };
+    try {
+      const parts = isoString.split("T");
+      const date = parts[0];
+      const time = parts[1] ? parts[1].split(".")[0] : "";
+      return { date, time };
+    } catch (e) {
+      return { date: isoString, time: "" };
+    }
+  };
+
   const handleOpenEditModal = (college: ICollege) => {
     setSelectedCollegeId(college.collegeId);
     setFormData({
       name: college.name,
       description: college.description,
     });
+    setEditTimestamps({
+      createdAt: college.createdAt,
+      updatedAt: college.updatedAt,
+    });
     setIsEditMode(true);
     setShowCreateModal(true);
   };
 
-  // 5. معالج إغلاق النافذة وتصفير البيانات
   const handleCloseModal = () => {
     setShowCreateModal(false);
     setIsEditMode(false);
     setSelectedCollegeId(null);
     setFormData({ name: "", description: "" });
+    setEditTimestamps({ createdAt: "", updatedAt: "" });
   };
 
-  // 6. تنفيذ عمليتي الإنشاء والتعديل (Submit)
   const handleFormSubmit = async (e: FormEvent) => {
     e.preventDefault();
+    const currentIsoTime = new Date().toISOString().split(".")[0];
+
+    const finalPayload = {
+      name: formData.name,
+      description: formData.description,
+      createdAt: isEditMode ? editTimestamps.createdAt : currentIsoTime,
+      updatedAt: currentIsoTime,
+    };
+
     try {
       if (isEditMode && selectedCollegeId) {
-        await collegesApis.update(selectedCollegeId, formData);
+        await updateCollegeMutation.mutateAsync({
+          id: selectedCollegeId,
+          payload: finalPayload,
+        });
       } else {
-        await collegesApis.create(formData);
+        await addCollegeMutation.mutateAsync(finalPayload);
       }
       handleCloseModal();
-      fetchColleges(); // تحديث الكاش تلقائياً لعرض البيانات الجديدة
     } catch (err) {
       alert(isEditMode ? "Error updating college" : "Error creating college");
     }
   };
 
-  // 7. تنفيذ عملية الحذف الفوري عبر الـ ID
   const handleDeleteCollege = async (id: number) => {
     if (!window.confirm("Are you sure you want to delete this college?"))
       return;
     try {
-      await collegesApis.delete(id);
-      fetchColleges();
+      await deleteCollegeMutation.mutateAsync(id);
     } catch (err) {
-      alert("Error deleting college");
+      alert(
+        "Error deleting college. It might be referenced by other entities.",
+      );
     }
   };
 
-  // شاشة التحميل المتناسقة (Spinner)
-  if (loading) {
-    return (
-      <div className="w-full h-96 flex items-center justify-center">
-        <div
-          className="animate-spin rounded-full h-10 w-10 border-b-2"
-          style={{ borderColor: primaryPurple }}
-        ></div>
-      </div>
-    );
-  }
+  const isActionLoading =
+    addCollegeMutation.isPending ||
+    updateCollegeMutation.isPending ||
+    deleteCollegeMutation.isPending;
 
-  // شاشة معالجة الأخطاء وإعادة المحاولة
   if (hasError) {
     return (
       <div className="w-full p-8 text-center bg-red-50 text-red-600 rounded-[24px] border border-red-100">
         <p className="font-bold">Failed to fetch colleges from the server</p>
         <button
-          onClick={() => fetchColleges()}
+          onClick={() => window.location.reload()}
           style={{ backgroundColor: primaryPurple }}
           className="mt-4 px-4 py-2 text-white rounded-xl text-xs font-bold shadow-md animate-pulse"
         >
@@ -153,95 +183,147 @@ const Colleges: React.FC = () => {
       </div>
 
       {/* Search Area */}
-      <div className="bg-white p-4 rounded-[24px] border border-gray-100 shadow-sm">
-        <div className="relative max-w-md">
+      <div className="bg-white p-4 rounded-[24px] border border-gray-100 shadow-sm flex items-center gap-4">
+        <div className="relative max-w-md flex-1">
           <Search
             className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
             size={18}
           />
           <input
             type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search by college name..."
             className="w-full pl-12 pr-4 py-3 bg-slate-50 border-none rounded-xl outline-none focus:ring-2 focus:ring-[#5D3FD3]/10 text-sm"
           />
         </div>
+        {(loading || fetching) && (
+          <div
+            className="animate-spin rounded-full h-5 w-5 border-b-2"
+            style={{ borderColor: primaryPurple }}
+          ></div>
+        )}
       </div>
 
       {/* Table Area */}
-      <div className="bg-white rounded-[30px] border border-gray-100 shadow-sm overflow-hidden">
+      <div
+        className={`bg-white rounded-[30px] border border-gray-100 shadow-sm overflow-hidden transition-opacity duration-300 ${isActionLoading || loading || fetching ? "opacity-50 pointer-events-none" : ""}`}
+      >
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-slate-50/50">
-                <th className="px-8 py-5 font-bold text-slate-400 text-[11px] uppercase tracking-wider">
+                <th className="px-6 py-5 font-bold text-slate-400 text-[11px] uppercase tracking-wider">
                   ID
                 </th>
-                <th className="px-8 py-5 font-extrabold text-slate-800 text-[13px] uppercase tracking-wider">
+                <th className="px-6 py-5 font-extrabold text-slate-800 text-[13px] uppercase tracking-wider">
                   College Name
                 </th>
-                <th className="px-8 py-5 font-extrabold text-slate-800 text-[13px] uppercase tracking-wider">
+                <th className="px-6 py-5 font-extrabold text-slate-800 text-[13px] uppercase tracking-wider">
                   Description
                 </th>
-                <th className="px-8 py-5 font-extrabold text-slate-800 text-[13px] uppercase tracking-wider">
+                <th className="px-6 py-5 font-extrabold text-slate-800 text-[13px] uppercase tracking-wider">
                   Created At
                 </th>
-                <th className="px-8 py-5 font-extrabold text-slate-800 text-[13px] uppercase tracking-wider text-center">
+                <th className="px-6 py-5 font-extrabold text-slate-800 text-[13px] uppercase tracking-wider">
+                  Updated At
+                </th>
+                <th className="px-6 py-5 font-extrabold text-slate-800 text-[13px] uppercase tracking-wider text-center">
                   Actions
                 </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
-              {colleges.map((college) => (
-                <tr
-                  key={college.collegeId}
-                  className="hover:bg-slate-50/30 transition-colors group"
-                >
-                  <td className="px-8 py-6">
-                    <span className="font-bold text-slate-300 italic">
-                      #{college.collegeId}
-                    </span>
-                  </td>
-                  <td className="px-8 py-6">
-                    <span className="font-bold text-slate-800 text-base group-hover:text-[#5D3FD3] transition-colors">
-                      {college.name}
-                    </span>
-                  </td>
-                  <td className="px-8 py-6">
-                    <p className="text-slate-500 text-sm max-w-sm line-clamp-1">
-                      {college.description}
-                    </p>
-                  </td>
-                  <td className="px-8 py-6">
-                    <div className="flex items-center gap-2 text-slate-400 text-xs">
-                      <Calendar size={14} />
-                      {college.createdAt
-                        ? college.createdAt.split("T")[0]
-                        : "N/A"}
-                    </div>
-                  </td>
-                  <td className="px-8 py-6 text-center">
-                    <div className="flex items-center justify-center gap-2">
-                      <button
-                        onClick={() => handleOpenEditModal(college)}
-                        title="Edit College"
-                        className="p-2 text-slate-400 hover:text-[#5D3FD3] hover:bg-slate-50 rounded-xl transition-all"
-                      >
-                        <Edit2 size={16} />
-                      </button>
-                      <button
-                        onClick={() => handleDeleteCollege(college.collegeId)}
-                        title="Delete College"
-                        className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                      <button className="p-2 text-slate-300 hover:text-[#5D3FD3] transition-colors">
-                        <MoreHorizontal size={20} />
-                      </button>
-                    </div>
+              {/* 4. تم التبديل إلى filteredColleges بدلاً من colleges ليعمل البحث فورياً */}
+              {filteredColleges.length === 0 ? (
+                <tr>
+                  <td
+                    colSpan={6}
+                    className="text-center py-10 font-bold text-slate-400"
+                  >
+                    No colleges found matching your search.
                   </td>
                 </tr>
-              ))}
+              ) : (
+                filteredColleges.map((college) => {
+                  const created = formatDateTime(college.createdAt);
+                  const updated = formatDateTime(college.updatedAt);
+
+                  return (
+                    <tr
+                      key={college.collegeId}
+                      className="hover:bg-slate-50/30 transition-colors group"
+                    >
+                      <td className="px-6 py-6">
+                        <span className="font-bold text-slate-300 italic">
+                          #{college.collegeId}
+                        </span>
+                      </td>
+                      <td className="px-6 py-6">
+                        <span
+                          style={{ color: "black" }}
+                          className="font-bold text-base"
+                        >
+                          {college.name}
+                        </span>
+                      </td>
+                      <td className="px-6 py-6">
+                        <p className="text-slate-700 text-base max-w-xs line-clamp-1 font-medium">
+                          {college.description}
+                        </p>
+                      </td>
+                      <td className="px-6 py-6">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-1.5 text-indigo-700 text-xs font-semibold">
+                            <Calendar size={13} className="text-indigo-600" />
+                            {created.date}
+                          </div>
+                          {created.time && (
+                            <div className="flex items-center gap-1.5 text-indigo-500 text-[11px] pl-5 font-medium">
+                              <Clock size={11} />
+                              {created.time}
+                            </div>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-6 py-6">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-1.5 text-indigo-700 text-xs font-semibold">
+                            <Calendar size={13} className="text-indigo-600" />
+                            {updated.date}
+                          </div>
+                          {updated.time && (
+                            <div className="flex items-center gap-1.5 text-indigo-500 text-[11px] pl-5 font-medium">
+                              <Clock size={11} />
+                              {updated.time}
+                            </div>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-6 py-6 text-center">
+                        <div className="flex items-center justify-center gap-2">
+                          <button
+                            onClick={() => handleOpenEditModal(college)}
+                            title="Edit College"
+                            className="p-2 text-green-500 hover:text-amber-600 hover:bg-amber-50 rounded-xl transition-all"
+                          >
+                            <Edit2 size={16} />
+                          </button>
+                          <button
+                            onClick={() =>
+                              handleDeleteCollege(college.collegeId)
+                            }
+                            title="Delete College"
+                            className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
             </tbody>
           </table>
         </div>
@@ -278,7 +360,7 @@ const Colleges: React.FC = () => {
               </button>
             </div>
 
-            <form onSubmit={handleFormSubmit} className="p-8 space-y-6">
+            <form onSubmit={handleFormSubmit} className="p-8 space-y-5">
               <div className="space-y-2">
                 <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">
                   College Name
@@ -300,18 +382,52 @@ const Colleges: React.FC = () => {
                   Description
                 </label>
                 <textarea
-                  rows={4}
+                  rows={3}
                   required
                   value={formData.description}
                   onChange={(e) =>
                     setFormData({ ...formData, description: e.target.value })
                   }
-                  className="w-full px-5 py-3.5 bg-slate-50 border border-transparent rounded-2xl focus:ring-2 focus:ring-[#5D3FD3]/10 focus:bg-white focus:border-[#5D3FD3]/20 outline-none transition-all text-sm resize-none"
+                  className="w-full px-5 py-3.5 bg-slate-50 border border-transparent rounded-2xl focus:ring-2 focus:ring-[#5D3FD3]/10 focus:bg-white focus:border-[#5D3FD3]/20 outline-none transition-all text-base resize-none"
                   placeholder="Provide a summary of the college's major disciplines and mission..."
                 ></textarea>
               </div>
 
-              <div className="flex gap-4 mt-4 pt-6 border-t border-slate-50">
+              {isEditMode && (
+                <div className="grid grid-cols-2 gap-4 pt-2 animate-in fade-in duration-400">
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-indigo-600 uppercase tracking-wider ml-1">
+                      Created At
+                    </label>
+                    <div className="flex items-center gap-2 px-4 py-3 bg-indigo-50/30 border border-indigo-100/50 rounded-xl text-indigo-800 text-xs font-semibold select-none cursor-not-allowed">
+                      <Calendar size={14} className="text-indigo-600" />
+                      <span>
+                        {formatDateTime(editTimestamps.createdAt).date}
+                      </span>
+                      <span className="text-[10px] text-indigo-600 bg-indigo-100/70 px-1.5 py-0.5 rounded-md ml-auto font-bold">
+                        {formatDateTime(editTimestamps.createdAt).time}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-indigo-600 uppercase tracking-wider ml-1">
+                      Last Updated
+                    </label>
+                    <div className="flex items-center gap-2 px-4 py-3 bg-indigo-50/30 border border-indigo-100/50 rounded-xl text-indigo-800 text-xs font-semibold select-none cursor-not-allowed">
+                      <Clock size={14} className="text-indigo-600" />
+                      <span>
+                        {formatDateTime(editTimestamps.updatedAt).date}
+                      </span>
+                      <span className="text-[10px] text-indigo-600 bg-indigo-100/70 px-1.5 py-0.5 rounded-md ml-auto font-bold">
+                        {formatDateTime(editTimestamps.updatedAt).time}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div className="flex gap-4 mt-2 pt-5 border-t border-slate-50">
                 <button
                   type="button"
                   onClick={handleCloseModal}
@@ -321,10 +437,15 @@ const Colleges: React.FC = () => {
                 </button>
                 <button
                   type="submit"
+                  disabled={isActionLoading}
                   style={{ backgroundColor: primaryPurple }}
-                  className="flex-1 px-6 py-4 text-white font-bold rounded-2xl shadow-lg shadow-indigo-100 hover:opacity-90 transition-all text-sm"
+                  className="flex-1 px-6 py-4 text-white font-bold rounded-2xl shadow-lg shadow-indigo-100 hover:opacity-90 transition-all text-sm disabled:opacity-50"
                 >
-                  {isEditMode ? "Save Changes" : "Confirm & Save"}
+                  {isActionLoading
+                    ? "Saving..."
+                    : isEditMode
+                      ? "Save Changes"
+                      : "Confirm & Save"}
                 </button>
               </div>
             </form>

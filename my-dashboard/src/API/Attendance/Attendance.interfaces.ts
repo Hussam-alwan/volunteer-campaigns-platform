@@ -1,32 +1,31 @@
 import { TAutoComplete } from "hooks/use-generic-form/types";
 
-// 1. القيمة (Value) المستعملة داخل الكود والمقارنات
 export const AttendanceStatus = {
   PRESENT: "PRESENT",
   ABSENT: "ABSENT",
   LATE: "LATE",
 } as const;
 
-// 2. النوع (Type) الصحيح المتوافق مع erasableSyntaxOnly
 export type TAttendanceStatus =
   (typeof AttendanceStatus)[keyof typeof AttendanceStatus];
 
-// 3. واجهة الحضور والغياب (Response القادم من السيرفر)
+// 1. الـ Response الراجع من السيرفر (كامل وجاهز)
 export interface IAttendance {
   attendanceId: number;
   attendanceDate: string;
-  status: TAttendanceStatus; // استخدام التايب الصحيح هنا
+  status: TAttendanceStatus;
   hoursThatDay: number;
   notes: string | null;
   recordedAt: string;
   createdAt: string;
   updatedAt: string;
   student: number;
+  studentName: string;
   campaign: number;
   recordedBy: number;
+  recordedByName: string;
 }
 
-// 4. واجهة التقدم (Progress Response)
 export interface IProgress {
   progressId: number;
   percentage: number;
@@ -37,26 +36,22 @@ export interface IProgress {
   updatedBy: number;
 }
 
-// 5. واجهة البيانات المدخلة في الفورم لإنشاء حضور (Attendance Inputs)
+// 2. الـ Inputs المطلوبة عند الإرسال (POST / PUT) 🔥
 export interface IAttendanceInputs {
-  attendanceDate: string;
-  status: TAttendanceStatus; // استخدام التايب الصحيح هنا
+  attendanceDate: string; // صيغة "YYYY-MM-DD"
+  status: TAttendanceStatus;
   hoursThatDay: number;
   notes?: string;
-  student: TAutoComplete | null;
+  student: number; // ID الطالب مباشرة
+  recordedBy: number; // ID المشرف/المستخدم الحالي (مهم جداً للسواغر) 🌟
 }
 
-// 6. واجهة البيانات المدخلة في الفورم لإنشاء تقدم جديد (Progress Inputs)
 export interface IProgressInputs {
   percentage: number;
   notes?: string;
+  campaign: number; // من السواغر: يحتاج ID الحملة بالـ Body أيضاً بالـ POST
+  updatedBy: number; // من السواغر: يحتاج ID المستخدم بالـ Body
 }
 
-// 7. واجهة الـ Bulk Attendance
-export interface IBulkAttendanceInputs {
-  attendanceDate: string;
-  status: TAttendanceStatus; // استخدام التايب الصحيح هنا
-  hoursThatDay: number;
-  notes?: string;
-  studentIds: number[];
-}
+// 3. كائن الـ Bulk (عبارة عن Array من العناصر السابقة)
+export type IBulkAttendanceInputs = IAttendanceInputs[];

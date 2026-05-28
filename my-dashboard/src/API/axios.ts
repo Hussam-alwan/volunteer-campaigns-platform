@@ -1,21 +1,14 @@
-// src/api/axios.ts
-import axios, { type InternalAxiosRequestConfig } from "axios";
+import axios from "axios";
+import { API_BASE_URL } from "../constants/domain";
 
-const API = axios.create({
-  // استبدلنا localhost برابط السيرفر الفعلي المأخوذ من Swagger
-  baseURL: "https://sbc-production.up.railway.app/api/v1",
+// نسخة أكسيوس قائمة على الكوكيز: تُرسل كوكي الجلسة (HttpOnly) تلقائياً مع كل طلب.
+const ApiInstance = axios.create({
+  baseURL: API_BASE_URL,
+  withCredentials: true,
   headers: {
+    Accept: "application/json",
     "Content-Type": "application/json",
   },
 });
 
-// إرسال الـ Token تلقائياً مع كل طلب إذا كان المستخدم مسجل دخوله
-API.interceptors.request.use((config: InternalAxiosRequestConfig) => {
-  const token = localStorage.getItem("token");
-  if (token && config.headers) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
-});
-
-export default API;
+export default ApiInstance;

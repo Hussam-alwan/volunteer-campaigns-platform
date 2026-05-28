@@ -1,10 +1,10 @@
 // src/constants/collegesRoutes.ts
 
 const CollegesApiRoutes = {
-  GetAll: "/colleges", // للـ GET المدمج مع الـ Pagination والـ POST
-  GetById: (id: number) => `/colleges/${id}`, // للـ GET بـ ID واحد
-  Update: (id: number) => `/colleges/${id}`, // للـ PUT بالتعديل
-  Delete: (id: number) => `/colleges/${id}`, // للـ DELETE بالمسح
+  GetAll: "/colleges", // السلاش بالبداية ضروري هنا
+  GetById: (id: number) => `/colleges/${id}`,
+  Update: (id: number) => `/colleges/${id}`,
+  Delete: (id: number) => `/colleges/${id}`,
 };
 
 export default CollegesApiRoutes;
