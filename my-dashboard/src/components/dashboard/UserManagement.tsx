@@ -19,12 +19,30 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/pages/lib/utils";
 
-import { getUsers, createUser, banUser, deleteUser } from "@/API/User/user.api";
+import {
+  getUsers,
+  createUser,
+  updateUser,
+  banUser,
+  deleteUser,
+} from "@/API/User/user.api";
 import useAuthStore from "@/store/auth.store";
 
 import type { IUser } from "@/API/User/User.interfaces";
 
 const getFullName = (u: IUser) => `${u.firstName} ${u.lastName}`;
+
+const initialFormData = {
+  studentNumber: "",
+  firstName: "",
+  lastName: "",
+  email: "",
+  phone: "",
+  password: "",
+  academicYear: 1,
+  college: 1,
+  isBanned: false,
+};
 
 function UserManagement() {
   const navigate = useNavigate();
@@ -40,18 +58,9 @@ function UserManagement() {
 
   const [showModal, setShowModal] = useState(false);
   const [formError, setFormError] = useState("");
+  const [editingUserId, setEditingUserId] = useState<number | null>(null);
 
-  const [formData, setFormData] = useState({
-    studentNumber: "",
-    firstName: "",
-    lastName: "",
-    email: "",
-    phone: "",
-    password: "",
-    academicYear: 1,
-    college: 1,
-    isBanned: false,
-  });
+  const [formData, setFormData] = useState(initialFormData);
 
   // FETCH USERS
   useEffect(() => {
@@ -161,24 +170,116 @@ function UserManagement() {
       const newUser = await createUser(payload);
 
       setUsers((prev) => [newUser, ...prev]);
-      setFormData({
-        studentNumber: "",
-        firstName: "",
-        lastName: "",
-        email: "",
-        phone: "",
-        password: "",
-        academicYear: 1,
-        college: 1,
-        isBanned: false,
-      });
-      setShowModal(false);
+      closeModal();
     } catch (err: unknown) {
       const message =
         (err as { response?: { data?: { message?: string } } })?.response?.data
           ?.message ||
         (err as Error)?.message ||
         "Unable to create user right now.";
+
+      setFormError(message);
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const closeModal = () => {
+    setShowModal(false);
+    setFormError("");
+    setEditingUserId(null);
+    setFormData(initialFormData);
+  };
+
+  const openCreateModal = () => {
+    setEditingUserId(null);
+    setFormData(initialFormData);
+    setFormError("");
+    setShowModal(true);
+  };
+
+  const openEditModal = (user: IUser) => {
+    setEditingUserId(user.userId);
+    setFormData({
+      studentNumber: user.studentNumber,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      email: user.email,
+      phone: user.phone,
+      password: "",
+      academicYear: user.academicYear,
+      college: user.college,
+      isBanned: user.isBanned,
+    });
+    setFormError("");
+    setShowModal(true);
+  };
+
+  // UPDATE USER
+  const handleUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (editingUserId == null) return;
+
+    try {
+      setLoading(true);
+      setFormError("");
+
+      const firstName = formData.firstName.trim();
+      const lastName = formData.lastName.trim();
+      const email = formData.email.trim().toLowerCase();
+      const phone = formData.phone.trim();
+
+      if (!firstName || !lastName || !email) {
+        setFormError("Please fill in all required fields.");
+        return;
+      }
+
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        setFormError("Please enter a valid email address.");
+        return;
+      }
+
+      if (
+        users.some(
+          (user) =>
+            user.email.toLowerCase() === email &&
+            user.userId !== editingUserId,
+        )
+      ) {
+        setFormError("This email is already in use.");
+        return;
+      }
+
+      if (!/^\d{10}$/.test(phone)) {
+        setFormError("Phone must be exactly 10 digits.");
+        return;
+      }
+
+      const payload = {
+        studentNumber: formData.studentNumber.trim(),
+        firstName,
+        lastName,
+        email,
+        phone,
+        academicYear: Number(formData.academicYear) || 1,
+        college: Number(formData.college) || 1,
+      };
+
+      const updated = await updateUser(editingUserId, payload);
+
+      setUsers((prev) =>
+        prev.map((u) =>
+          u.userId === editingUserId ? { ...u, ...updated } : u,
+        ),
+      );
+      closeModal();
+    } catch (err: unknown) {
+      const message =
+        (err as { response?: { data?: { message?: string } } })?.response?.data
+          ?.message ||
+        (err as Error)?.message ||
+        "Unable to update user right now.";
 
       setFormError(message);
       console.error(err);
@@ -223,7 +324,7 @@ function UserManagement() {
         <h1 className="text-2xl font-bold text-gray-900">User Management</h1>
 
         <button
-          onClick={() => setShowModal(true)}
+          onClick={openCreateModal}
           className="flex items-center gap-2 px-4 py-2 bg-[#5D3FD3] text-white rounded-2xl"
         >
           <Plus className="w-4 h-4" />
@@ -358,6 +459,7 @@ function UserManagement() {
 
                   <button
                     type="button"
+                    onClick={() => openEditModal(u)}
                     className="p-2 bg-gray-100 rounded"
                     title="Edit user"
                   >
@@ -406,21 +508,18 @@ function UserManagement() {
       {showModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center">
           <form
-            onSubmit={handleCreate}
+            onSubmit={editingUserId ? handleUpdate : handleCreate}
             className="bg-white p-6 rounded-xl w-full max-w-md space-y-3"
           >
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-semibold text-gray-900">
-                Add New User
+                {editingUserId ? "Edit User" : "Add New User"}
               </h3>
               <button
                 type="button"
-                onClick={() => {
-                  setShowModal(false);
-                  setFormError("");
-                }}
+                onClick={closeModal}
                 className="p-2 rounded-full hover:bg-gray-100 text-gray-500"
-                aria-label="Close add user dialog"
+                aria-label="Close user dialog"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -434,6 +533,7 @@ function UserManagement() {
 
             <input
               placeholder="Student Number"
+              value={formData.studentNumber}
               className="w-full border border-gray-300 p-2 rounded"
               onChange={(e) =>
                 setFormData({ ...formData, studentNumber: e.target.value })
@@ -442,6 +542,7 @@ function UserManagement() {
 
             <input
               placeholder="First Name"
+              value={formData.firstName}
               className="w-full border border-gray-300 p-2 rounded"
               onChange={(e) =>
                 setFormData({ ...formData, firstName: e.target.value })
@@ -450,6 +551,7 @@ function UserManagement() {
 
             <input
               placeholder="Last Name"
+              value={formData.lastName}
               className="w-full border border-gray-300 p-2 rounded"
               onChange={(e) =>
                 setFormData({ ...formData, lastName: e.target.value })
@@ -459,26 +561,31 @@ function UserManagement() {
             <input
               placeholder="Email"
               type="email"
+              value={formData.email}
               className="w-full border p-2 rounded"
               onChange={(e) =>
                 setFormData({ ...formData, email: e.target.value })
               }
             />
 
-            <input
-              placeholder="Password"
-              type="password"
-              className="w-full border border-gray-300 p-2 rounded"
-              onChange={(e) =>
-                setFormData({ ...formData, password: e.target.value })
-              }
-            />
+            {!editingUserId && (
+              <input
+                placeholder="Password"
+                type="password"
+                value={formData.password}
+                className="w-full border border-gray-300 p-2 rounded"
+                onChange={(e) =>
+                  setFormData({ ...formData, password: e.target.value })
+                }
+              />
+            )}
 
             <input
               placeholder="Phone"
               type="tel"
               inputMode="numeric"
               maxLength={10}
+              value={formData.phone}
               className="w-full border border-gray-300 p-2 rounded"
               onChange={(e) =>
                 setFormData({
@@ -493,7 +600,13 @@ function UserManagement() {
               disabled={loading}
               className="w-full bg-[#5D3FD3] text-white p-2 rounded disabled:opacity-60"
             >
-              {loading ? "Creating..." : "Create"}
+              {loading
+                ? editingUserId
+                  ? "Saving..."
+                  : "Creating..."
+                : editingUserId
+                  ? "Save Changes"
+                  : "Create"}
             </button>
           </form>
         </div>
