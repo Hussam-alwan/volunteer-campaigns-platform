@@ -8,9 +8,10 @@ import {
   Clock,
   Target,
 } from "lucide-react";
-import Navbar from "../components/layout/Navbar";
+// import Navbar from "../components/layout/Navbar";
 import dashboardApi from "@/API/Dasgboard/Dashboard.apis";
 import type { IDashboardSummary } from "@/API/Dasgboard/Dashboard.interfaces";
+import { useNavigate } from "react-router-dom";
 
 // chart and pie data are populated from backend
 
@@ -21,6 +22,9 @@ const Dashboard = () => {
   const [chartDataState, setChartDataState] = useState<
     { name: string; percentage: number }[]
   >([]);
+  const [calendarLabel, setCalendarLabel] = useState("This Month");
+
+  const navigate = useNavigate();
 
   useEffect(() => {
     let mounted = true;
@@ -48,8 +52,19 @@ const Dashboard = () => {
       }
     };
 
+    const loadCalendarLabel = async () => {
+      try {
+        const label = await dashboardApi.getCalendarLabel();
+        console.log("calendar label:", label);
+        if (mounted) setCalendarLabel(label);
+      } catch (err: unknown) {
+        if ((err as { isAuth?: boolean })?.isAuth) setRequiresAuth(true);
+      }
+    };
+
     void load();
     void loadChart();
+    void loadCalendarLabel();
 
     return () => {
       mounted = false;
@@ -114,7 +129,7 @@ const Dashboard = () => {
 
   return (
     <div className="w-full bg-[#F8FAFC] min-h-screen">
-      <Navbar />
+      {/* <Navbar /> */}
 
       <div className="p-8 space-y-8">
         <div className="flex justify-between items-center">
@@ -123,9 +138,12 @@ const Dashboard = () => {
           </h2>
           <div className="flex gap-3">
             <button className="bg-white px-4 py-2 rounded-xl border border-slate-200 text-sm font-semibold flex items-center gap-2 shadow-sm">
-              <Calendar size={18} /> This Month
+              <Calendar size={18} /> {calendarLabel}
             </button>
-            <button className="bg-[#5D3FD3] text-white px-5 py-2 rounded-xl font-semibold flex items-center gap-2 shadow-lg shadow-indigo-100">
+            <button
+              onClick={() => navigate("/campaigns")}
+              className="bg-[#5D3FD3] text-white px-5 py-2 rounded-xl font-semibold flex items-center gap-2 shadow-lg shadow-indigo-100"
+            >
               <Plus size={18} /> Create New Campaign
             </button>
           </div>
@@ -179,8 +197,7 @@ const Dashboard = () => {
                 </span>
               </div>
             </div>
-            {/* تم الإصلاح: إضافة w-full و minWidth */}
-            <div className="h-75 w-full">
+            <div className="h-80 w-full min-h-80">
               <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                 <BarChart
                   data={

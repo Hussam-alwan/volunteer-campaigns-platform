@@ -25,7 +25,10 @@ const getApplicationsCount = async (status?: string) => {
 const getCampaignsCount = async () => {
   try {
     const res = await campaignApis.getAllCampaigns({ page: 0, size: 1 });
-    const r = res as IResponse<ICampaign[]>;
+    // const r = res as IResponse<ICampaign[]>;
+    const r: IResponse<ICampaign[]> = {
+      data: res.content,
+    };
     const total =
       typeof r.totalElements === "number"
         ? r.totalElements
@@ -43,8 +46,16 @@ const getCampaignsCount = async () => {
 
 const getVolunteersCount = async () => {
   try {
-    const resp = await ApiInstance.get("/students", { params: { size: 1 } });
-    return resp.data?.totalElements ?? 0;
+    const resp = await ApiInstance.get("/users", {
+      params: { page: 0, size: 1 },
+    });
+
+    return (
+      resp.data?.totalElements ??
+      resp.data?.content?.length ??
+      resp.data?.length ??
+      0
+    );
   } catch (err: unknown) {
     const status = (err as AxiosError)?.response?.status;
     if (status === 401)
@@ -53,8 +64,43 @@ const getVolunteersCount = async () => {
   }
 };
 
+const getCalendarLabel = async (): Promise<string> => {
+  try {
+    const res = await campaignApis.getAllCampaigns({ page: 0, size: 100 });
+    const campaigns = Array.isArray(
+      (res as unknown as { content?: ICampaign[] }).content,
+    )
+      ? (res as unknown as { content: ICampaign[] }).content
+      : Array.isArray((res as unknown as { data?: ICampaign[] }).data)
+        ? (res as unknown as { data: ICampaign[] }).data
+        : [];
+
+    const latest = campaigns.reduce<ICampaign | null>((best, current) => {
+      if (!best) return current;
+      return new Date(current.createdAt).getTime() >=
+        new Date(best.createdAt).getTime()
+        ? current
+        : best;
+    }, null);
+
+    if (!latest?.createdAt) return "This Month";
+
+    return new Date(latest.createdAt).toLocaleDateString("en-US", {
+      month: "long",
+      year: "numeric",
+    });
+  } catch (err: unknown) {
+    const status = (err as AxiosError)?.response?.status;
+    if (status === 401)
+      throw Object.assign(new Error("Unauthorized"), { isAuth: true });
+    return "This Month";
+  }
+};
+
 const hasAuthToken = (): boolean => {
-  const tokenInStore = useAuthStore.getState().token;
+  const tokenInStore = useAuthStore.getState();
+  // .token
+
   if (tokenInStore) return true;
 
   const persisted = localStorage.getItem($AuthStoreKey);
@@ -70,18 +116,36 @@ const hasAuthToken = (): boolean => {
 
 const getAttendanceChartData = async () => {
   try {
-    const campaigns = (await campaignApis.getAllCampaigns({
-      page: 0,
-      size: 1,
-    })) as IResponse<ICampaign[]>;
-    const firstId = campaigns?.data?.[0]?.campaignId ?? null;
-    if (!firstId) return [];
-
-    const progressResp = (await attendanceApis.getProgress(firstId, {
+    const res = await campaignApis.getAllCampaigns({
       page: 0,
       size: 100,
-    })) as IResponse<IProgress[]>;
-    const items = progressResp?.data ?? [];
+    });
+
+    const campaigns = Array.isArray(
+      (res as unknown as { content?: ICampaign[] }).content,
+    )
+      ? (res as unknown as { content: ICampaign[] }).content
+      : Array.isArray((res as unknown as { data?: ICampaign[] }).data)
+        ? (res as unknown as { data: ICampaign[] }).data
+        : [];
+
+    const firstId = campaigns?.[0]?.campaignId ?? null;
+    if (!firstId) return [];
+
+    const progressResp = await attendanceApis.getProgress(firstId, {
+      page: 0,
+      size: 100,
+    });
+
+    const items = Array.isArray(
+      (progressResp as unknown as { data?: IProgress[] }).data,
+    )
+      ? (progressResp as unknown as { data: IProgress[] }).data
+      : Array.isArray(
+            (progressResp as unknown as { content?: IProgress[] }).content,
+          )
+        ? (progressResp as unknown as { content: IProgress[] }).content
+        : [];
 
     const mapped = items
       .map((p) => ({
@@ -134,4 +198,8 @@ export const getDashboardSummary = async (): Promise<IDashboardSummary> => {
   };
 };
 
-export default { getDashboardSummary, getAttendanceChartData };
+export default {
+  getDashboardSummary,
+  getAttendanceChartData,
+  getCalendarLabel,
+};

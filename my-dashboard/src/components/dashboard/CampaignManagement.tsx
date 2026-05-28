@@ -62,13 +62,13 @@ const CampaignManagement: React.FC = () => {
   const deleteCampaignMutation = campaignQueries.useDeleteCampaign();
 
   // استخراج المصفوفة الفعلية للحملات من الرد
-  const campaigns = Array.isArray(campaignsResponse)
-    ? campaignsResponse
-    : campaignsResponse || [];
-    // Spring يبدأ ترقيم الصفحات من 0، وواجهتنا تبدأ من 1
-    page: pagination.pageIndex - 1,
-    size: pagination.pageSize,
-  });
+  // const campaigns = Array.isArray(campaignsResponse)
+  //   ? campaignsResponse
+  //   : campaignsResponse || [];
+  //   // Spring يبدأ ترقيم الصفحات من 0، وواجهتنا تبدأ من 1
+  //   page: pagination.pageIndex - 1,
+  //   size: pagination.pageSize,
+  // });
 
   // استخراج المصفوفة الفعلية: رد Spring يكون { content: [...] }، مع دعم احتياطي للأشكال الأخرى
   const rawCampaigns: any[] =

@@ -17,12 +17,7 @@ import {
 import { useEffect, useMemo, useState } from "react";
 import { cn } from "@/pages/lib/utils";
 
-import {
-  getUsers,
-  createUser,
-  updateUser,
-  banUser,
-} from "@/API/User/user.api";
+import { getUsers, createUser, updateUser, banUser } from "@/API/User/user.api";
 
 interface IUser {
   userId: string;
@@ -134,7 +129,7 @@ function UserManagement() {
       const updated = await banUser(user.userId);
 
       setUsers((prev) =>
-        prev.map((u) => (u.userId === user.userId ? updated : u))
+        prev.map((u) => (u.userId === user.userId ? updated : u)),
       );
     } catch (err) {
       console.error(err);
@@ -237,7 +232,7 @@ function UserManagement() {
                       "px-2 py-1 rounded-full text-xs",
                       u.isBanned
                         ? "bg-red-100 text-red-600"
-                        : "bg-green-100 text-green-600"
+                        : "bg-green-100 text-green-600",
                     )}
                   >
                     {u.isBanned ? "Banned" : "Active"}
@@ -294,7 +289,7 @@ function UserManagement() {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center">
           <form
             onSubmit={handleCreate}
-            className="bg-white p-6 rounded-xl w-[400px] space-y-3"
+            className="bg-white p-6 rounded-xl w-400px space-y-3"
           >
             <input
               placeholder="Student Number"
