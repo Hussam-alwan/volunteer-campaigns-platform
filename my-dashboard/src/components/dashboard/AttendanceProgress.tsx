@@ -14,11 +14,15 @@ import {
 } from "lucide-react";
 
 import attendanceQueries from "@/API/Attendance/Attendancequeries";
+import campaignQueries from "@/API/Campaingns/Campaingnqueries";
+import type { ICampaign } from "@/API/Campaingns/Campaign.interfaces";
 
 const AttendanceProgress = () => {
-  // جلب الـ campaignId وتحويله لرقم بشكل آمن ليتوافق مع الـ API
+  // الحملة المختارة (افتراضياً من الـ URL أو الحملة رقم 1) ويمكن تغييرها من القائمة
   const { campaignId } = useParams();
-  const currentCampaignId = campaignId ? parseInt(campaignId) : 1;
+  const [currentCampaignId, setCurrentCampaignId] = useState<number>(
+    campaignId ? parseInt(campaignId) : 1,
+  );
 
   const queryClient = useQueryClient();
   const [query, setQuery] = useState("");
@@ -51,6 +55,16 @@ const AttendanceProgress = () => {
 
   const updateAttendanceMutation =
     attendanceQueries.useUpdateAttendance(currentCampaignId);
+
+  // قائمة الحملات لاختيارها وعرض اسمها بدل الـ ID
+  const { data: campaignsResp } = campaignQueries.useGetAllCampaigns({
+    page: 0,
+    size: 100,
+  });
+  const campaignsList: ICampaign[] =
+    (campaignsResp as { content?: ICampaign[] })?.content ?? [];
+  const campaignNameById = new Map<number, string>();
+  campaignsList.forEach((c) => campaignNameById.set(c.campaignId, c.title));
 
   // 🔥 استخراج المصفوفة الخام وعكسها لتظهر السجلات الجديدة في الأعلى دائماً ومباشرة
   const rawAttendanceLogs =
@@ -278,6 +292,23 @@ const AttendanceProgress = () => {
           </p>
         </div>
         <div className="flex gap-2">
+          <select
+            value={currentCampaignId}
+            onChange={(e) => setCurrentCampaignId(Number(e.target.value))}
+            className="px-4 py-3 bg-white border border-gray-200 rounded-2xl text-sm font-medium text-slate-700 outline-none focus:ring-2 focus:ring-[#5D3FD3]/10 cursor-pointer"
+            title="Choose campaign"
+          >
+            {campaignsList.length === 0 && (
+              <option value={currentCampaignId}>
+                Campaign #{currentCampaignId}
+              </option>
+            )}
+            {campaignsList.map((c) => (
+              <option key={c.campaignId} value={c.campaignId}>
+                {c.title}
+              </option>
+            ))}
+          </select>
           <button
             onClick={() => {
               setEditingLogId(null);
@@ -366,7 +397,7 @@ const AttendanceProgress = () => {
             <thead>
               <tr className="bg-slate-50/50 text-slate-400 text-[11px] uppercase tracking-wider">
                 <th className="px-8 py-4 font-bold">Student Name</th>
-                <th className="px-8 py-4 font-bold">Campaign ID</th>
+                <th className="px-8 py-4 font-bold">Campaign</th>
                 <th className="px-8 py-4 font-bold text-center">Hours</th>
                 <th className="px-8 py-4 font-bold">Status</th>
                 <th className="px-8 py-4"></th>
@@ -394,7 +425,7 @@ const AttendanceProgress = () => {
                       </span>
                     </td>
                     <td className="px-8 py-5 text-slate-500 text-sm">
-                      #{log.campaign}
+                      {campaignNameById.get(log.campaign) ?? `#${log.campaign}`}
                     </td>
                     <td className="px-8 py-5 text-center font-bold text-[#5D3FD3]">
                       {log.hoursThatDay}h

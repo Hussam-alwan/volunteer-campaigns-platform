@@ -268,26 +268,20 @@ const Dashboard = () => {
                 </div>
               ) : (
                 <ResponsiveContainer width="100%" height="100%" minWidth={0}>
-                  <BarChart
-                    data={campaignProgressData}
-                    layout="vertical"
-                    margin={{ left: 20, right: 30 }}
-                  >
+                  <BarChart data={campaignProgressData} margin={{ top: 10 }}>
                     <XAxis
-                      type="number"
+                      dataKey="name"
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fill: "#94A3B8", fontSize: 12 }}
+                      dy={10}
+                    />
+                    <YAxis
                       domain={[0, 100]}
                       axisLine={false}
                       tickLine={false}
                       tick={{ fill: "#94A3B8", fontSize: 12 }}
                       tickFormatter={(v) => `${v}%`}
-                    />
-                    <YAxis
-                      type="category"
-                      dataKey="name"
-                      axisLine={false}
-                      tickLine={false}
-                      width={120}
-                      tick={{ fill: "#64748B", fontSize: 12 }}
                     />
                     <Tooltip
                       cursor={{ fill: "#F8FAFC" }}
@@ -301,8 +295,8 @@ const Dashboard = () => {
                     <Bar
                       dataKey="percentage"
                       fill="#5D3FD3"
-                      radius={[0, 4, 4, 0]}
-                      barSize={22}
+                      radius={[4, 4, 0, 0]}
+                      barSize={40}
                     />
                   </BarChart>
                 </ResponsiveContainer>
