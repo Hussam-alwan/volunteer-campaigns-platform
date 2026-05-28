@@ -439,7 +439,15 @@ function UserManagement() {
           </button>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="relative inline-flex w-72 items-center bg-gray-100 rounded-2xl p-1">
+          <span
+            aria-hidden
+            className="absolute top-1 bottom-1 left-1 rounded-xl bg-[#5D3FD3] shadow-sm transition-transform duration-300 ease-out"
+            style={{
+              width: "calc((100% - 0.5rem) / 3)",
+              transform: `translateX(${["all", "active", "banned"].indexOf(statusFilter) * 100}%)`,
+            }}
+          />
           {(["all", "active", "banned"] as const).map((s) => (
             <button
               key={s}
@@ -449,10 +457,8 @@ function UserManagement() {
                 setCurrentPage(1);
               }}
               className={cn(
-                "px-4 py-3 rounded-2xl text-sm font-medium capitalize transition-colors",
-                statusFilter === s
-                  ? "bg-[#5D3FD3] text-white"
-                  : "bg-gray-50 border border-gray-200 text-gray-600 hover:bg-gray-100",
+                "relative z-10 flex-1 px-4 py-2 rounded-xl text-sm font-medium capitalize transition-colors duration-300",
+                statusFilter === s ? "text-white" : "text-gray-600 hover:text-gray-900",
               )}
             >
               {s === "all" ? "All" : s}
