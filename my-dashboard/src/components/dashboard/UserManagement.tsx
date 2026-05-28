@@ -3,8 +3,6 @@
 import {
   Search,
   Plus,
-  ChevronLeft,
-  ChevronRight,
   Edit,
   Trash2,
   Ban,
@@ -23,12 +21,14 @@ import {
   getUsers,
   createUser,
   updateUser,
-  banUser,
   deleteUser,
 } from "@/API/User/user.api";
+import collegesQueries from "@/API/Colleges/Collegesqueries";
+import Pagination from "@/components/layout/Pagination";
 import useAuthStore from "@/store/auth.store";
 
 import type { IUser } from "@/API/User/User.interfaces";
+import type { ICollege } from "@/API/Colleges/Colleges.interfaces";
 
 const getFullName = (u: IUser) => `${u.firstName} ${u.lastName}`;
 
@@ -53,8 +53,19 @@ function UserManagement() {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
 
+  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "banned">(
+    "all",
+  );
+  const [collegeFilter, setCollegeFilter] = useState<number | "all">("all");
+
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
+
+  const { data: collegesResponse } = collegesQueries.useGetColleges({
+    page: 0,
+    size: 100,
+  });
+  const colleges: ICollege[] = collegesResponse?.content ?? [];
 
   const [showModal, setShowModal] = useState(false);
   const [formError, setFormError] = useState("");
@@ -87,20 +98,28 @@ function UserManagement() {
     fetchUsers();
   }, [logout, navigate]);
 
-  // FILTER
+  // FILTER (search + status + college)
   const filteredUsers = useMemo(() => {
     const q = searchTerm.toLowerCase().trim();
 
-    if (!q) return users;
-
     return users.filter((u) => {
-      return (
+      const matchesSearch =
+        !q ||
         u.studentNumber.toLowerCase().includes(q) ||
         u.email.toLowerCase().includes(q) ||
-        getFullName(u).toLowerCase().includes(q)
-      );
+        getFullName(u).toLowerCase().includes(q);
+
+      const matchesStatus =
+        statusFilter === "all" ||
+        (statusFilter === "active" && !u.isBanned) ||
+        (statusFilter === "banned" && u.isBanned);
+
+      const matchesCollege =
+        collegeFilter === "all" || u.college === collegeFilter;
+
+      return matchesSearch && matchesStatus && matchesCollege;
     });
-  }, [users, searchTerm]);
+  }, [users, searchTerm, statusFilter, collegeFilter]);
 
   // PAGINATION
   const totalPages = Math.ceil(filteredUsers.length / itemsPerPage);
@@ -264,6 +283,7 @@ function UserManagement() {
         phone,
         academicYear: Number(formData.academicYear) || 1,
         college: Number(formData.college) || 1,
+        isBanned: formData.isBanned,
       };
 
       const updated = await updateUser(editingUserId, payload);
@@ -305,15 +325,27 @@ function UserManagement() {
   };
 
   // BAN / UNBAN
+  // الباك إند فيه endpoint للحظر فقط (idempotent) ولا يلغي الحظر،
+  // لذلك نستخدم تحديث المستخدم (PUT) لقلب حالة isBanned في الاتجاهين.
   const toggleBan = async (user: IUser) => {
     try {
-      const updated = await banUser(user.userId);
+      const updated = await updateUser(user.userId, {
+        studentNumber: user.studentNumber,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        phone: user.phone,
+        academicYear: user.academicYear,
+        college: user.college,
+        isBanned: !user.isBanned,
+      });
 
       setUsers((prev) =>
-        prev.map((u) => (u.userId === user.userId ? updated : u)),
+        prev.map((u) => (u.userId === user.userId ? { ...u, ...updated } : u)),
       );
     } catch (err) {
       console.error(err);
+      alert("Failed to update ban status.");
     }
   };
 
@@ -371,7 +403,7 @@ function UserManagement() {
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
           <input
             type="text"
-            placeholder="Search applications..."
+            placeholder="Search users..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             onKeyDown={(e) => {
@@ -406,6 +438,46 @@ function UserManagement() {
             Clear
           </button>
         </div>
+
+        <div className="flex items-center gap-2">
+          {(["all", "active", "banned"] as const).map((s) => (
+            <button
+              key={s}
+              type="button"
+              onClick={() => {
+                setStatusFilter(s);
+                setCurrentPage(1);
+              }}
+              className={cn(
+                "px-4 py-3 rounded-2xl text-sm font-medium capitalize transition-colors",
+                statusFilter === s
+                  ? "bg-[#5D3FD3] text-white"
+                  : "bg-gray-50 border border-gray-200 text-gray-600 hover:bg-gray-100",
+              )}
+            >
+              {s === "all" ? "All" : s}
+            </button>
+          ))}
+        </div>
+
+        <select
+          value={collegeFilter}
+          onChange={(e) => {
+            setCollegeFilter(
+              e.target.value === "all" ? "all" : Number(e.target.value),
+            );
+            setCurrentPage(1);
+          }}
+          className="px-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-[#5D3FD3]/10 cursor-pointer"
+          title="Filter by college"
+        >
+          <option value="all">All colleges</option>
+          {colleges.map((c) => (
+            <option key={c.collegeId} value={c.collegeId}>
+              {c.name}
+            </option>
+          ))}
+        </select>
       </div>
 
       {/* TABLE */}
@@ -481,27 +553,14 @@ function UserManagement() {
         </table>
 
         {/* PAGINATION */}
-        <div className="flex justify-between items-center px-4 py-3 border-t border-gray-200">
-          <p className="text-sm text-gray-500">
-            Page {safePage} of {totalPages}
-          </p>
-
-          <div className="flex items-center gap-1">
-            <button
-              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-              className="p-2 border  border-gray-300 rounded-lg  hover:bg-gray-100  transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-            >
-              <ChevronLeft className="w-4 h-4 text-gray-500" />
-            </button>
-
-            <button
-              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-              className="p-2 border  border-gray-300 rounded"
-            >
-              <ChevronRight className="w-4 h-4 text-gray-500" />
-            </button>
-          </div>
-        </div>
+        <Pagination
+          currentPage={safePage}
+          totalPages={totalPages}
+          onPageChange={setCurrentPage}
+          totalItems={filteredUsers.length}
+          pageSize={itemsPerPage}
+          itemLabel="users"
+        />
       </div>
 
       {/* MODAL */}

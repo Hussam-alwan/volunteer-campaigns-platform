@@ -42,7 +42,7 @@ const ProtectedLayout = () => {
 const PublicLayout = () => {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   if (isAuthenticated) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to="/dashboard" replace />;
   }
   return <Outlet />;
 };

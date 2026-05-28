@@ -2,15 +2,15 @@ import React, { useState } from "react";
 import { useParams } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import {
-  Clock,
   Users,
   TrendingUp,
   MoreHorizontal,
   Search,
-  ArrowUpRight,
   Plus,
   X,
   UserPlus,
+  CheckCircle2,
+  XCircle,
 } from "lucide-react";
 
 import attendanceQueries from "@/API/Attendance/Attendancequeries";
@@ -21,6 +21,7 @@ const AttendanceProgress = () => {
   const currentCampaignId = campaignId ? parseInt(campaignId) : 1;
 
   const queryClient = useQueryClient();
+  const [query, setQuery] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingLogId, setEditingLogId] = useState(null);
@@ -92,10 +93,13 @@ const AttendanceProgress = () => {
   // ----------------------------------------------------------------
 
   // الحسابات الديناميكية للمؤشرات
-  const totalHours = attendanceLogs.reduce(
-    (acc, curr) => acc + (parseFloat(curr.hoursThatDay) || 0),
-    0,
-  );
+  const totalPresent = attendanceLogs.filter(
+    (log) => log.status?.toUpperCase() === "PRESENT",
+  ).length;
+
+  const totalAbsent = attendanceLogs.filter(
+    (log) => log.status?.toUpperCase() === "ABSENT",
+  ).length;
 
   const activeVolunteers = new Set(attendanceLogs.map((log) => log.student))
     .size;
@@ -107,18 +111,23 @@ const AttendanceProgress = () => {
 
   const stats = [
     {
-      label: "Total Volunteer Hours",
-      value: totalHours.toLocaleString(),
-      icon: <Clock size={22} />,
-      change: "+12%",
-      bg: "bg-purple-50",
-      textColor: "text-[#5D3FD3]",
+      label: "Total Present",
+      value: totalPresent.toLocaleString(),
+      icon: <CheckCircle2 size={22} />,
+      bg: "bg-emerald-50",
+      textColor: "text-emerald-600",
+    },
+    {
+      label: "Total Absent",
+      value: totalAbsent.toLocaleString(),
+      icon: <XCircle size={22} />,
+      bg: "bg-rose-50",
+      textColor: "text-rose-600",
     },
     {
       label: "Latest Progress Rate",
       value: latestProgress,
       icon: <TrendingUp size={22} />,
-      change: "+5%",
       bg: "bg-fuchsia-50",
       textColor: "text-fuchsia-600",
     },
@@ -126,19 +135,13 @@ const AttendanceProgress = () => {
       label: "Active Volunteers",
       value: activeVolunteers.toString(),
       icon: <Users size={22} />,
-      change: "+18%",
-      bg: "bg-emerald-50",
-      textColor: "text-emerald-600",
+      bg: "bg-purple-50",
+      textColor: "text-[#5D3FD3]",
     },
   ];
 
-  const filteredLogs = attendanceLogs.filter(
-    (log) =>
-      log.student
-        ?.toString()
-        .toLowerCase()
-        .includes(searchTerm.toLowerCase()) ||
-      log.studentName?.toLowerCase().includes(searchTerm.toLowerCase()),
+  const filteredLogs = attendanceLogs.filter((log) =>
+    log.studentName?.toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
   const getStatusStyle = (status) => {
@@ -181,6 +184,16 @@ const AttendanceProgress = () => {
 
     if (isNaN(hours)) {
       alert("Please enter a valid number for hours.");
+      return;
+    }
+
+    if (hours < 0 || hours > 10) {
+      alert("Hours that day cannot be more than 10.");
+      return;
+    }
+
+    if (!formData.attendanceDate) {
+      alert("Please select a date.");
       return;
     }
 
@@ -280,7 +293,7 @@ const AttendanceProgress = () => {
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {stats.map((stat, i) => (
           <div
             key={i}
@@ -292,9 +305,6 @@ const AttendanceProgress = () => {
               >
                 {stat.icon}
               </div>
-              <span className="flex items-center text-xs font-bold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-lg">
-                {stat.change} <ArrowUpRight size={12} className="ml-1" />
-              </span>
             </div>
             <div className="mt-5">
               <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">
@@ -314,26 +324,48 @@ const AttendanceProgress = () => {
           <h3 className="text-xl font-bold text-slate-900">
             Recent Attendance Logs
           </h3>
-          <div className="relative w-full sm:w-auto">
+          <div className="relative w-full sm:w-auto flex items-center gap-2">
             <Search
               className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
               size={16}
             />
             <input
               type="text"
-              placeholder="Search name or ID..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Search by name..."
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") setSearchTerm(query.trim());
+              }}
               className="pl-9 pr-4 py-2 bg-slate-50 border-none rounded-xl text-sm focus:ring-2 focus:ring-[#5D3FD3]/10 outline-none w-full sm:w-64"
             />
+            <button
+              type="button"
+              onClick={() => setSearchTerm(query.trim())}
+              className="px-3 py-2 bg-[#5D3FD3] text-white rounded-xl text-sm hover:opacity-90"
+              title="Search"
+            >
+              Search
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setQuery("");
+                setSearchTerm("");
+              }}
+              className="px-3 py-2 bg-white border border-slate-200 text-slate-600 rounded-xl text-sm hover:bg-slate-50"
+              title="Clear"
+            >
+              Clear
+            </button>
           </div>
         </div>
 
-        <div className="overflow-x-auto">
+        <div>
           <table className="w-full text-left">
             <thead>
               <tr className="bg-slate-50/50 text-slate-400 text-[11px] uppercase tracking-wider">
-                <th className="px-8 py-4 font-bold">Student Name & ID</th>
+                <th className="px-8 py-4 font-bold">Student Name</th>
                 <th className="px-8 py-4 font-bold">Campaign ID</th>
                 <th className="px-8 py-4 font-bold text-center">Hours</th>
                 <th className="px-8 py-4 font-bold">Status</th>
@@ -357,14 +389,9 @@ const AttendanceProgress = () => {
                     className="hover:bg-slate-50/50 transition-colors group"
                   >
                     <td className="px-8 py-5">
-                      <div className="flex flex-col">
-                        <span className="font-semibold text-slate-800">
-                          {log.studentName || "Unknown Student"}
-                        </span>
-                        <span className="text-xs text-slate-400 font-medium mt-0.5">
-                          #{log.student}
-                        </span>
-                      </div>
+                      <span className="font-semibold text-slate-800">
+                        {log.studentName || "Unknown Student"}
+                      </span>
                     </td>
                     <td className="px-8 py-5 text-slate-500 text-sm">
                       #{log.campaign}
@@ -441,6 +468,21 @@ const AttendanceProgress = () => {
                 </select>
               </div>
 
+              <div>
+                <label className="block text-xs font-bold text-slate-400 uppercase mb-1.5 tracking-wider">
+                  Date *
+                </label>
+                <input
+                  type="date"
+                  required
+                  value={formData.attendanceDate}
+                  onChange={(e) =>
+                    setFormData({ ...formData, attendanceDate: e.target.value })
+                  }
+                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-100 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-[#5D3FD3]/20 font-medium text-slate-700"
+                />
+              </div>
+
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-slate-400 uppercase mb-1.5 tracking-wider">
@@ -460,11 +502,13 @@ const AttendanceProgress = () => {
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-slate-400 uppercase mb-1.5 tracking-wider">
-                    Hours
+                    Hours (max 10)
                   </label>
                   <input
                     type="number"
                     step="0.1"
+                    min="0"
+                    max="10"
                     required
                     value={formData.hoursThatDay}
                     onChange={(e) =>

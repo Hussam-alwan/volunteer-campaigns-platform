@@ -1,16 +1,20 @@
 import { useEffect, useMemo, useState } from "react";
-import { BarChart, Bar, XAxis, Tooltip, ResponsiveContainer } from "recharts";
 import {
-  Plus,
-  Calendar,
-  CheckCircle,
-  Users,
-  Clock,
-  Target,
-} from "lucide-react";
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+} from "recharts";
+import { Plus, CheckCircle, Users, Clock, Target } from "lucide-react";
 // import Navbar from "../components/layout/Navbar";
 import dashboardApi from "@/API/Dasgboard/Dashboard.apis";
+import campaignApis from "@/API/Campaingns/Campaign.apis";
+import attendanceApis from "@/API/Attendance/Attendance.apis";
 import type { IDashboardSummary } from "@/API/Dasgboard/Dashboard.interfaces";
+import type { ICampaign } from "@/API/Campaingns/Campaign.interfaces";
+import type { IProgress } from "@/API/Attendance/Attendance.interfaces";
 import { useNavigate } from "react-router-dom";
 
 // chart and pie data are populated from backend
@@ -19,10 +23,11 @@ const Dashboard = () => {
   const [summary, setSummary] = useState<IDashboardSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [requiresAuth, setRequiresAuth] = useState(false);
-  const [chartDataState, setChartDataState] = useState<
-    { name: string; percentage: number }[]
-  >([]);
-  const [calendarLabel, setCalendarLabel] = useState("This Month");
+  const [campaignsForChart, setCampaignsForChart] = useState<ICampaign[]>([]);
+  const [progressByCampaign, setProgressByCampaign] = useState<
+    Record<number, number>
+  >({});
+  const [selectedMonth, setSelectedMonth] = useState<string>(""); // "YYYY-MM"، فارغ = كل الشهور
 
   const navigate = useNavigate();
 
@@ -43,28 +48,52 @@ const Dashboard = () => {
       }
     };
 
-    const loadChart = async () => {
+    const loadCampaigns = async () => {
       try {
-        const data = await dashboardApi.getAttendanceChartData();
-        if (mounted) setChartDataState(data || []);
-      } catch (err: unknown) {
-        if ((err as { isAuth?: boolean })?.isAuth) setRequiresAuth(true);
-      }
-    };
+        const res = await campaignApis.getAllCampaigns({ page: 0, size: 100 });
+        const list = (res as { content?: ICampaign[] })?.content ?? [];
+        if (!mounted) return;
+        setCampaignsForChart(list);
 
-    const loadCalendarLabel = async () => {
-      try {
-        const label = await dashboardApi.getCalendarLabel();
-        console.log("calendar label:", label);
-        if (mounted) setCalendarLabel(label);
+        // التقدّم لا يأتي مع بيانات الحملة، فنجلبه من endpoint التقدّم لكل حملة جارية
+        const running = list.filter((c) =>
+          ["ONGOING", "ACTIVE"].includes((c.status || "").toUpperCase()),
+        );
+
+        const entries = await Promise.all(
+          running.map(async (c) => {
+            try {
+              const pr = await attendanceApis.getProgress(c.campaignId, {
+                page: 0,
+                size: 100,
+              });
+              const items =
+                (pr as { content?: IProgress[] })?.content ??
+                (pr as { data?: IProgress[] })?.data ??
+                [];
+              const sorted = [...items].sort(
+                (a, b) =>
+                  new Date(a.createdAt).getTime() -
+                  new Date(b.createdAt).getTime(),
+              );
+              const latest = sorted.length
+                ? sorted[sorted.length - 1].percentage
+                : 0;
+              return [c.campaignId, latest] as const;
+            } catch {
+              return [c.campaignId, 0] as const;
+            }
+          }),
+        );
+
+        if (mounted) setProgressByCampaign(Object.fromEntries(entries));
       } catch (err: unknown) {
         if ((err as { isAuth?: boolean })?.isAuth) setRequiresAuth(true);
       }
     };
 
     void load();
-    void loadChart();
-    void loadCalendarLabel();
+    void loadCampaigns();
 
     return () => {
       mounted = false;
@@ -127,6 +156,29 @@ const Dashboard = () => {
     [loading, summary],
   );
 
+  // الحملات الجارية (Running) مع تصفية اختيارية حسب الشهر المختار
+  const campaignProgressData = useMemo(() => {
+    const running = campaignsForChart.filter((c) =>
+      ["ONGOING", "ACTIVE"].includes((c.status || "").toUpperCase()),
+    );
+
+    const inSelectedMonth = (c: ICampaign) => {
+      if (!selectedMonth) return true;
+      const [y, m] = selectedMonth.split("-").map(Number);
+      const monthStart = new Date(y, m - 1, 1);
+      const monthEnd = new Date(y, m, 0, 23, 59, 59);
+      const start = c.startDate ? new Date(c.startDate) : null;
+      const end = c.endDate ? new Date(c.endDate) : null;
+      if (!start || !end) return true;
+      return start <= monthEnd && end >= monthStart;
+    };
+
+    return running.filter(inSelectedMonth).map((c) => ({
+      name: c.title,
+      percentage: progressByCampaign[c.campaignId] ?? 0,
+    }));
+  }, [campaignsForChart, selectedMonth, progressByCampaign]);
+
   return (
     <div className="w-full bg-[#F8FAFC] min-h-screen">
       {/* <Navbar /> */}
@@ -137,9 +189,21 @@ const Dashboard = () => {
             Dashboard
           </h2>
           <div className="flex gap-3">
-            <button className="bg-white px-4 py-2 rounded-xl border border-slate-200 text-sm font-semibold flex items-center gap-2 shadow-sm">
-              <Calendar size={18} /> {calendarLabel}
-            </button>
+            <input
+              type="month"
+              value={selectedMonth}
+              onChange={(e) => setSelectedMonth(e.target.value)}
+              className="bg-white px-4 py-2 rounded-xl border border-slate-200 text-sm font-semibold text-slate-600 shadow-sm outline-none focus:ring-2 focus:ring-[#5D3FD3]/10"
+              title="Filter dashboard by month"
+            />
+            {selectedMonth && (
+              <button
+                onClick={() => setSelectedMonth("")}
+                className="bg-white px-4 py-2 rounded-xl border border-slate-200 text-sm font-semibold text-slate-500 shadow-sm hover:bg-slate-50"
+              >
+                Clear
+              </button>
+            )}
             <button
               onClick={() => navigate("/campaigns")}
               className="bg-[#5D3FD3] text-white px-5 py-2 rounded-xl font-semibold flex items-center gap-2 shadow-lg shadow-indigo-100"
@@ -185,50 +249,64 @@ const Dashboard = () => {
           <div className="lg:col-span-2 bg-white p-8 rounded-4xl border border-slate-50 shadow-sm relative">
             <div className="flex justify-between items-center mb-8">
               <h3 className="font-bold text-slate-800 text-lg">
-                Attendance Insights
+                Campaign Progress
               </h3>
-              <div className="flex gap-4 text-xs font-semibold">
-                <span className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-[#5D3FD3]" /> Hours
+              {selectedMonth && (
+                <span className="text-xs font-semibold text-slate-400">
+                  {new Date(`${selectedMonth}-01`).toLocaleDateString("en-US", {
+                    month: "long",
+                    year: "numeric",
+                  })}
                 </span>
-                <span className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-slate-200" />{" "}
-                  Volunteers
-                </span>
-              </div>
+              )}
             </div>
             <div className="h-80 w-full min-h-80">
-              <ResponsiveContainer width="100%" height="100%" minWidth={0}>
-                <BarChart
-                  data={
-                    chartDataState.length
-                      ? chartDataState
-                      : [{ name: "-", percentage: 0 }]
-                  }
-                >
-                  <XAxis
-                    dataKey="name"
-                    axisLine={false}
-                    tickLine={false}
-                    tick={{ fill: "#94A3B8", fontSize: 12 }}
-                    dy={10}
-                  />
-                  <Tooltip
-                    cursor={{ fill: "#F8FAFC" }}
-                    contentStyle={{
-                      borderRadius: "12px",
-                      border: "none",
-                      boxShadow: "0 10px 15px -3px rgb(0 0 0 / 0.1)",
-                    }}
-                  />
-                  <Bar
-                    dataKey="percentage"
-                    fill="#5D3FD3"
-                    radius={[4, 4, 0, 0]}
-                    barSize={25}
-                  />
-                </BarChart>
-              </ResponsiveContainer>
+              {campaignProgressData.length === 0 ? (
+                <div className="h-full flex items-center justify-center text-slate-400 text-sm font-medium">
+                  No running campaigns
+                  {selectedMonth ? " for the selected month" : ""}.
+                </div>
+              ) : (
+                <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+                  <BarChart
+                    data={campaignProgressData}
+                    layout="vertical"
+                    margin={{ left: 20, right: 30 }}
+                  >
+                    <XAxis
+                      type="number"
+                      domain={[0, 100]}
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fill: "#94A3B8", fontSize: 12 }}
+                      tickFormatter={(v) => `${v}%`}
+                    />
+                    <YAxis
+                      type="category"
+                      dataKey="name"
+                      axisLine={false}
+                      tickLine={false}
+                      width={120}
+                      tick={{ fill: "#64748B", fontSize: 12 }}
+                    />
+                    <Tooltip
+                      cursor={{ fill: "#F8FAFC" }}
+                      formatter={(v) => [`${v}%`, "Progress"]}
+                      contentStyle={{
+                        borderRadius: "12px",
+                        border: "none",
+                        boxShadow: "0 10px 15px -3px rgb(0 0 0 / 0.1)",
+                      }}
+                    />
+                    <Bar
+                      dataKey="percentage"
+                      fill="#5D3FD3"
+                      radius={[0, 4, 4, 0]}
+                      barSize={22}
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+              )}
             </div>
           </div>
 

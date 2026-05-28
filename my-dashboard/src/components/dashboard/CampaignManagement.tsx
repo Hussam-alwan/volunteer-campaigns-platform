@@ -3,8 +3,6 @@ import React, { useState, type ChangeEvent, type FormEvent } from "react";
 import {
   Plus,
   Search,
-  // Filter,
-  MoreHorizontal,
   MapPin,
   Users,
   Calendar,
@@ -16,9 +14,14 @@ import {
   Upload,
   Link2,
   Trash2,
+  Edit,
+  BarChart3,
 } from "lucide-react";
 
 import campaignQueries from "../../API/Campaingns/Campaingnqueries";
+import attendanceQueries from "../../API/Attendance/Attendancequeries";
+import useAuthStore from "../../store/auth.store";
+import Pagination from "../layout/Pagination";
 import { campaignService } from "../../services/campaignService";
 import { API_BASE_URL, SERVER_BASE_URL } from "../../constants/domain";
 import type {
@@ -42,63 +45,76 @@ type CampaignPhoto = {
   uploadedAt?: string;
 };
 
+const CAMPAIGN_STATUSES = ["PENDING", "ONGOING", "COMPLETED", "REJECTED"];
+
 const CampaignManagement: React.FC = () => {
+  const PAGE_SIZE = 10;
+  const currentUserId = useAuthStore((s) => s.user?.userId ?? 1);
+
   const [query, setQuery] = useState<string>("");
   const [searchTerm, setSearchTerm] = useState<string>("");
+  const [page, setPage] = useState<number>(0);
 
-  // جلب البيانات الاحترافي عبر React Query بدون الحاجة لـ useEffect يدوي
+  // جلب البيانات عبر React Query مع الترقيم (page/size) والبحث
   const {
     data: campaignsResponse,
     isLoading: loading,
     isError: hasError,
   } = campaignQueries.useGetAllCampaigns({
-    page: 0,
-    size: 10,
+    page,
+    size: PAGE_SIZE,
     ...(searchTerm ? { search: searchTerm } : {}),
   });
 
-  // استخدم الـ mutation لإضافة حملة جديدة
   const addCampaignMutation = campaignQueries.useAddCampaign();
+  const updateCampaignMutation = campaignQueries.useUpdateCampaign();
   const deleteCampaignMutation = campaignQueries.useDeleteCampaign();
+  const createProgressMutation = attendanceQueries.useCreateProgress();
 
-  // استخراج المصفوفة الفعلية للحملات من الرد
-  // const campaigns = Array.isArray(campaignsResponse)
-  //   ? campaignsResponse
-  //   : campaignsResponse || [];
-  //   // Spring يبدأ ترقيم الصفحات من 0، وواجهتنا تبدأ من 1
-  //   page: pagination.pageIndex - 1,
-  //   size: pagination.pageSize,
-  // });
+  // استخراج المصفوفة الفعلية مباشرةً دون إعادة تسمية الحقول
+  // (إعادة التسمية القديمة كانت تُفقد campaignId فتُفعّل الحذف/القائمة لكل الصفوف)
+  const campaigns: ICampaign[] =
+    (campaignsResponse as { content?: ICampaign[] })?.content ??
+    (campaignsResponse as { data?: ICampaign[] })?.data ??
+    (Array.isArray(campaignsResponse)
+      ? (campaignsResponse as ICampaign[])
+      : []);
 
-  // استخراج المصفوفة الفعلية: رد Spring يكون { content: [...] }، مع دعم احتياطي للأشكال الأخرى
-  const rawCampaigns: any[] =
-    (campaignsResponse as any)?.content ??
-    (campaignsResponse as any)?.data ??
-    (Array.isArray(campaignsResponse) ? (campaignsResponse as any) : []);
+  const totalPages = (campaignsResponse as { totalPages?: number })?.totalPages
+    ? Math.max(1, (campaignsResponse as { totalPages: number }).totalPages)
+    : 1;
+  const totalElements =
+    (campaignsResponse as { totalElements?: number })?.totalElements ??
+    campaigns.length;
 
-  // مواءمة حقول الـ API (camelCase) مع الحقول التي يستخدمها الجدول
-  const campaigns = rawCampaigns.map((c) => ({
-    id: c.campaignId ?? c.id,
-    title: c.title,
-    description: c.description,
-    location: c.location,
-    start_date: c.startDate ?? c.start_date,
-    end_date: c.endDate ?? c.end_date,
-    categoryId: c.category ?? c.categoryId,
-    max_volunteers: c.maxVolunteers ?? c.max_volunteers ?? 0,
-    current_volunteers: c.currentVolunteers ?? c.current_volunteers ?? 0,
-    actual_progress: c.actualProgress ?? c.actual_progress ?? 0,
-    status: c.status,
-  }));
+  // التقدّم المُحرَّر محلياً ليظهر فوراً في عمود Actual Progress بعد التعديل
+  const [progressById, setProgressById] = useState<Record<number, number>>({});
 
-  // حالات النوافذ المنبثقة والتحكم بالواجهة (تماما كما في تصميمك الأصلي)
+  const runSearch = () => {
+    setSearchTerm(query.trim());
+    setPage(0);
+  };
+
+  const clearSearch = () => {
+    setQuery("");
+    setSearchTerm("");
+    setPage(0);
+  };
+
+  // حالات النوافذ المنبثقة والتحكم بالواجهة
   const [showCreateModal, setShowCreateModal] = useState<boolean>(false);
+  const [editingCampaignId, setEditingCampaignId] = useState<number | null>(
+    null,
+  );
   const [showPhotosModal, setShowPhotosModal] = useState<boolean>(false);
   const [selectedCampaign, setSelectedCampaign] = useState<Campaign | null>(
     null,
   );
   const [photoUrlInput, setPhotoUrlInput] = useState<string>("");
-  const [openDropdown, setOpenDropdown] = useState<number | null>(null);
+  const [progressCampaign, setProgressCampaign] = useState<ICampaign | null>(
+    null,
+  );
+  const [progressValue, setProgressValue] = useState<string>("0");
   const [selectedFilesToUpload, setSelectedFilesToUpload] = useState<File[]>(
     [],
   );
@@ -283,6 +299,44 @@ const CampaignManagement: React.FC = () => {
     }
   };
 
+  const resetForm = () => {
+    setFormData({
+      title: "",
+      description: "",
+      location: "",
+      categoryId: 1,
+      max_volunteers: 0,
+      start_date: "",
+      end_date: "",
+    });
+  };
+
+  const closeCreateModal = () => {
+    setShowCreateModal(false);
+    setEditingCampaignId(null);
+    resetForm();
+  };
+
+  const openCreateModal = () => {
+    setEditingCampaignId(null);
+    resetForm();
+    setShowCreateModal(true);
+  };
+
+  const openEditCampaignModal = (camp: ICampaign) => {
+    setEditingCampaignId(camp.campaignId);
+    setFormData({
+      title: camp.title ?? "",
+      description: camp.description ?? "",
+      location: camp.location ?? "",
+      categoryId: Number(camp.category) || 1,
+      max_volunteers: Number(camp.maxVolunteers) || 0,
+      start_date: camp.startDate ?? "",
+      end_date: camp.endDate ?? "",
+    });
+    setShowCreateModal(true);
+  };
+
   const handleCreateSubmit = async (e: FormEvent) => {
     e.preventDefault();
 
@@ -295,26 +349,94 @@ const CampaignManagement: React.FC = () => {
       maxVolunteers: Number(formData.max_volunteers),
       category: Number(formData.categoryId),
       status: "PENDING",
-      proposedBy: 1,
+      proposedBy: currentUserId,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
 
     try {
-      await addCampaignMutation.mutateAsync(payload);
-      setShowCreateModal(false);
-      setFormData({
-        title: "",
-        description: "",
-        location: "",
-        categoryId: 1,
-        max_volunteers: 0,
-        start_date: "",
-        end_date: "",
+      if (editingCampaignId) {
+        const existing = campaigns.find(
+          (c) => c.campaignId === editingCampaignId,
+        );
+        await updateCampaignMutation.mutateAsync({
+          id: editingCampaignId,
+          payload: {
+            ...payload,
+            status: existing?.status ?? "PENDING",
+            proposedBy: existing?.proposedBy ?? currentUserId,
+            createdAt: existing?.createdAt ?? payload.createdAt,
+          },
+        });
+      } else {
+        await addCampaignMutation.mutateAsync(payload);
+      }
+      closeCreateModal();
+    } catch (err) {
+      console.error("Error saving campaign:", err);
+      alert(extractErrorMessage(err, "Error saving campaign"));
+    }
+  };
+
+  const handleStatusChange = async (camp: ICampaign, newStatus: string) => {
+    if (!newStatus || newStatus === camp.status) return;
+    try {
+      await updateCampaignMutation.mutateAsync({
+        id: camp.campaignId,
+        payload: {
+          title: camp.title,
+          description: camp.description,
+          location: camp.location,
+          startDate: camp.startDate,
+          endDate: camp.endDate,
+          maxVolunteers: Number(camp.maxVolunteers) || 0,
+          category: Number(camp.category) || 1,
+          status: newStatus,
+          proposedBy: camp.proposedBy ?? currentUserId,
+          createdAt: camp.createdAt ?? new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
       });
     } catch (err) {
-      console.error("Error creating campaign:", err);
-      alert("Error creating campaign");
+      console.error("Error updating status:", err);
+      alert(extractErrorMessage(err, "Error updating status"));
+    }
+  };
+
+  const openProgressModal = (camp: ICampaign) => {
+    setProgressCampaign(camp);
+    setProgressValue(
+      String(
+        progressById[camp.campaignId] ??
+          (camp as unknown as { actualProgress?: number }).actualProgress ??
+          0,
+      ),
+    );
+  };
+
+  const handleProgressSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!progressCampaign) return;
+
+    const pct = Math.max(0, Math.min(100, Number(progressValue) || 0));
+
+    try {
+      await createProgressMutation.mutateAsync({
+        campaignId: progressCampaign.campaignId,
+        payload: {
+          percentage: pct,
+          campaign: progressCampaign.campaignId,
+          updatedBy: currentUserId,
+        },
+      });
+      setProgressById((prev) => ({
+        ...prev,
+        [progressCampaign.campaignId]: pct,
+      }));
+      setProgressCampaign(null);
+    } catch (err) {
+      console.error("Error updating progress:", err);
+      alert(extractErrorMessage(err, "Error updating progress"));
     }
   };
 
@@ -326,7 +448,6 @@ const CampaignManagement: React.FC = () => {
 
     try {
       await deleteCampaignMutation.mutateAsync(campaignId);
-      setOpenDropdown(null);
     } catch (err) {
       console.error("Error deleting campaign:", err);
       alert(extractErrorMessage(err, "Error deleting campaign"));
@@ -364,7 +485,7 @@ const CampaignManagement: React.FC = () => {
           </p>
         </div>
         <button
-          onClick={() => setShowCreateModal(true)}
+          onClick={openCreateModal}
           style={{ backgroundColor: primaryPurple }}
           className="flex items-center gap-2 text-white px-6 py-3 rounded-2xl font-bold shadow-lg shadow-indigo-100 transition-all active:scale-95 hover:opacity-90"
         >
@@ -410,22 +531,19 @@ const CampaignManagement: React.FC = () => {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === "Enter") setSearchTerm(query.trim());
+              if (e.key === "Enter") runSearch();
             }}
             className="w-full pl-12 pr-4 py-3 bg-slate-50 border-none rounded-xl outline-none focus:ring-2 focus:ring-[#5D3FD3]/10 text-sm"
           />
           <button
-            onClick={() => setSearchTerm(query.trim())}
+            onClick={runSearch}
             className="px-3 py-2 bg-[#5D3FD3] text-white rounded-xl text-sm hover:opacity-90"
             title="Search"
           >
             Search
           </button>
           <button
-            onClick={() => {
-              setQuery("");
-              setSearchTerm("");
-            }}
+            onClick={clearSearch}
             className="px-3 py-2 bg-white border border-slate-200 text-slate-600 rounded-xl text-sm hover:bg-slate-50"
             title="Clear"
           >
@@ -440,153 +558,178 @@ const CampaignManagement: React.FC = () => {
 
       {/* Campaigns Table */}
       <div className="bg-white rounded-[30px] border border-gray-100 shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left">
-            <thead>
-              <tr className="bg-slate-50/50 text-slate-400 text-[11px] uppercase tracking-wider">
-                <th className="px-8 py-5 font-bold text-slate-500">
-                  Campaign Details
-                </th>
-                <th className="px-8 py-5 font-bold text-slate-500">Category</th>
-                <th className="px-8 py-5 font-bold text-slate-500">
-                  Volunteers
-                </th>
-                <th className="px-8 py-5 font-bold text-slate-500">
-                  Actual Progress
-                </th>
-                <th className="px-8 py-5 font-bold text-slate-500">Status</th>
-                <th className="px-8 py-5 font-bold text-center">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-50">
-              {(searchTerm
-                ? campaigns.filter((c: ICampaign) =>
-                    c.title?.toLowerCase().includes(searchTerm.toLowerCase()),
-                  )
-                : campaigns
-              ).map((camp: ICampaign) => (
-                <tr
-                  key={camp.campaignId}
-                  className="hover:bg-slate-50/50 transition-colors group"
+        <table className="w-full text-left">
+          <thead>
+            <tr className="bg-slate-50/50 text-slate-400 text-[11px] uppercase tracking-wider">
+              <th className="px-4 py-4 font-bold text-slate-500">
+                Campaign Details
+              </th>
+              <th className="px-4 py-4 font-bold text-slate-500">Category</th>
+              <th className="px-4 py-4 font-bold text-slate-500">Volunteers</th>
+              <th className="px-4 py-4 font-bold text-slate-500">
+                Actual Progress
+              </th>
+              <th className="px-4 py-4 font-bold text-slate-500">Status</th>
+              <th className="px-4 py-4 font-bold text-center">Actions</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-50">
+            {campaigns.length === 0 ? (
+              <tr>
+                <td
+                  colSpan={6}
+                  className="px-8 py-10 text-center text-slate-400 font-medium"
                 >
-                  <td className="px-8 py-6">
-                    <div className="flex flex-col">
-                      <span className="font-bold text-slate-800 text-base group-hover:text-[#5D3FD3] transition-colors">
-                        {camp.title}
+                  No campaigns found.
+                </td>
+              </tr>
+            ) : (
+              campaigns.map((camp: ICampaign) => {
+                const currentVolunteers =
+                  (camp as unknown as { currentVolunteers?: number })
+                    .currentVolunteers ?? 0;
+                const volunteersPct =
+                  camp.maxVolunteers > 0
+                    ? Math.round((currentVolunteers / camp.maxVolunteers) * 100)
+                    : 0;
+                const progress =
+                  progressById[camp.campaignId] ??
+                  (camp as unknown as { actualProgress?: number })
+                    .actualProgress ??
+                  0;
+                const statusOptions = Array.from(
+                  new Set([camp.status, ...CAMPAIGN_STATUSES]),
+                );
+
+                return (
+                  <tr
+                    key={camp.campaignId}
+                    className="hover:bg-slate-50/50 transition-colors group"
+                  >
+                    <td className="px-4 py-4">
+                      <div className="flex flex-col">
+                        <span className="font-bold text-slate-800 text-base group-hover:text-[#5D3FD3] transition-colors">
+                          {camp.title}
+                        </span>
+                        <div className="flex flex-wrap items-center gap-3 text-slate-400 text-xs mt-1.5">
+                          <span className="flex items-center gap-1">
+                            <MapPin size={12} /> {camp.location}
+                          </span>
+                          <span className="flex items-center gap-1 text-slate-400">
+                            <Calendar size={12} /> {camp.startDate} To{" "}
+                            {camp.endDate}
+                          </span>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-4 py-4">
+                      <span className="px-3 py-1 bg-slate-100 text-slate-500 rounded-lg text-[10px] font-bold uppercase tracking-wider">
+                        {camp.category === 1
+                          ? "Environment"
+                          : camp.category === 2
+                            ? "Education"
+                            : camp.category === 3
+                              ? "Health"
+                              : `Category ${camp.category}`}
                       </span>
-                      <div className="flex flex-wrap items-center gap-3 text-slate-400 text-xs mt-1.5">
-                        <span className="flex items-center gap-1">
-                          <MapPin size={12} /> {camp.location}
-                        </span>
-                        <span className="flex items-center gap-1 text-slate-400">
-                          <Calendar size={12} /> {camp.startDate} To{" "}
-                          {camp.endDate}
-                        </span>
+                    </td>
+                    <td className="px-4 py-4">
+                      <div className="flex flex-col gap-2 w-28">
+                        <div className="flex justify-between text-[10px] font-bold text-slate-500 uppercase">
+                          <span>
+                            {currentVolunteers} / {camp.maxVolunteers}
+                          </span>
+                          <span>{volunteersPct}%</span>
+                        </div>
+                        <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                          <div
+                            style={{ width: `${volunteersPct}%` }}
+                            className="h-full bg-blue-600 rounded-full"
+                          ></div>
+                        </div>
                       </div>
-                    </div>
-                  </td>
-                  <td className="px-8 py-6">
-                    <span className="px-3 py-1 bg-slate-100 text-slate-500 rounded-lg text-[10px] font-bold uppercase tracking-wider">
-                      {camp.category === 1
-                        ? "Environment"
-                        : camp.category === 2
-                          ? "Education"
-                          : camp.category === 3
-                            ? "Health"
-                            : `Category ${camp.category}`}
-                    </span>
-                  </td>
-                  <td className="px-8 py-6">
-                    <div className="flex flex-col gap-2 w-36">
-                      <div className="flex justify-between text-[10px] font-bold text-slate-500 uppercase">
-                        <span>0 / {camp.maxVolunteers}</span>
-                        <span>
-                          {camp.maxVolunteers > 0
-                            ? Math.round((0 / camp.maxVolunteers) * 100)
-                            : 0}
-                          %
-                        </span>
+                    </td>
+                    <td className="px-4 py-4">
+                      <div className="flex flex-col gap-2 w-28">
+                        <div className="flex justify-between text-[10px] font-bold text-slate-500 uppercase">
+                          <span>Progress</span>
+                          <span style={{ color: primaryPurple }}>
+                            {progress}%
+                          </span>
+                        </div>
+                        <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                          <div
+                            style={{
+                              width: `${progress}%`,
+                              backgroundColor: primaryPurple,
+                            }}
+                            className="h-full rounded-full"
+                          ></div>
+                        </div>
                       </div>
-                      <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                        <div
-                          style={{
-                            width: `${camp.maxVolunteers > 0 ? (0 / camp.maxVolunteers) * 100 : 0}%`,
-                          }}
-                          className="h-full bg-blue-600 rounded-full"
-                        ></div>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-8 py-6">
-                    <div className="flex flex-col gap-2 w-32">
-                      <div className="flex justify-between text-[10px] font-bold text-slate-500 uppercase">
-                        <span>Progress</span>
-                        <span style={{ color: primaryPurple }}>{0}%</span>
-                      </div>
-                      <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                        <div
-                          style={{
-                            width: `${0}%`,
-                            backgroundColor: primaryPurple,
-                          }}
-                          className="h-full rounded-full"
-                        ></div>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-8 py-6">
-                    <span
-                      className={`px-4 py-1.5 rounded-lg text-[10px] font-bold border ${getStatusStyle(camp.status as CampaignStatus)}`}
-                    >
-                      {camp.status}
-                    </span>
-                  </td>
-                  <td className="px-8 py-6 text-center">
-                    <div className="flex items-center justify-center gap-2">
-                      <button
-                        onClick={() => openPhotosManagement(camp as Campaign)}
-                        title="Manage Photos"
-                        className="p-2 text-slate-400 hover:text-[#5D3FD3] hover:bg-slate-50 rounded-xl transition-all"
+                    </td>
+                    <td className="px-4 py-4">
+                      <select
+                        value={camp.status}
+                        onChange={(e) => handleStatusChange(camp, e.target.value)}
+                        className={`px-3 py-1.5 rounded-lg text-[10px] font-bold border outline-none cursor-pointer ${getStatusStyle(camp.status as CampaignStatus)}`}
                       >
-                        <ImageIcon size={18} />
-                      </button>
-                      <div className="relative">
+                        {statusOptions.map((s) => (
+                          <option key={s} value={s}>
+                            {s}
+                          </option>
+                        ))}
+                      </select>
+                    </td>
+                    <td className="px-4 py-4 text-center">
+                      <div className="flex items-center justify-center gap-1">
+                        <button
+                          onClick={() => openEditCampaignModal(camp)}
+                          title="Edit Campaign"
+                          className="p-2 text-slate-400 hover:text-[#5D3FD3] hover:bg-slate-50 rounded-xl transition-all"
+                        >
+                          <Edit size={18} />
+                        </button>
+                        <button
+                          onClick={() => openProgressModal(camp)}
+                          title="Edit Progress"
+                          className="p-2 text-slate-400 hover:text-[#5D3FD3] hover:bg-slate-50 rounded-xl transition-all"
+                        >
+                          <BarChart3 size={18} />
+                        </button>
+                        <button
+                          onClick={() => openPhotosManagement(camp as Campaign)}
+                          title="Manage Photos"
+                          className="p-2 text-slate-400 hover:text-[#5D3FD3] hover:bg-slate-50 rounded-xl transition-all"
+                        >
+                          <ImageIcon size={18} />
+                        </button>
                         <button
                           type="button"
-                          onClick={() =>
-                            setOpenDropdown((current) =>
-                              current === camp.campaignId
-                                ? null
-                                : camp.campaignId,
-                            )
-                          }
-                          className="p-2 text-slate-300 hover:text-[#5D3FD3] hover:bg-slate-50 rounded-xl transition-colors"
+                          onClick={() => handleDeleteCampaign(camp.campaignId)}
+                          title="Delete Campaign"
+                          className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all"
                         >
-                          <MoreHorizontal size={20} />
+                          <Trash2 size={18} />
                         </button>
-
-                        {openDropdown === camp.campaignId && (
-                          <div className="absolute right-0 mt-2 w-44 rounded-xl border border-slate-200 bg-white shadow-lg z-20 overflow-hidden">
-                            <button
-                              type="button"
-                              onClick={() =>
-                                handleDeleteCampaign(camp.campaignId)
-                              }
-                              className="flex w-full items-center gap-3 px-4 py-3 text-sm font-medium text-red-600 hover:bg-red-50 transition-colors"
-                            >
-                              <Trash2 size={16} />
-                              Delete Campaign
-                            </button>
-                          </div>
-                        )}
                       </div>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                    </td>
+                  </tr>
+                );
+              })
+            )}
+          </tbody>
+        </table>
+
+        {/* Pagination */}
+        <Pagination
+          currentPage={page + 1}
+          totalPages={totalPages}
+          onPageChange={(p) => setPage(p - 1)}
+          totalItems={totalElements}
+          pageSize={PAGE_SIZE}
+          itemLabel="campaigns"
+        />
       </div>
 
       {/* Modal - Create Campaign */}
@@ -603,7 +746,7 @@ const CampaignManagement: React.FC = () => {
                 </div>
                 <div>
                   <h2 className="text-xl font-bold tracking-tight">
-                    Create New Campaign
+                    {editingCampaignId ? "Edit Campaign" : "Create New Campaign"}
                   </h2>
                   <p className="text-indigo-100 text-xs mt-0.5 opacity-80">
                     Define goals and requirements
@@ -611,7 +754,7 @@ const CampaignManagement: React.FC = () => {
                 </div>
               </div>
               <button
-                onClick={() => setShowCreateModal(false)}
+                onClick={closeCreateModal}
                 className="hover:bg-white/10 p-2 rounded-full transition-colors"
               >
                 <X size={24} />
@@ -789,7 +932,7 @@ const CampaignManagement: React.FC = () => {
               <div className="md:col-span-2 flex gap-4 mt-4 pt-6 border-t border-slate-50">
                 <button
                   type="button"
-                  onClick={() => setShowCreateModal(false)}
+                  onClick={closeCreateModal}
                   className="flex-1 px-6 py-4 border border-slate-100 text-slate-500 font-bold rounded-2xl hover:bg-slate-50 transition-all text-sm"
                 >
                   Cancel
@@ -799,11 +942,89 @@ const CampaignManagement: React.FC = () => {
                   style={{ backgroundColor: primaryPurple }}
                   className="flex-1 px-6 py-4 text-white font-bold rounded-2xl shadow-lg shadow-indigo-100 hover:opacity-90 transition-all text-sm"
                 >
-                  Confirm & Create
+                  {editingCampaignId ? "Save Changes" : "Confirm & Create"}
                 </button>
               </div>
             </form>
           </div>
+        </div>
+      )}
+
+      {/* Modal - Edit Progress */}
+      {progressCampaign && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-300">
+          <form
+            onSubmit={handleProgressSubmit}
+            className="bg-white w-full max-w-md rounded-4xl shadow-2xl overflow-hidden animate-in zoom-in-95"
+          >
+            <div
+              style={{ backgroundColor: primaryPurple }}
+              className="p-6 flex justify-between items-center text-white"
+            >
+              <div className="flex items-center gap-3">
+                <div className="bg-white/20 p-2.5 rounded-2xl">
+                  <BarChart3 size={22} />
+                </div>
+                <div>
+                  <h2 className="text-lg font-bold tracking-tight">
+                    Edit Progress
+                  </h2>
+                  <p className="text-indigo-100 text-xs opacity-80">
+                    {progressCampaign.title}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setProgressCampaign(null)}
+                className="hover:bg-white/10 p-2 rounded-full transition-colors"
+              >
+                <X size={22} />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                Progress percentage (0–100)
+              </label>
+              <input
+                type="number"
+                min={0}
+                max={100}
+                required
+                value={progressValue}
+                onChange={(e) => setProgressValue(e.target.value)}
+                className="w-full px-5 py-3.5 bg-slate-50 border border-transparent rounded-2xl focus:ring-2 focus:ring-[#5D3FD3]/10 outline-none text-sm"
+              />
+              <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                <div
+                  style={{
+                    width: `${Math.max(0, Math.min(100, Number(progressValue) || 0))}%`,
+                    backgroundColor: primaryPurple,
+                  }}
+                  className="h-full rounded-full transition-all"
+                />
+              </div>
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setProgressCampaign(null)}
+                  className="flex-1 px-6 py-3 border border-slate-100 text-slate-500 font-bold rounded-2xl hover:bg-slate-50 transition-all text-sm"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={createProgressMutation.isPending}
+                  style={{ backgroundColor: primaryPurple }}
+                  className="flex-1 px-6 py-3 text-white font-bold rounded-2xl shadow-lg shadow-indigo-100 hover:opacity-90 transition-all text-sm disabled:opacity-50"
+                >
+                  {createProgressMutation.isPending
+                    ? "Saving..."
+                    : "Save Progress"}
+                </button>
+              </div>
+            </div>
+          </form>
         </div>
       )}
 

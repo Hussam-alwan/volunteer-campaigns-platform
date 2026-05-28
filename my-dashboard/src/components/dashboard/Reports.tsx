@@ -31,7 +31,6 @@ function Reports() {
     isLoading,
     isError,
     refetch,
-    isFetching,
   } = useQuery({
     queryKey: ["dashboardStats"],
     queryFn: ReportsService.getDashboardStats,
@@ -113,17 +112,6 @@ function Reports() {
           <p className="text-slate-500 mt-1 font-medium italic">
             Visualizing live data: Colleges, Campaigns & Applications
           </p>
-        </div>
-        <div className="flex gap-2">
-          <button
-            onClick={() => refetch()}
-            disabled={isFetching}
-            style={{ backgroundColor: primaryPurple }}
-            className="px-6 py-2.5 text-white rounded-xl font-bold text-sm shadow-lg shadow-indigo-100 hover:opacity-90 transition-all flex items-center gap-2 disabled:opacity-50"
-          >
-            {isFetching && <Loader2 className="animate-spin" size={16} />}
-            Refresh Data
-          </button>
         </div>
       </div>
 

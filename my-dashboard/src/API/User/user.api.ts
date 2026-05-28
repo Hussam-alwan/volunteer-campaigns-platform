@@ -41,6 +41,7 @@ export const updateUser = async (
     phone: string;
     academicYear: number;
     college: number;
+    isBanned: boolean;
   },
 ) => {
   const res = await ApiInstance.put(`/users/${id}`, data);

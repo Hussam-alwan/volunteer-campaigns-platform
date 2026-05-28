@@ -1,6 +1,6 @@
 // src/pages/Colleges.tsx
 
-import React, { useState, useEffect, type FormEvent } from "react";
+import React, { useState, type FormEvent } from "react";
 import {
   Plus,
   Search,
@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 
 import collegesQueries from "../../API/Colleges/Collegesqueries";
+import Pagination from "../layout/Pagination";
 import type { ICollege } from "../../API/Colleges/Colleges.interfaces";
 
 const Colleges: React.FC = () => {
@@ -23,8 +24,20 @@ const Colleges: React.FC = () => {
     pageSize: 10,
   });
 
-  // 1. الإبقاء على الـ State للبحث (تمت إزالة الـ debouncedQuery لأن الفلترة فورية وداخلية)
+  // البحث بنمط صفحة المستخدمين: حقل إدخال + زر بحث + زر مسح (يُطبَّق عند الضغط)
+  const [query, setQuery] = useState<string>("");
   const [searchQuery, setSearchQuery] = useState<string>("");
+
+  const runSearch = () => {
+    setSearchQuery(query.trim());
+    setPagination((p) => ({ ...p, pageIndex: 0 }));
+  };
+
+  const clearSearch = () => {
+    setQuery("");
+    setSearchQuery("");
+    setPagination((p) => ({ ...p, pageIndex: 0 }));
+  };
 
   // 2. جلب البيانات كاملة من السيرفر (بدون إرسال برامتر name لأن الباك إند لا يدعمه)
   const {
@@ -42,6 +55,7 @@ const Colleges: React.FC = () => {
   const deleteCollegeMutation = collegesQueries.useDeleteCollege();
 
   const allColleges = collegesResponse?.content || [];
+  const totalPages = Math.max(1, collegesResponse?.totalPages ?? 1);
 
   // 3. ✨ هنا السحر: تفلترة المصفوفة داخلياً في الفرونت إند بناءً على ما يكتبه المستخدم فورياً
   const filteredColleges = allColleges.filter((college: ICollege) => {
@@ -183,23 +197,42 @@ const Colleges: React.FC = () => {
       </div>
 
       {/* Search Area */}
-      <div className="bg-white p-4 rounded-[24px] border border-gray-100 shadow-sm flex items-center gap-4">
-        <div className="relative max-w-md flex-1">
+      <div className="flex flex-wrap gap-4 bg-white p-4 rounded-[24px] border border-gray-100 shadow-sm">
+        <div className="relative flex-1 min-w-70 flex items-center gap-2">
           <Search
             className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
             size={18}
           />
           <input
             type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") runSearch();
+            }}
             placeholder="Search by college name..."
             className="w-full pl-12 pr-4 py-3 bg-slate-50 border-none rounded-xl outline-none focus:ring-2 focus:ring-[#5D3FD3]/10 text-sm"
           />
+          <button
+            type="button"
+            onClick={runSearch}
+            className="px-3 py-2 bg-[#5D3FD3] text-white rounded-xl text-sm hover:opacity-90"
+            title="Search"
+          >
+            Search
+          </button>
+          <button
+            type="button"
+            onClick={clearSearch}
+            className="px-3 py-2 bg-white border border-slate-200 text-slate-600 rounded-xl text-sm hover:bg-slate-50"
+            title="Clear"
+          >
+            Clear
+          </button>
         </div>
         {(loading || fetching) && (
           <div
-            className="animate-spin rounded-full h-5 w-5 border-b-2"
+            className="animate-spin rounded-full h-5 w-5 border-b-2 self-center"
             style={{ borderColor: primaryPurple }}
           ></div>
         )}
@@ -209,13 +242,10 @@ const Colleges: React.FC = () => {
       <div
         className={`bg-white rounded-[30px] border border-gray-100 shadow-sm overflow-hidden transition-opacity duration-300 ${isActionLoading || loading || fetching ? "opacity-50 pointer-events-none" : ""}`}
       >
-        <div className="overflow-x-auto">
+        <div>
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-slate-50/50">
-                <th className="px-6 py-5 font-bold text-slate-400 text-[11px] uppercase tracking-wider">
-                  ID
-                </th>
                 <th className="px-6 py-5 font-extrabold text-slate-800 text-[13px] uppercase tracking-wider">
                   College Name
                 </th>
@@ -238,7 +268,7 @@ const Colleges: React.FC = () => {
               {filteredColleges.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={6}
+                    colSpan={5}
                     className="text-center py-10 font-bold text-slate-400"
                   >
                     No colleges found matching your search.
@@ -254,11 +284,6 @@ const Colleges: React.FC = () => {
                       key={college.collegeId}
                       className="hover:bg-slate-50/30 transition-colors group"
                     >
-                      <td className="px-6 py-6">
-                        <span className="font-bold text-slate-300 italic">
-                          #{college.collegeId}
-                        </span>
-                      </td>
                       <td className="px-6 py-6">
                         <span
                           style={{ color: "black" }}
@@ -328,6 +353,18 @@ const Colleges: React.FC = () => {
           </table>
         </div>
       </div>
+
+      {/* Pagination */}
+      <Pagination
+        currentPage={pagination.pageIndex + 1}
+        totalPages={totalPages}
+        onPageChange={(p) =>
+          setPagination((prev) => ({ ...prev, pageIndex: p - 1 }))
+        }
+        totalItems={collegesResponse?.totalElements}
+        pageSize={pagination.pageSize}
+        itemLabel="colleges"
+      />
 
       {/* Modal - Create / Edit College */}
       {showCreateModal && (

@@ -4,6 +4,7 @@ import type { IPagination } from "../../common.interfaces";
 import type {
   IAttendanceInputs,
   IBulkAttendanceInputs,
+  IProgressInputs,
 } from "./Attendance.interfaces";
 
 export const attendanceQueryKeys = {
@@ -95,12 +96,37 @@ export const useUpdateAttendance = (campaignId: number | string) => {
   });
 };
 
+// 6. هوك إضافة سجل تقدّم لحملة (غير مرتبط بـ campaignId ثابت ليُستخدم من جدول الحملات)
+export const useCreateProgress = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      campaignId,
+      payload,
+    }: {
+      campaignId: number;
+      payload: IProgressInputs;
+    }) => attendanceApis.createProgress(campaignId, payload),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: ["get-progress", variables.campaignId],
+        exact: false,
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["get-all-campaigns"],
+        exact: false,
+      });
+    },
+  });
+};
+
 const attendanceQueries = {
   useGetAttendance,
   useGetProgress,
   useCreateAttendance,
   useCreateAttendanceBulk,
   useUpdateAttendance,
+  useCreateProgress,
 };
 
 export default attendanceQueries;

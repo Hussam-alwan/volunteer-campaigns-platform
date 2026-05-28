@@ -3,10 +3,15 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import campaignApis from "./Campaign.apis"; // استدعاء ملف الـ API الذي جهزناه سوياً
 import type { IPagination, IResponse } from "../../common.interfaces";
-import type { ICampaign, ICampaignInputs } from "./Campaign.interfaces"; // استخدم الـ interface الصحيح من Campaign.interfaces
+import type {
+  ICampaign,
+  ICampaignInputs,
+  ICampaignPage,
+} from "./Campaign.interfaces"; // استخدم الـ interface الصحيح من Campaign.interfaces
 
 type CampaignListCache =
   | ICampaign[]
+  | ICampaignPage
   | (IResponse<ICampaign[]> & {
       content?: ICampaign[];
       last?: boolean;
@@ -28,8 +33,9 @@ const getCampaignItems = (
 ): ICampaign[] => {
   if (!cache) return [];
   if (Array.isArray(cache)) return cache;
-  if (Array.isArray(cache.content)) return cache.content;
-  if (Array.isArray(cache.data)) return cache.data;
+  const obj = cache as { content?: ICampaign[]; data?: ICampaign[] };
+  if (Array.isArray(obj.content)) return obj.content;
+  if (Array.isArray(obj.data)) return obj.data;
   return [];
 };
 
@@ -41,11 +47,11 @@ export const campaignQueryKeys = {
 };
 
 // 1. هوك جلب كل الحملات مع الـ Pagination والـ Filters
+// نُبقي على الرد الكامل (content + totalPages) حتى تعمل أزرار الترقيم في الواجهة
 const useGetAllCampaigns = (param?: any) => {
-  const queryResult = useQuery<CampaignListCache, Error, ICampaign[]>({
+  const queryResult = useQuery<CampaignListCache, Error>({
     queryKey: campaignQueryKeys.useGetAllCampaigns(param),
     queryFn: () => campaignApis.getAllCampaigns(param),
-    select: (res) => getCampaignItems(res),
   });
 
   return queryResult;
@@ -184,10 +190,30 @@ const useDeleteCampaign = () => {
   });
 };
 
+// 5. هوك تعديل حملة (يُستخدم لتغيير الحالة Status أو أي تعديل كامل)
+const useUpdateCampaign = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, payload }: { id: number; payload: ICampaignInputs }) =>
+      campaignApis.updateCampaign(payload, id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["get-all-campaigns"],
+        exact: false,
+      });
+    },
+    onError: (error: unknown) => {
+      console.error("❌ Update mutation error:", error);
+    },
+  });
+};
+
 const campaignQueries = {
   useGetAllCampaigns,
   useGetCampaignById,
   useAddCampaign,
+  useUpdateCampaign,
   useDeleteCampaign,
 };
 

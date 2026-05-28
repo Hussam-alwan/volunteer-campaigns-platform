@@ -24,10 +24,16 @@ import {
   createApplication,
   updateApplicationStatus,
 } from "@/API/Application/Application.apis";
+import { getUsers } from "@/API/User/user.api";
+import collegesApis from "@/API/Colleges/Colleges.apis";
+import campaignApis from "@/API/Campaingns/Campaign.apis";
 import type {
   IApplication,
   ICreateApplicationInput,
 } from "@/API/Application/Application.interfaces";
+import type { IUser } from "@/API/User/User.interfaces";
+import type { ICollege } from "@/API/Colleges/Colleges.interfaces";
+import type { ICampaign } from "@/API/Campaingns/Campaign.interfaces";
 import { useEffect, useMemo, useState } from "react";
 
 const statusStyles = {
@@ -59,6 +65,12 @@ function ApplicationStatus() {
   const [sortOrder, setSortOrder] = useState<"newest" | "oldest">("newest");
   const [updatingIds, setUpdatingIds] = useState<number[]>([]);
 
+  const [users, setUsers] = useState<IUser[]>([]);
+  const [colleges, setColleges] = useState<ICollege[]>([]);
+  const [campaigns, setCampaigns] = useState<ICampaign[]>([]);
+  const [campaignFilter, setCampaignFilter] = useState<string>("all");
+  const [letterApp, setLetterApp] = useState<IApplication | null>(null);
+
   useEffect(() => {
     const fetchApplications = async () => {
       try {
@@ -74,6 +86,51 @@ function ApplicationStatus() {
 
     fetchApplications();
   }, []);
+
+  // بيانات مرجعية لعرض اسم الطالب والكلية والفلترة حسب الحملة
+  useEffect(() => {
+    const loadRefs = async () => {
+      try {
+        const [usersRes, collegesRes, campaignsRes] = await Promise.all([
+          getUsers(0, 1000),
+          collegesApis.getAllColleges({ page: 0, size: 1000 }),
+          campaignApis.getAllCampaigns({ page: 0, size: 1000 }),
+        ]);
+        setUsers(usersRes?.content ?? []);
+        setColleges(collegesRes?.content ?? []);
+        setCampaigns(
+          (campaignsRes as { content?: ICampaign[] })?.content ?? [],
+        );
+      } catch (error) {
+        console.error(error);
+      }
+    };
+
+    loadRefs();
+  }, []);
+
+  const userMap = useMemo(() => {
+    const map = new Map<number, IUser>();
+    users.forEach((u) => map.set(u.userId, u));
+    return map;
+  }, [users]);
+
+  const collegeNameById = useMemo(() => {
+    const map = new Map<number, string>();
+    colleges.forEach((c) => map.set(c.collegeId, c.name));
+    return map;
+  }, [colleges]);
+
+  const getStudentName = (studentId: number) => {
+    const u = userMap.get(studentId);
+    return u ? `${u.firstName} ${u.lastName}` : `Student #${studentId}`;
+  };
+
+  const getStudentCollege = (studentId: number) => {
+    const u = userMap.get(studentId);
+    if (!u) return "—";
+    return collegeNameById.get(u.college) ?? `College #${u.college}`;
+  };
 
   const monthOptions = useMemo(() => {
     const months = new Map<string, string>();
@@ -104,18 +161,21 @@ function ApplicationStatus() {
   }, [allApplications]);
 
   const visibleApplications = useMemo(() => {
-    const filtered =
-      selectedMonth === "all"
-        ? allApplications
-        : allApplications.filter((application) => {
-            const date = getApplicationDate(application);
+    const filtered = allApplications.filter((application) => {
+      const monthOk =
+        selectedMonth === "all" ||
+        (() => {
+          const date = getApplicationDate(application);
+          if (Number.isNaN(date.getTime())) return false;
+          return getMonthKey(date) === selectedMonth;
+        })();
 
-            if (Number.isNaN(date.getTime())) {
-              return false;
-            }
+      const campaignOk =
+        campaignFilter === "all" ||
+        String(application.campaign) === campaignFilter;
 
-            return getMonthKey(date) === selectedMonth;
-          });
+      return monthOk && campaignOk;
+    });
 
     return [...filtered].sort((left, right) => {
       const leftTime = getApplicationDate(left).getTime();
@@ -125,7 +185,7 @@ function ApplicationStatus() {
         ? rightTime - leftTime
         : leftTime - rightTime;
     });
-  }, [allApplications, selectedMonth, sortOrder]);
+  }, [allApplications, selectedMonth, sortOrder, campaignFilter]);
 
   const searchedApplications = useMemo(() => {
     const normalizedSearch = searchTerm.trim().toLowerCase();
@@ -323,6 +383,22 @@ function ApplicationStatus() {
                 Volunteer Applications
               </h1>
               <div className="flex items-center gap-3">
+                <select
+                  value={campaignFilter}
+                  onChange={(e) => {
+                    setCampaignFilter(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  className="px-4 py-2 border border-gray-200 rounded-2xl text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors outline-none cursor-pointer"
+                  title="Filter by campaign"
+                >
+                  <option value="all">All campaigns</option>
+                  {campaigns.map((c) => (
+                    <option key={c.campaignId} value={String(c.campaignId)}>
+                      {c.title}
+                    </option>
+                  ))}
+                </select>
                 <div className="relative">
                   <button
                     type="button"
@@ -468,9 +544,6 @@ function ApplicationStatus() {
                         College
                       </th>
                       <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-3">
-                        Motivation Letter (Preview)
-                      </th>
-                      <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-3">
                         Applied On
                       </th>
                       <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-3">
@@ -492,24 +565,18 @@ function ApplicationStatus() {
                             <Avatar className="w-9 h-9">
                               <AvatarImage src="" />
                               <AvatarFallback>
-                                S{application.student}
+                                {getStudentName(application.student)
+                                  .charAt(0)
+                                  .toUpperCase()}
                               </AvatarFallback>
                             </Avatar>
-                            <div>
-                              <p className="text-sm font-medium text-gray-900">
-                                Student #{application.student}
-                              </p>
-                              <p className="text-xs text-gray-500">
-                                Campaign #{application.campaign}
-                              </p>
-                            </div>
+                            <p className="text-sm font-medium text-gray-900">
+                              {getStudentName(application.student)}
+                            </p>
                           </div>
                         </td>
                         <td className="px-4 py-3 text-sm text-gray-600">
-                          Campaign #{application.campaign}
-                        </td>
-                        <td className="px-4 py-3 text-sm text-gray-600 max-w-xs truncate">
-                          {application.motivationLetter}
+                          {getStudentCollege(application.student)}
                         </td>
                         <td className="px-4 py-3 text-sm text-gray-600">
                           {getApplicationDate(application).toLocaleDateString()}
@@ -528,6 +595,14 @@ function ApplicationStatus() {
                         </td>
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => setLetterApp(application)}
+                              title="View motivation letter"
+                              className="p-1.5 bg-gray-100 text-gray-600 rounded-md hover:bg-gray-200 transition-colors"
+                            >
+                              <FileText className="w-4 h-4" />
+                            </button>
                             <button
                               disabled={
                                 loading || updatingIds.includes(application.id)
@@ -695,6 +770,42 @@ function ApplicationStatus() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {letterApp && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg">
+            <div className="flex items-center justify-between p-6 border-b border-gray-200">
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900">
+                  Motivation Letter
+                </h2>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  {getStudentName(letterApp.student)}
+                </p>
+              </div>
+              <button
+                onClick={() => setLetterApp(null)}
+                className="p-1 text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-6 max-h-[60vh] overflow-y-auto">
+              <p className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">
+                {letterApp.motivationLetter || "No motivation letter provided."}
+              </p>
+            </div>
+            <div className="flex justify-end p-4 border-t border-gray-200">
+              <button
+                onClick={() => setLetterApp(null)}
+                className="px-4 py-2 bg-[#5D3FD3] text-white rounded-2xl text-sm font-medium hover:opacity-90"
+              >
+                Close
+              </button>
+            </div>
           </div>
         </div>
       )}
