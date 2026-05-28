@@ -327,7 +327,7 @@ function ApplicationStatus() {
                   <button
                     type="button"
                     onClick={() => setShowMonthMenu((current) => !current)}
-                    className="flex items-center gap-2 px-4 py-2 border border-gray-200 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors"
+                    className="flex items-center gap-2 px-4 py-2 border border-gray-200 rounded-2xl text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors"
                   >
                     <Calendar className="w-4 h-4" />
                     {selectedMonthLabel}
@@ -335,7 +335,7 @@ function ApplicationStatus() {
                   </button>
 
                   {showMonthMenu && (
-                    <div className="absolute right-0 mt-2 w-56 rounded-xl border border-gray-200 bg-white shadow-lg z-20 overflow-hidden">
+                    <div className="absolute right-0 mt-2 w-56 rounded-2xl border border-gray-200 bg-white shadow-lg z-20 overflow-hidden">
                       <button
                         type="button"
                         onClick={() => {
@@ -365,7 +365,7 @@ function ApplicationStatus() {
 
                 <button
                   onClick={() => setShowModal(true)}
-                  className="flex items-center gap-2 px-4 py-2 bg-[#5D3FD3] text-white rounded-lg text-sm font-medium hover:bg-[#5D3FD3] transition-colors"
+                  className="flex items-center gap-2 px-4 py-2 bg-[#5D3FD3] text-white rounded-2xl text-sm font-medium hover:bg-[#5D3FD3] transition-colors"
                 >
                   <Plus className="w-4 h-4" />
                   New Opportunity
@@ -449,7 +449,7 @@ function ApplicationStatus() {
                         s === "newest" ? "oldest" : "newest",
                       )
                     }
-                    className="flex items-center gap-2 px-4 py-2 border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+                    className="flex items-center gap-2 px-4 py-2 border border-gray-200 rounded-2xl text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
                   >
                     Sort: {sortOrder === "newest" ? "Newest" : "Oldest"}
                     <ChevronDown className="w-4 h-4" />
@@ -566,7 +566,7 @@ function ApplicationStatus() {
                       setCurrentPage((page) => Math.max(1, page - 1))
                     }
                     disabled={safeCurrentPage === 1}
-                    className="p-2 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                    className="p-2 hover:bg-gray-100 rounded-2xl transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                   >
                     <ChevronLeft className="w-4 h-4 text-gray-500" />
                   </button>
@@ -584,7 +584,7 @@ function ApplicationStatus() {
                         type="button"
                         onClick={() => setCurrentPage(page)}
                         className={cn(
-                          "w-8 h-8 rounded-lg text-sm font-medium transition-colors",
+                          "w-8 h-8 rounded-2xl text-sm font-medium transition-colors",
                           safeCurrentPage === page
                             ? "bg-[#5D3FD3] text-white"
                             : "hover:bg-gray-100 text-gray-600",
@@ -600,7 +600,7 @@ function ApplicationStatus() {
                       setCurrentPage((page) => Math.min(totalPages, page + 1))
                     }
                     disabled={safeCurrentPage === totalPages}
-                    className="p-2 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                    className="p-2 hover:bg-gray-100 rounded-2xl transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                   >
                     <ChevronRight className="w-4 h-4 text-gray-500" />
                   </button>
@@ -639,7 +639,7 @@ function ApplicationStatus() {
                     setFormData({ ...formData, student: e.target.value })
                   }
                   placeholder="Enter student ID"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#5D3FD3]/50 text-sm"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#5D3FD3]/50 text-sm"
                 />
               </div>
 
@@ -655,7 +655,7 @@ function ApplicationStatus() {
                     setFormData({ ...formData, campaign: e.target.value })
                   }
                   placeholder="Enter campaign ID"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#5D3FD3]/50 text-sm"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#5D3FD3]/50 text-sm"
                 />
               </div>
 
@@ -674,7 +674,7 @@ function ApplicationStatus() {
                   }
                   placeholder="Enter your motivation letter..."
                   rows={4}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#5D3FD3]/50 text-sm resize-none"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#5D3FD3]/50 text-sm resize-none"
                 />
               </div>
 
@@ -682,14 +682,14 @@ function ApplicationStatus() {
                 <button
                   type="button"
                   onClick={() => setShowModal(false)}
-                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-colors text-sm"
+                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 font-medium rounded-2xl hover:bg-gray-50 transition-colors text-sm"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={loading}
-                  className="flex-1 px-4 py-2 bg-[#5D3FD3] text-white font-medium rounded-lg hover:bg-[#5D3FD3]/90 transition-colors text-sm disabled:opacity-50"
+                  className="flex-1 px-4 py-2 bg-[#5D3FD3] text-white font-medium rounded-2xl hover:bg-[#5D3FD3]/90 transition-colors text-sm disabled:opacity-50"
                 >
                   {loading ? "Creating..." : "Create"}
                 </button>

@@ -19,7 +19,7 @@ const Sidebar = () => {
   // 1. حالة للتحكم في ظهور النافذة
   const [showLogoutModal, setShowLogoutModal] = useState(false);
 
-  const primaryPurple = "#5D3FD3";
+  // const primaryPurple = "#5D3FD3";
 
   const mainMenuItems = [
     { title: "Dashboard", icon: <LayoutGrid size={20} />, path: "/" },
@@ -113,8 +113,8 @@ const Sidebar = () => {
 
       {/* 4. نافذة التأكيد (Logout Confirmation Modal) */}
       {showLogoutModal && (
-        <div className="fixed inset-0 z-[999] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white w-full max-w-sm rounded-[32px] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300">
+        <div className="fixed inset-0 z-999 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white w-full max-w-sm rounded-32px shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300">
             {/* الجزء العلوي */}
             <div className="bg-[#5D3FD3] p-6 flex justify-between items-center text-white">
               <div className="flex items-center gap-3">

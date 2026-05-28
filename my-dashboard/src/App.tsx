@@ -11,7 +11,8 @@ import Sidebar from "./components/layout/Sidebar";
 
 // Pages
 import Dashboard from "./pages/Dashboard";
-import StudentsPage from "./components/dashboard/StudentsPage";
+// import StudentsPage from "./components/dashboard/StudentsPage";
+
 import CampaignManagement from "./components/dashboard/CampaignManagement";
 import AttendanceProgress from "./components/dashboard/AttendanceProgress";
 import Colleges from "./components/dashboard/Colleges";
@@ -21,6 +22,7 @@ import ApplicationStatus from "./components/dashboard/ApplicationStatus";
 // Auth Pages
 import LoginPage from "./components/auth/LoginPage";
 import RegisterPage from "./components/auth/RegisterPage";
+import UserManagement from "./components/dashboard/UserManagement";
 
 const ProtectedLayout = () => {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
@@ -40,7 +42,7 @@ const ProtectedLayout = () => {
 const PublicLayout = () => {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   if (isAuthenticated) {
-    return <Navigate to="/dashboard" replace />;
+    return <Navigate to="/login" replace />;
   }
   return <Outlet />;
 };
@@ -59,7 +61,8 @@ function App() {
           <Route path="/campaigns" element={<CampaignManagement />} />
           <Route path="/applications" element={<ApplicationStatus />} />
           <Route path="/attendance" element={<AttendanceProgress />} />
-          <Route path="/students" element={<StudentsPage />} />
+          {/* <Route path="/students" element={<StudentsPage />} /> */}
+          <Route path="/users" element={<UserManagement />} />
           <Route path="/colleges" element={<Colleges />} />
           <Route path="/reports" element={<Reports />} />
         </Route>

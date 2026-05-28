@@ -1,19 +1,10 @@
-import axios from "axios";
-
-const BASE_URL = "https://sbc-production.up.railway.app";
-
-const api = axios.create({
-  baseURL: BASE_URL,
-  headers: {
-    "Content-Type": "application/json",
-  },
-});
+import ApiInstance from "../api.instance";
 
 /**
  * GET ALL USERS (paginated)
  */
 export const getUsers = async (page = 0, size = 20) => {
-  const res = await api.get(`/api/v1/users`, {
+  const res = await ApiInstance.get(`/users`, {
     params: { page, size },
   });
 
@@ -31,8 +22,9 @@ export const createUser = async (data: {
   phone: string;
   academicYear: number;
   college: number;
+  isBanned?: boolean;
 }) => {
-  const res = await api.post(`/api/v1/users`, data);
+  const res = await ApiInstance.post(`/users`, data);
   return res.data;
 };
 
@@ -49,9 +41,9 @@ export const updateUser = async (
     phone: string;
     academicYear: number;
     college: number;
-  }
+  },
 ) => {
-  const res = await api.put(`/api/v1/users/${id}`, data);
+  const res = await ApiInstance.put(`/users/${id}`, data);
   return res.data;
 };
 
@@ -60,7 +52,7 @@ export const updateUser = async (
  * (backend uses PATCH /users/{id}/ban)
  */
 export const banUser = async (id: number) => {
-  const res = await api.patch(`/api/v1/users/${id}/ban`);
+  const res = await ApiInstance.patch(`/users/${id}/ban`);
   return res.data;
 };
 
@@ -68,6 +60,6 @@ export const banUser = async (id: number) => {
  * DELETE USER (optional but موجود في Swagger)
  */
 export const deleteUser = async (id: number) => {
-  const res = await api.delete(`/api/v1/users/${id}`);
+  const res = await ApiInstance.delete(`/users/${id}`);
   return res.data;
 };

@@ -8,32 +8,27 @@ import {
   Edit,
   Trash2,
   Ban,
-  CheckCircle2,
+  X,
+  // CheckCircle2,
   Users,
   UserCheck,
   UserX,
 } from "lucide-react";
 
 import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { cn } from "@/pages/lib/utils";
 
-import { getUsers, createUser, updateUser, banUser } from "@/API/User/user.api";
+import { getUsers, createUser, banUser, deleteUser } from "@/API/User/user.api";
+import useAuthStore from "@/store/auth.store";
 
-interface IUser {
-  userId: string;
-  studentNumber: string;
-  firstName: string;
-  lastName: string;
-  email: string;
-  phone: string;
-  academicYear: number;
-  college: number;
-  isBanned: boolean;
-}
+import type { IUser } from "@/API/User/User.interfaces";
 
 const getFullName = (u: IUser) => `${u.firstName} ${u.lastName}`;
 
 function UserManagement() {
+  const navigate = useNavigate();
+  const logout = useAuthStore((state) => state.logout);
   const [users, setUsers] = useState<IUser[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -44,6 +39,7 @@ function UserManagement() {
   const itemsPerPage = 10;
 
   const [showModal, setShowModal] = useState(false);
+  const [formError, setFormError] = useState("");
 
   const [formData, setFormData] = useState({
     studentNumber: "",
@@ -51,8 +47,10 @@ function UserManagement() {
     lastName: "",
     email: "",
     phone: "",
+    password: "",
     academicYear: 1,
     college: 1,
+    isBanned: false,
   });
 
   // FETCH USERS
@@ -62,7 +60,15 @@ function UserManagement() {
         setLoading(true);
         const res = await getUsers();
         setUsers(res.content);
-      } catch (err) {
+      } catch (err: unknown) {
+        const status = (err as { response?: { status?: number } })?.response
+          ?.status;
+
+        if (status === 401) {
+          logout();
+          navigate("/login", { replace: true });
+          return;
+        }
         console.error(err);
       } finally {
         setLoading(false);
@@ -70,7 +76,7 @@ function UserManagement() {
     };
 
     fetchUsers();
-  }, []);
+  }, [logout, navigate]);
 
   // FILTER
   const filteredUsers = useMemo(() => {
@@ -107,19 +113,93 @@ function UserManagement() {
 
     try {
       setLoading(true);
+      setFormError("");
+
+      const firstName = formData.firstName.trim();
+      const lastName = formData.lastName.trim();
+      const email = formData.email.trim().toLowerCase();
+      const phone = formData.phone.trim();
+      const password = formData.password.trim();
+
+      if (!firstName || !lastName || !email || !password) {
+        setFormError("Please fill in all required fields.");
+        return;
+      }
+
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        setFormError("Please enter a valid email address.");
+        return;
+      }
+
+      if (users.some((user) => user.email.toLowerCase() === email)) {
+        setFormError("This email is already in use.");
+        return;
+      }
+
+      if (password.length < 8) {
+        setFormError("Password must be at least 8 characters long.");
+        return;
+      }
+
+      if (!/^\d{10}$/.test(phone)) {
+        setFormError("Phone must be exactly 10 digits.");
+        return;
+      }
 
       const payload = {
         ...formData,
+        firstName,
+        lastName,
+        email,
+        phone,
+        password,
+        academicYear: Number(formData.academicYear) || 1,
+        college: Number(formData.college) || 1,
+        isBanned: false,
       };
 
       const newUser = await createUser(payload);
 
       setUsers((prev) => [newUser, ...prev]);
+      setFormData({
+        studentNumber: "",
+        firstName: "",
+        lastName: "",
+        email: "",
+        phone: "",
+        password: "",
+        academicYear: 1,
+        college: 1,
+        isBanned: false,
+      });
       setShowModal(false);
-    } catch (err) {
+    } catch (err: unknown) {
+      const message =
+        (err as { response?: { data?: { message?: string } } })?.response?.data
+          ?.message ||
+        (err as Error)?.message ||
+        "Unable to create user right now.";
+
+      setFormError(message);
       console.error(err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDeleteUser = async (user: IUser) => {
+    const confirmed = window.confirm(
+      `Are you sure you want to delete ${getFullName(user)}?`,
+    );
+
+    if (!confirmed) return;
+
+    try {
+      await deleteUser(user.userId);
+      setUsers((prev) => prev.filter((u) => u.userId !== user.userId));
+    } catch (err) {
+      console.error(err);
+      alert("Failed to delete user.");
     }
   };
 
@@ -144,7 +224,7 @@ function UserManagement() {
 
         <button
           onClick={() => setShowModal(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-[#5D3FD3] text-white rounded-lg"
+          className="flex items-center gap-2 px-4 py-2 bg-[#5D3FD3] text-white rounded-2xl"
         >
           <Plus className="w-4 h-4" />
           Add New User
@@ -153,7 +233,7 @@ function UserManagement() {
 
       {/* STATS */}
       <div className="grid grid-cols-3 gap-4">
-        <div className="p-4 bg-white rounded-xl border">
+        <div className="p-6 bg-white rounded-2xl border border-gray-300">
           <div className="flex items-center gap-3">
             <Users className="text-indigo-600" />
             <div>
@@ -163,7 +243,7 @@ function UserManagement() {
           </div>
         </div>
 
-        <div className="p-4 bg-white rounded-xl border">
+        <div className="p-4 bg-white rounded-2xl border border-gray-300">
           <div className="flex items-center gap-3">
             <UserCheck className="text-green-600" />
             <div>
@@ -173,7 +253,7 @@ function UserManagement() {
           </div>
         </div>
 
-        <div className="p-4 bg-white rounded-xl border">
+        <div className="p-4 bg-white rounded-2xl border border-gray-300">
           <div className="flex items-center gap-3">
             <UserX className="text-red-600" />
             <div>
@@ -185,42 +265,69 @@ function UserManagement() {
       </div>
 
       {/* SEARCH */}
-      <div className="flex gap-3">
-        <div className="flex-1 relative">
-          <Search className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
+      <div className="flex flex-wrap gap-4 bg-white p-4 rounded-2xl border border-gray-200 shadow-sm">
+        <div className="relative flex-1 min-w-70 flex items-center gap-2">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
           <input
-            className="w-full pl-10 pr-4 py-2 border rounded-lg"
-            placeholder="Search users..."
+            type="text"
+            placeholder="Search applications..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                setSearchTerm(searchQuery.trim());
+                setCurrentPage(1);
+              }
+            }}
+            className="w-full pl-12 pr-4 py-3 bg-gray-50 border-none rounded2xl outline-none focus:ring-2 focus:ring-[#5D3FD3]/10 text-sm"
           />
+          <button
+            type="button"
+            onClick={() => {
+              setSearchTerm(searchQuery.trim());
+              setCurrentPage(1);
+            }}
+            className="px-3 py-2 bg-[#5D3FD3] text-white rounded-2xl text-sm hover:opacity-90"
+            title="Search"
+          >
+            Search
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setSearchQuery("");
+              setSearchTerm("");
+              setCurrentPage(1);
+            }}
+            className="px-3 py-2 bg-white border border-gray-200 text-gray-600 rounded-2xl text-sm hover:bg-gray-50"
+            title="Clear"
+          >
+            Clear
+          </button>
         </div>
-
-        <button
-          onClick={() => setSearchTerm(searchQuery)}
-          className="px-4 py-2 bg-[#5D3FD3] text-white rounded-lg"
-        >
-          Search
-        </button>
       </div>
 
       {/* TABLE */}
-      <div className="bg-white rounded-xl border overflow-hidden">
+
+      <div className="bg-white rounded-xl border border-gray-300 overflow-hidden ">
+        <div className="flex items-center justify-between p-4 border-b border-gray-200">
+          <h2 className="text-lg font-semibold text-gray-900">Users</h2>
+        </div>
         <table className="w-full text-sm">
-          <thead className="bg-gray-50">
+          <thead className="bg-white">
             <tr>
-              <th className="p-3 text-left">Student</th>
-              <th>Email</th>
-              <th>Phone</th>
-              <th>Year</th>
-              <th>Status</th>
-              <th>Actions</th>
+              <th className="p-3 text-left text-xs text-gray-500 ">Student</th>
+              <th className="p-3 text-left text-gray-500 text-xs ">Email</th>
+              <th className="p-3 text-left text-xs text-gray-500">Phone</th>
+              <th className=" p-3 text-left text-xs text-gray-500">Year</th>
+              <th className="text-xs text-gray-500">Status</th>
+              <th className=" p-3 text-left text-xs text-gray-500">Actions</th>
             </tr>
           </thead>
 
           <tbody>
             {paginated.map((u) => (
-              <tr key={u.userId} className="border-t">
+              <tr key={u.userId} className="border-t border-gray-300">
                 <td className="p-3">{getFullName(u)}</td>
                 <td>{u.email}</td>
                 <td>{u.phone}</td>
@@ -241,17 +348,28 @@ function UserManagement() {
 
                 <td className="flex gap-2 p-2">
                   <button
+                    type="button"
                     onClick={() => toggleBan(u)}
                     className="p-2 bg-gray-100 rounded"
+                    title={u.isBanned ? "Unban user" : "Ban user"}
                   >
                     <Ban className="w-4 h-4" />
                   </button>
 
-                  <button className="p-2 bg-gray-100 rounded">
+                  <button
+                    type="button"
+                    className="p-2 bg-gray-100 rounded"
+                    title="Edit user"
+                  >
                     <Edit className="w-4 h-4" />
                   </button>
 
-                  <button className="p-2 bg-red-100 text-red-600 rounded">
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteUser(u)}
+                    className="p-2 bg-red-100 text-red-600 rounded"
+                    title="Delete user"
+                  >
                     <Trash2 className="w-4 h-4" />
                   </button>
                 </td>
@@ -259,28 +377,28 @@ function UserManagement() {
             ))}
           </tbody>
         </table>
-      </div>
 
-      {/* PAGINATION */}
-      <div className="flex justify-between items-center">
-        <p className="text-sm text-gray-500">
-          Page {safePage} of {totalPages}
-        </p>
+        {/* PAGINATION */}
+        <div className="flex justify-between items-center px-4 py-3 border-t border-gray-200">
+          <p className="text-sm text-gray-500">
+            Page {safePage} of {totalPages}
+          </p>
 
-        <div className="flex gap-2">
-          <button
-            onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-            className="p-2 border rounded"
-          >
-            <ChevronLeft />
-          </button>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              className="p-2 border  border-gray-300 rounded-lg  hover:bg-gray-100  transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              <ChevronLeft className="w-4 h-4 text-gray-500" />
+            </button>
 
-          <button
-            onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-            className="p-2 border rounded"
-          >
-            <ChevronRight />
-          </button>
+            <button
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+              className="p-2 border  border-gray-300 rounded"
+            >
+              <ChevronRight className="w-4 h-4 text-gray-500" />
+            </button>
+          </div>
         </div>
       </div>
 
@@ -289,11 +407,34 @@ function UserManagement() {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center">
           <form
             onSubmit={handleCreate}
-            className="bg-white p-6 rounded-xl w-400px space-y-3"
+            className="bg-white p-6 rounded-xl w-full max-w-md space-y-3"
           >
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-gray-900">
+                Add New User
+              </h3>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowModal(false);
+                  setFormError("");
+                }}
+                className="p-2 rounded-full hover:bg-gray-100 text-gray-500"
+                aria-label="Close add user dialog"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {formError && (
+              <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-600">
+                {formError}
+              </p>
+            )}
+
             <input
               placeholder="Student Number"
-              className="w-full border p-2 rounded"
+              className="w-full border border-gray-300 p-2 rounded"
               onChange={(e) =>
                 setFormData({ ...formData, studentNumber: e.target.value })
               }
@@ -301,7 +442,7 @@ function UserManagement() {
 
             <input
               placeholder="First Name"
-              className="w-full border p-2 rounded"
+              className="w-full border border-gray-300 p-2 rounded"
               onChange={(e) =>
                 setFormData({ ...formData, firstName: e.target.value })
               }
@@ -309,7 +450,7 @@ function UserManagement() {
 
             <input
               placeholder="Last Name"
-              className="w-full border p-2 rounded"
+              className="w-full border border-gray-300 p-2 rounded"
               onChange={(e) =>
                 setFormData({ ...formData, lastName: e.target.value })
               }
@@ -317,6 +458,7 @@ function UserManagement() {
 
             <input
               placeholder="Email"
+              type="email"
               className="w-full border p-2 rounded"
               onChange={(e) =>
                 setFormData({ ...formData, email: e.target.value })
@@ -324,18 +466,34 @@ function UserManagement() {
             />
 
             <input
-              placeholder="Phone"
-              className="w-full border p-2 rounded"
+              placeholder="Password"
+              type="password"
+              className="w-full border border-gray-300 p-2 rounded"
               onChange={(e) =>
-                setFormData({ ...formData, phone: e.target.value })
+                setFormData({ ...formData, password: e.target.value })
+              }
+            />
+
+            <input
+              placeholder="Phone"
+              type="tel"
+              inputMode="numeric"
+              maxLength={10}
+              className="w-full border border-gray-300 p-2 rounded"
+              onChange={(e) =>
+                setFormData({
+                  ...formData,
+                  phone: e.target.value.replace(/\D/g, ""),
+                })
               }
             />
 
             <button
               type="submit"
-              className="w-full bg-[#5D3FD3] text-white p-2 rounded"
+              disabled={loading}
+              className="w-full bg-[#5D3FD3] text-white p-2 rounded disabled:opacity-60"
             >
-              Create
+              {loading ? "Creating..." : "Create"}
             </button>
           </form>
         </div>

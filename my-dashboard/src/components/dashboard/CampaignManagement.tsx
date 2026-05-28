@@ -319,7 +319,9 @@ const CampaignManagement: React.FC = () => {
   };
 
   const handleDeleteCampaign = async (campaignId: number) => {
-    const confirmed = window.confirm("هل أنت متأكد من حذف هذه الحملة؟");
+    const confirmed = window.confirm(
+      "Are you sure you want to delete this campaign? This action cannot be undone.",
+    );
     if (!confirmed) return;
 
     try {
@@ -573,7 +575,7 @@ const CampaignManagement: React.FC = () => {
                               className="flex w-full items-center gap-3 px-4 py-3 text-sm font-medium text-red-600 hover:bg-red-50 transition-colors"
                             >
                               <Trash2 size={16} />
-                              حذف الحملة
+                              Delete Campaign
                             </button>
                           </div>
                         )}
