@@ -1,4 +1,3 @@
-import React, { useEffect } from "react";
 import {
   BrowserRouter as Router,
   Routes,
@@ -24,8 +23,8 @@ import LoginPage from "./components/auth/LoginPage";
 import RegisterPage from "./components/auth/RegisterPage";
 
 const ProtectedLayout = () => {
-  const token = localStorage.getItem("token");
-  if (!token) {
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
   return (
@@ -39,36 +38,14 @@ const ProtectedLayout = () => {
 };
 
 const PublicLayout = () => {
-  const token = localStorage.getItem("token");
-  if (token) {
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  if (isAuthenticated) {
     return <Navigate to="/dashboard" replace />;
   }
   return <Outlet />;
 };
 
 function App() {
-  // 2️⃣ استخراج الـ loading والـ checkAuth بأبسط طريقة قياسية
-  const loading = useAuthStore((state) => state.loading);
-  const checkAuth = useAuthStore((state) => state.checkAuth);
-
-  useEffect(() => {
-    // تشغيل فحص الجلسة بأمان تام
-    if (checkAuth && typeof checkAuth === "function") {
-      checkAuth();
-    } else {
-      // حماية إضافية تمنع تعليق الشاشة لو تجمّد الكاش
-      useAuthStore.setState({ loading: false });
-    }
-  }, [checkAuth]);
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center">
-        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#5D3FD3]"></div>
-      </div>
-    );
-  }
-
   return (
     <Router>
       <Routes>

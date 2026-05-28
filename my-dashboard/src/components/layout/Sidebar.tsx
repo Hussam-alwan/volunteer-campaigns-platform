@@ -1,5 +1,7 @@
-import React, { useState } from "react"; // أضفنا useState هنا
+import { useState } from "react";
 import { NavLink } from "react-router-dom";
+import authApis from "@/API/Authorization/authorization.apis";
+import useAuthStore from "../../store/auth.store";
 import {
   LayoutGrid,
   Users,
@@ -43,9 +45,16 @@ const Sidebar = () => {
     "w-full flex items-center gap-3 px-6 py-3 text-[#64748B] hover:text-[#5D3FD3] transition-all font-medium";
 
   // 2. دالة تنفيذ تسجيل الخروج الفعلي
-  const handleFinalLogout = () => {
-    localStorage.clear();
-    window.location.href = "/login";
+  const handleFinalLogout = async () => {
+    try {
+      // مسح كوكي الجلسة على السيرفر
+      await authApis.logout();
+    } catch {
+      // نتابع تسجيل الخروج محلياً حتى لو فشل طلب السيرفر
+    } finally {
+      useAuthStore.getState().logout();
+      window.location.href = "/login";
+    }
   };
 
   return (

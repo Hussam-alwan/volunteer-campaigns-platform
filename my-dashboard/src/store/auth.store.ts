@@ -1,40 +1,31 @@
-import { create, type StateCreator } from "zustand";
+import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
-import { type IAuth } from "../API/auth.interface";
+import type { IUser } from "../API/Authorization/authorization.interface";
 
 export const $AuthStoreKey = "volunteer_auth_state";
 
-const initialState: IAuth = {
-  token: "",
-  data: {
-    id: 0,
-    name: "",
-    email: "",
-    phoneNumber: "",
-    image: null,
-  },
-};
-
-type AuthActions = {
-  login: (data: IAuth) => void;
+interface AuthState {
+  user: IUser | null;
+  // الجلسة الحقيقية محفوظة في كوكي HttpOnly على السيرفر.
+  // هذا العلم يُستخدم فقط لحماية المسارات في الواجهة.
+  isAuthenticated: boolean;
+  login: (user: IUser) => void;
   logout: () => void;
-};
+}
 
-const stateCreator: StateCreator<IAuth & AuthActions> = (set) => ({
-  ...initialState,
-  login: (authData) => {
-    set(authData);
-  },
-  logout: () => {
-    set({ ...initialState });
-  },
-});
-
-const useAuthStore = create<IAuth & AuthActions>()(
-  persist(stateCreator, {
-    name: $AuthStoreKey,
-    storage: createJSONStorage(() => localStorage),
-  }),
+const useAuthStore = create<AuthState>()(
+  persist(
+    (set) => ({
+      user: null,
+      isAuthenticated: false,
+      login: (user) => set({ user, isAuthenticated: true }),
+      logout: () => set({ user: null, isAuthenticated: false }),
+    }),
+    {
+      name: $AuthStoreKey,
+      storage: createJSONStorage(() => localStorage),
+    },
+  ),
 );
 
 export default useAuthStore;

@@ -20,6 +20,8 @@ export default defineConfig({
         secure: true,
         // بنحذف كلمة /api-railway قبل ما نبعت الطلب للسيرفر ليروح المسار للباك-إند صح (/api/v1/...)
         rewrite: (path) => path.replace(/^\/api-railway/, ""),
+        // تجريد الـ Domain من كوكي الجلسة لتصبح host-only على localhost فيرسلها المتصفح
+        cookieDomainRewrite: "",
       },
     },
   },

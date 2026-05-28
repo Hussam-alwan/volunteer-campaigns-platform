@@ -21,6 +21,15 @@ export interface ICampaign {
   category: number;
 }
 
+// شكل رد الـ Pagination القادم من Spring Boot (Page<Campaign>)
+export interface ICampaignPage {
+  content: ICampaign[];
+  totalElements: number;
+  totalPages: number;
+  number: number; // رقم الصفحة الحالي (يبدأ من 0)
+  size: number;
+}
+
 // الواجهة الخاصة بالبيانات التي يتم إرسالها عبر الـ Form لإنشاء حملة جديدة (Inputs)
 export interface ICampaignInputs {
   title: string;

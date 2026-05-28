@@ -41,12 +41,31 @@ const CampaignManagement: React.FC = () => {
     isError: hasError,
     refetch: fetchCampaigns,
   } = campaignQueries.useGetAllCampaigns({
-    page: pagination.pageIndex,
+    // Spring يبدأ ترقيم الصفحات من 0، وواجهتنا تبدأ من 1
+    page: pagination.pageIndex - 1,
     size: pagination.pageSize,
   });
 
-  // استخراج المصفوفة الفعلية للحملات من الرد الموحد الجديد
-  const campaigns = campaignsResponse?.data || [];
+  // استخراج المصفوفة الفعلية: رد Spring يكون { content: [...] }، مع دعم احتياطي للأشكال الأخرى
+  const rawCampaigns: any[] =
+    (campaignsResponse as any)?.content ??
+    (campaignsResponse as any)?.data ??
+    (Array.isArray(campaignsResponse) ? (campaignsResponse as any) : []);
+
+  // مواءمة حقول الـ API (camelCase) مع الحقول التي يستخدمها الجدول
+  const campaigns = rawCampaigns.map((c) => ({
+    id: c.campaignId ?? c.id,
+    title: c.title,
+    description: c.description,
+    location: c.location,
+    start_date: c.startDate ?? c.start_date,
+    end_date: c.endDate ?? c.end_date,
+    categoryId: c.category ?? c.categoryId,
+    max_volunteers: c.maxVolunteers ?? c.max_volunteers ?? 0,
+    current_volunteers: c.currentVolunteers ?? c.current_volunteers ?? 0,
+    actual_progress: c.actualProgress ?? c.actual_progress ?? 0,
+    status: c.status,
+  }));
 
   // حالات النوافذ المنبثقة والتحكم بالواجهة (تماما كما في تصميمك الأصلي)
   const [showCreateModal, setShowCreateModal] = useState<boolean>(false);

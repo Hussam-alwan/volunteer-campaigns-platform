@@ -1,48 +1,34 @@
-// src/api/axios.ts
+// src/API/api.instance.ts
 import axios, {
   type InternalAxiosRequestConfig,
   type AxiosResponse,
 } from "axios";
-// استيراد الرابط الثابت الذي ينتهي بـ /api/v1 لـ Railway
+// الرابط الثابت الذي ينتهي بـ /api/v1 لـ Railway
 import { API_BASE_URL } from "../constants/domain";
-// استيراد الـ Zustand Store الجديد الخاص بمشروعك
-import useAuthStore from "../store/auth.store";
 
 const ApiInstance = axios.create({
   baseURL: API_BASE_URL,
+  // إرسال واستقبال كوكي الجلسة (HttpOnly) تلقائياً مع كل طلب
+  withCredentials: true,
   headers: {
     "Content-Type": "application/json",
   },
 });
 
-// إنترسبتور الطلبات (Request Interceptor)
+// إنترسبتور الطلبات
 ApiInstance.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
-    // ترتيب المصفوفات في الروابط (Query Params) بشكل نظيف ليفهمه سيرفر الـ Spring Boot
+    // ترتيب المصفوفات في الـ Query Params بشكل يفهمه سيرفر Spring Boot
     config.paramsSerializer = { indexes: null };
-
-    // جلب الـ Token مباشرة من الـ Zustand Store الجديد
-    const token = useAuthStore.getState().token;
-
-    if (token && config.headers) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-
     return config;
   },
-  (error) => {
-    return Promise.reject(error);
-  },
+  (error) => Promise.reject(error),
 );
 
-// إنترسبتور الاستجابة (Response Interceptor)
+// إنترسبتور الاستجابة
 ApiInstance.interceptors.response.use(
-  (response: AxiosResponse) => {
-    return response;
-  },
-  (error) => {
-    return Promise.reject(error);
-  },
+  (response: AxiosResponse) => response,
+  (error) => Promise.reject(error),
 );
 
 export default ApiInstance;

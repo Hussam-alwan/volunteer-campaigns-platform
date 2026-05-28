@@ -1,25 +1,14 @@
 import axios from "axios";
+import { API_BASE_URL } from "../constants/domain";
 
+// نسخة أكسيوس قائمة على الكوكيز: تُرسل كوكي الجلسة (HttpOnly) تلقائياً مع كل طلب.
 const ApiInstance = axios.create({
-  baseURL: "https://sbc-production.up.railway.app/api/v1",
-  withCredentials: true, // 👈 إجبار Axios على إرسال واستقبال الكوكيز مع كل طلب تلقائياً
-});
-
-ApiInstance.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem("token");
-
-    // إذا كان هناك توكن في الـ localStorage نرسله، وإلا فالاعتماد على الكوكيز
-    if (token && token !== "cookie_session_active") {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-
-    config.headers["Accept"] = "application/json";
-    config.headers["Content-Type"] = "application/json";
-
-    return config;
+  baseURL: API_BASE_URL,
+  withCredentials: true,
+  headers: {
+    Accept: "application/json",
+    "Content-Type": "application/json",
   },
-  (error) => Promise.reject(error),
-);
+});
 
 export default ApiInstance;
