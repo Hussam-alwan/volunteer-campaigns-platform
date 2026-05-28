@@ -3,7 +3,6 @@ package com.uni.impact.attendance;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -14,6 +13,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.net.URI;
 import java.util.List;
+
+import static org.springframework.http.HttpStatus.CREATED;
 
 @RestController
 @RequestMapping(value = "/api/v1/campaigns")
@@ -33,7 +34,7 @@ public class AttendanceCampaignController {
     @PostMapping("/{id}/attendance/bulk")
     public ResponseEntity<Void> createAttendanceBulk(@PathVariable Long id, @RequestBody List<AttendanceRequestDTO> attendanceList) {
         attendanceService.createBulk(id, attendanceList);
-        return ResponseEntity.status(HttpStatus.CREATED).build();
+        return ResponseEntity.status(CREATED).build();
     }
 
     @GetMapping("/{id}/attendance")
