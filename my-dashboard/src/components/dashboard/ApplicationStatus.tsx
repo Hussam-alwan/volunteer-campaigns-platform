@@ -18,6 +18,8 @@ import {
   AvatarFallback,
   AvatarImage,
 } from "@/components/layout/Avaert";
+import Select from "@/components/layout/Select";
+import SegmentedToggle from "@/components/layout/SegmentedToggle";
 import { cn } from "@/pages/lib/utils";
 import {
   getApplications,
@@ -69,6 +71,7 @@ function ApplicationStatus() {
   const [colleges, setColleges] = useState<ICollege[]>([]);
   const [campaigns, setCampaigns] = useState<ICampaign[]>([]);
   const [campaignFilter, setCampaignFilter] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
   const [letterApp, setLetterApp] = useState<IApplication | null>(null);
 
   useEffect(() => {
@@ -174,7 +177,10 @@ function ApplicationStatus() {
         campaignFilter === "all" ||
         String(application.campaign) === campaignFilter;
 
-      return monthOk && campaignOk;
+      const statusOk =
+        statusFilter === "all" || application.status === statusFilter;
+
+      return monthOk && campaignOk && statusOk;
     });
 
     return [...filtered].sort((left, right) => {
@@ -185,7 +191,7 @@ function ApplicationStatus() {
         ? rightTime - leftTime
         : leftTime - rightTime;
     });
-  }, [allApplications, selectedMonth, sortOrder, campaignFilter]);
+  }, [allApplications, selectedMonth, sortOrder, campaignFilter, statusFilter]);
 
   const searchedApplications = useMemo(() => {
     const normalizedSearch = searchTerm.trim().toLowerCase();
@@ -383,13 +389,12 @@ function ApplicationStatus() {
                 Volunteer Applications
               </h1>
               <div className="flex items-center gap-3">
-                <select
+                <Select
                   value={campaignFilter}
                   onChange={(e) => {
                     setCampaignFilter(e.target.value);
                     setCurrentPage(1);
                   }}
-                  className="px-4 py-2 border border-gray-200 rounded-2xl text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors outline-none cursor-pointer"
                   title="Filter by campaign"
                 >
                   <option value="all">All campaigns</option>
@@ -398,7 +403,7 @@ function ApplicationStatus() {
                       {c.title}
                     </option>
                   ))}
-                </select>
+                </Select>
                 <div className="relative">
                   <button
                     type="button"
@@ -510,6 +515,21 @@ function ApplicationStatus() {
                   Clear
                 </button>
               </div>
+
+              <SegmentedToggle
+                className="w-[26rem]"
+                value={statusFilter}
+                onChange={(v) => {
+                  setStatusFilter(v);
+                  setCurrentPage(1);
+                }}
+                options={[
+                  { value: "all", label: "All" },
+                  { value: "PENDING", label: "Pending" },
+                  { value: "APPROVED", label: "Approved" },
+                  { value: "REJECTED", label: "Rejected" },
+                ]}
+              />
             </div>
 
             <div className="bg-white rounded-xl border border-gray-200">

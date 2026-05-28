@@ -22,6 +22,7 @@ import campaignQueries from "../../API/Campaingns/Campaingnqueries";
 import attendanceQueries from "../../API/Attendance/Attendancequeries";
 import useAuthStore from "../../store/auth.store";
 import Pagination from "../layout/Pagination";
+import Select from "../layout/Select";
 import { campaignService } from "../../services/campaignService";
 import { API_BASE_URL, SERVER_BASE_URL } from "../../constants/domain";
 import type {
@@ -669,17 +670,19 @@ const CampaignManagement: React.FC = () => {
                       </div>
                     </td>
                     <td className="px-4 py-4">
-                      <select
+                      <Select
                         value={camp.status}
-                        onChange={(e) => handleStatusChange(camp, e.target.value)}
-                        className={`px-3 py-1.5 rounded-lg text-[10px] font-bold border outline-none cursor-pointer ${getStatusStyle(camp.status as CampaignStatus)}`}
+                        onChange={(e) =>
+                          handleStatusChange(camp, e.target.value)
+                        }
+                        className={`py-1.5 pl-3 pr-8 text-[10px] font-bold rounded-lg ${getStatusStyle(camp.status as CampaignStatus)}`}
                       >
                         {statusOptions.map((s) => (
                           <option key={s} value={s}>
                             {s}
                           </option>
                         ))}
-                      </select>
+                      </Select>
                     </td>
                     <td className="px-4 py-4 text-center">
                       <div className="flex items-center justify-center gap-1">
@@ -841,9 +844,11 @@ const CampaignManagement: React.FC = () => {
                 >
                   Category
                 </label>
-                <select
+                <Select
                   id="campaign-category"
                   name="category"
+                  wrapperClassName="block w-full"
+                  className="bg-slate-50 border-transparent py-3.5"
                   value={formData.categoryId}
                   onChange={(e) =>
                     setFormData({
@@ -851,12 +856,11 @@ const CampaignManagement: React.FC = () => {
                       categoryId: parseInt(e.target.value),
                     })
                   }
-                  className="w-full px-5 py-3.5 bg-slate-50 border border-transparent rounded-2xl outline-none text-sm appearance-none cursor-pointer"
                 >
                   <option value={1}>Environment</option>
                   <option value={2}>Education</option>
                   <option value={3}>Health</option>
-                </select>
+                </Select>
               </div>
 
               <div className="space-y-2">

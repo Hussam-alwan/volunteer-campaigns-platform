@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import authApis from "@/API/Authorization/authorization.apis";
+import Select from "@/components/layout/Select";
 import type { IRegisterPayload } from "../../API/Authorization/authorization.interface";
 
 const RegisterPage = () => {
@@ -164,35 +165,37 @@ const RegisterPage = () => {
             <label className="block text-xs font-bold text-slate-400 mb-2 uppercase tracking-wider">
               Academic Year
             </label>
-            <select
+            <Select
               name="academicYear"
+              wrapperClassName="block w-full"
+              className="bg-slate-50 border-slate-200 py-3 text-[15px] text-slate-800"
               value={formData.academicYear}
               onChange={handleChange}
-              className="w-full px-4 py-3 rounded-2xl bg-slate-50 border border-slate-200 text-slate-800 text-[15px] focus:outline-none focus:border-[#5D3FD3] focus:bg-white transition-all appearance-none cursor-pointer"
             >
               <option value={1}>1st Year</option>
               <option value={2}>2nd Year</option>
               <option value={3}>3rd Year</option>
               <option value={4}>4th Year</option>
               <option value={5}>5th Year</option>
-            </select>
+            </Select>
           </div>
 
           <div>
             <label className="block text-xs font-bold text-slate-400 mb-2 uppercase tracking-wider">
               College / Faculty
             </label>
-            <select
+            <Select
               name="college"
+              wrapperClassName="block w-full"
+              className="bg-slate-50 border-slate-200 py-3 text-[15px] text-slate-800"
               value={formData.college}
               onChange={handleChange}
-              className="w-full px-4 py-3 rounded-2xl bg-slate-50 border border-slate-200 text-slate-800 text-[15px] focus:outline-none focus:border-[#5D3FD3] focus:bg-white transition-all appearance-none cursor-pointer"
             >
               <option value={1}>Information Technology Engineering</option>
               <option value={2}>Architecture Engineering</option>
               <option value={3}>Faculty of Science</option>
               <option value={4}>Faculty of Economics</option>
-            </select>
+            </Select>
           </div>
 
           <div className="md:col-span-2 mt-4">

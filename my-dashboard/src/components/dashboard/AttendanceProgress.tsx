@@ -15,6 +15,7 @@ import {
 
 import attendanceQueries from "@/API/Attendance/Attendancequeries";
 import campaignQueries from "@/API/Campaingns/Campaingnqueries";
+import Select from "@/components/layout/Select";
 import type { ICampaign } from "@/API/Campaingns/Campaign.interfaces";
 
 const AttendanceProgress = () => {
@@ -292,10 +293,9 @@ const AttendanceProgress = () => {
           </p>
         </div>
         <div className="flex gap-2">
-          <select
+          <Select
             value={currentCampaignId}
             onChange={(e) => setCurrentCampaignId(Number(e.target.value))}
-            className="px-4 py-3 bg-white border border-gray-200 rounded-2xl text-sm font-medium text-slate-700 outline-none focus:ring-2 focus:ring-[#5D3FD3]/10 cursor-pointer"
             title="Choose campaign"
           >
             {campaignsList.length === 0 && (
@@ -308,7 +308,7 @@ const AttendanceProgress = () => {
                 {c.title}
               </option>
             ))}
-          </select>
+          </Select>
           <button
             onClick={() => {
               setEditingLogId(null);
@@ -480,13 +480,14 @@ const AttendanceProgress = () => {
                 <label className="block text-xs font-bold text-slate-400 uppercase mb-1.5 tracking-wider">
                   Select Student *
                 </label>
-                <select
+                <Select
                   required
+                  wrapperClassName="block w-full"
+                  className="bg-slate-50 border-slate-100"
                   value={formData.student}
                   onChange={(e) =>
                     setFormData({ ...formData, student: e.target.value })
                   }
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-[#5D3FD3]/20 font-medium text-slate-700"
                 >
                   <option value="" disabled>
                     -- Choose Volunteer by Name --
@@ -496,7 +497,7 @@ const AttendanceProgress = () => {
                       {student.name} (#{student.id})
                     </option>
                   ))}
-                </select>
+                </Select>
               </div>
 
               <div>
@@ -519,17 +520,18 @@ const AttendanceProgress = () => {
                   <label className="block text-xs font-bold text-slate-400 uppercase mb-1.5 tracking-wider">
                     Status
                   </label>
-                  <select
+                  <Select
+                    wrapperClassName="block w-full"
+                    className="bg-slate-50 border-slate-100"
                     value={formData.status}
                     onChange={(e) =>
                       setFormData({ ...formData, status: e.target.value })
                     }
-                    className="w-full px-3 py-2.5 bg-slate-50 border border-slate-100 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-[#5D3FD3]/20 font-medium text-slate-700"
                   >
                     <option value="PRESENT">PRESENT</option>
                     <option value="ABSENT">ABSENT</option>
                     <option value="LATE">LATE</option>
-                  </select>
+                  </Select>
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-slate-400 uppercase mb-1.5 tracking-wider">

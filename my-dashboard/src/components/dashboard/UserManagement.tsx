@@ -25,6 +25,8 @@ import {
 } from "@/API/User/user.api";
 import collegesQueries from "@/API/Colleges/Collegesqueries";
 import Pagination from "@/components/layout/Pagination";
+import Select from "@/components/layout/Select";
+import SegmentedToggle from "@/components/layout/SegmentedToggle";
 import useAuthStore from "@/store/auth.store";
 
 import type { IUser } from "@/API/User/User.interfaces";
@@ -439,34 +441,21 @@ function UserManagement() {
           </button>
         </div>
 
-        <div className="relative inline-flex w-72 items-center bg-gray-100 rounded-2xl p-1">
-          <span
-            aria-hidden
-            className="absolute top-1 bottom-1 left-1 rounded-xl bg-[#5D3FD3] shadow-sm transition-transform duration-300 ease-out"
-            style={{
-              width: "calc((100% - 0.5rem) / 3)",
-              transform: `translateX(${["all", "active", "banned"].indexOf(statusFilter) * 100}%)`,
-            }}
-          />
-          {(["all", "active", "banned"] as const).map((s) => (
-            <button
-              key={s}
-              type="button"
-              onClick={() => {
-                setStatusFilter(s);
-                setCurrentPage(1);
-              }}
-              className={cn(
-                "relative z-10 flex-1 px-4 py-2 rounded-xl text-sm font-medium capitalize transition-colors duration-300",
-                statusFilter === s ? "text-white" : "text-gray-600 hover:text-gray-900",
-              )}
-            >
-              {s === "all" ? "All" : s}
-            </button>
-          ))}
-        </div>
+        <SegmentedToggle
+          className="w-72"
+          value={statusFilter}
+          onChange={(v) => {
+            setStatusFilter(v as "all" | "active" | "banned");
+            setCurrentPage(1);
+          }}
+          options={[
+            { value: "all", label: "All" },
+            { value: "active", label: "Active" },
+            { value: "banned", label: "Banned" },
+          ]}
+        />
 
-        <select
+        <Select
           value={collegeFilter}
           onChange={(e) => {
             setCollegeFilter(
@@ -474,7 +463,6 @@ function UserManagement() {
             );
             setCurrentPage(1);
           }}
-          className="px-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-[#5D3FD3]/10 cursor-pointer"
           title="Filter by college"
         >
           <option value="all">All colleges</option>
@@ -483,7 +471,7 @@ function UserManagement() {
               {c.name}
             </option>
           ))}
-        </select>
+        </Select>
       </div>
 
       {/* TABLE */}
