@@ -27,6 +27,7 @@ import collegesQueries from "@/API/Colleges/Collegesqueries";
 import Pagination from "@/components/layout/Pagination";
 import Select from "@/components/layout/Select";
 import SegmentedToggle from "@/components/layout/SegmentedToggle";
+import { toast } from "@/store/toast.store";
 import useAuthStore from "@/store/auth.store";
 
 import type { IUser } from "@/API/User/User.interfaces";
@@ -215,7 +216,10 @@ function UserManagement() {
 
   const openCreateModal = () => {
     setEditingUserId(null);
-    setFormData(initialFormData);
+    setFormData({
+      ...initialFormData,
+      college: colleges[0]?.collegeId ?? initialFormData.college,
+    });
     setFormError("");
     setShowModal(true);
   };
@@ -320,9 +324,10 @@ function UserManagement() {
     try {
       await deleteUser(user.userId);
       setUsers((prev) => prev.filter((u) => u.userId !== user.userId));
+      toast.success(`${getFullName(user)} deleted.`);
     } catch (err) {
       console.error(err);
-      alert("Failed to delete user.");
+      toast.error("Failed to delete user.");
     }
   };
 
@@ -347,7 +352,7 @@ function UserManagement() {
       );
     } catch (err) {
       console.error(err);
-      alert("Failed to update ban status.");
+      toast.error("Failed to update ban status.");
     }
   };
 
@@ -559,7 +564,7 @@ function UserManagement() {
 
       {/* MODAL */}
       {showModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center">
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center">
           <form
             onSubmit={editingUserId ? handleUpdate : handleCreate}
             className="bg-white p-6 rounded-[18px] w-full max-w-md space-y-3"
@@ -647,6 +652,29 @@ function UserManagement() {
                 })
               }
             />
+
+            <div>
+              <label className="block text-xs font-medium text-gray-500 mb-1 ml-1">
+                College
+              </label>
+              <Select
+                wrapperClassName="block w-full"
+                className="border-gray-300 rounded-lg py-2"
+                value={formData.college}
+                onChange={(e) =>
+                  setFormData({ ...formData, college: Number(e.target.value) })
+                }
+              >
+                {colleges.length === 0 && (
+                  <option value={formData.college}>Loading colleges…</option>
+                )}
+                {colleges.map((c) => (
+                  <option key={c.collegeId} value={c.collegeId}>
+                    {c.name}
+                  </option>
+                ))}
+              </Select>
+            </div>
 
             <button
               type="submit"

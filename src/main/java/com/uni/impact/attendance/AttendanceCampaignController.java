@@ -8,6 +8,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -39,5 +40,14 @@ public class AttendanceCampaignController {
     @GetMapping("/{id}/attendance")
     public ResponseEntity<Page<AttendanceResponseDTO>> getAttendance(@PathVariable Long id, Pageable pageable) {
         return ResponseEntity.ok(attendanceService.findByCampaign(id, pageable).map(attendanceMapper::toDto));
+    }
+
+    @PutMapping("/{id}/attendance/{attendanceId}")
+    public ResponseEntity<AttendanceResponseDTO> updateAttendance(
+            @PathVariable Long id,
+            @PathVariable Long attendanceId,
+            @RequestBody AttendanceRequestDTO attendanceDTO) {
+        Attendance updated = attendanceService.update(id, attendanceId, attendanceDTO);
+        return ResponseEntity.ok(attendanceMapper.toDto(updated));
     }
 }

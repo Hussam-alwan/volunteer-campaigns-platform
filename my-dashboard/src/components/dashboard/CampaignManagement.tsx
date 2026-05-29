@@ -1,5 +1,10 @@
 // src/pages/CampaignManagement.tsx
-import React, { useState, type ChangeEvent, type FormEvent } from "react";
+import React, {
+  useEffect,
+  useState,
+  type ChangeEvent,
+  type FormEvent,
+} from "react";
 import {
   Plus,
   Search,
@@ -20,9 +25,12 @@ import {
 
 import campaignQueries from "../../API/Campaingns/Campaingnqueries";
 import attendanceQueries from "../../API/Attendance/Attendancequeries";
+import attendanceApis from "../../API/Attendance/Attendance.apis";
+import type { IProgress } from "../../API/Attendance/Attendance.interfaces";
 import useAuthStore from "../../store/auth.store";
 import Pagination from "../layout/Pagination";
 import Select from "../layout/Select";
+import { toast } from "../../store/toast.store";
 import { campaignService } from "../../services/campaignService";
 import { API_BASE_URL, SERVER_BASE_URL } from "../../constants/domain";
 import type {
@@ -54,9 +62,10 @@ const CampaignManagement: React.FC = () => {
 
   const [query, setQuery] = useState<string>("");
   const [searchTerm, setSearchTerm] = useState<string>("");
+  const [statusFilter, setStatusFilter] = useState<string>("");
   const [page, setPage] = useState<number>(0);
 
-  // جلب البيانات عبر React Query مع الترقيم (page/size) والبحث
+  // جلب البيانات عبر React Query مع الترقيم (page/size) والبحث والفلترة بالحالة
   const {
     data: campaignsResponse,
     isLoading: loading,
@@ -64,7 +73,8 @@ const CampaignManagement: React.FC = () => {
   } = campaignQueries.useGetAllCampaigns({
     page,
     size: PAGE_SIZE,
-    ...(searchTerm ? { search: searchTerm } : {}),
+    ...(searchTerm ? { searchText: searchTerm } : {}),
+    ...(statusFilter ? { status: statusFilter } : {}),
   });
 
   const addCampaignMutation = campaignQueries.useAddCampaign();
@@ -88,8 +98,51 @@ const CampaignManagement: React.FC = () => {
     (campaignsResponse as { totalElements?: number })?.totalElements ??
     campaigns.length;
 
-  // التقدّم المُحرَّر محلياً ليظهر فوراً في عمود Actual Progress بعد التعديل
+  // أحدث نسبة تقدّم لكل حملة (تُحمّل من السيرفر لتبقى بعد تحديث الصفحة)
   const [progressById, setProgressById] = useState<Record<number, number>>({});
+
+  const campaignIdsKey = campaigns.map((c) => c.campaignId).join(",");
+  useEffect(() => {
+    if (campaigns.length === 0) return;
+    let cancelled = false;
+    (async () => {
+      const entries = await Promise.all(
+        campaigns.map(async (c) => {
+          try {
+            const pr = await attendanceApis.getProgress(c.campaignId, {
+              page: 0,
+              size: 100,
+            });
+            const items =
+              (pr as { content?: IProgress[] })?.content ??
+              (pr as { data?: IProgress[] })?.data ??
+              [];
+            const sorted = [...items].sort(
+              (a, b) =>
+                new Date(a.createdAt).getTime() -
+                new Date(b.createdAt).getTime(),
+            );
+            const latest = sorted.length
+              ? sorted[sorted.length - 1].percentage
+              : 0;
+            return [c.campaignId, latest] as const;
+          } catch {
+            return [c.campaignId, 0] as const;
+          }
+        }),
+      );
+      if (!cancelled) {
+        setProgressById((prev) => ({
+          ...prev,
+          ...Object.fromEntries(entries),
+        }));
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [campaignIdsKey]);
 
   const runSearch = () => {
     setSearchTerm(query.trim());
@@ -275,7 +328,7 @@ const CampaignManagement: React.FC = () => {
       openPhotosManagement(selectedCampaign);
     } catch (err) {
       console.error("Upload selected files error:", err);
-      alert("Failed to upload selected images");
+      toast.error("Failed to upload selected images");
     }
   };
 
@@ -283,6 +336,18 @@ const CampaignManagement: React.FC = () => {
     localPreviews.forEach((url) => URL.revokeObjectURL(url));
     setLocalPreviews([]);
     setSelectedFilesToUpload([]);
+  };
+
+  const handleDeletePhoto = async (photoId?: number) => {
+    if (!photoId || !selectedCampaign) return;
+    if (!window.confirm("Delete this photo?")) return;
+    try {
+      await campaignService.deletePhoto(photoId);
+      openPhotosManagement(selectedCampaign); // refresh gallery
+    } catch (err) {
+      console.error("Delete photo error:", err);
+      toast.error("Failed to delete photo");
+    }
   };
 
   const handleUrlSubmit = async () => {
@@ -296,7 +361,7 @@ const CampaignManagement: React.FC = () => {
       openPhotosManagement(selectedCampaign);
     } catch (err) {
       console.error("Add photo by URL error:", err);
-      alert("Failed to add photo URL");
+      toast.error("Failed to add photo URL");
     }
   };
 
@@ -375,7 +440,7 @@ const CampaignManagement: React.FC = () => {
       closeCreateModal();
     } catch (err) {
       console.error("Error saving campaign:", err);
-      alert(extractErrorMessage(err, "Error saving campaign"));
+      toast.error(extractErrorMessage(err, "Error saving campaign"));
     }
   };
 
@@ -400,7 +465,7 @@ const CampaignManagement: React.FC = () => {
       });
     } catch (err) {
       console.error("Error updating status:", err);
-      alert(extractErrorMessage(err, "Error updating status"));
+      toast.error(extractErrorMessage(err, "Error updating status"));
     }
   };
 
@@ -437,7 +502,7 @@ const CampaignManagement: React.FC = () => {
       setProgressCampaign(null);
     } catch (err) {
       console.error("Error updating progress:", err);
-      alert(extractErrorMessage(err, "Error updating progress"));
+      toast.error(extractErrorMessage(err, "Error updating progress"));
     }
   };
 
@@ -451,7 +516,7 @@ const CampaignManagement: React.FC = () => {
       await deleteCampaignMutation.mutateAsync(campaignId);
     } catch (err) {
       console.error("Error deleting campaign:", err);
-      alert(extractErrorMessage(err, "Error deleting campaign"));
+      toast.error(extractErrorMessage(err, "Error deleting campaign"));
     }
   };
   if (loading) {
@@ -553,10 +618,21 @@ const CampaignManagement: React.FC = () => {
             Clear
           </button>
         </div>
-        {/* <button className="flex items-center gap-2 px-6 py-3 border border-slate-100 rounded-xl font-bold text-slate-600 hover:bg-slate-50 transition-colors">
-          <Filter size={18} />
-          Filters
-        </button> */}
+        <Select
+          value={statusFilter}
+          onChange={(e) => {
+            setStatusFilter(e.target.value);
+            setPage(0);
+          }}
+          title="Filter by status"
+        >
+          <option value="">All statuses</option>
+          {CAMPAIGN_STATUSES.map((s) => (
+            <option key={s} value={s}>
+              {s}
+            </option>
+          ))}
+        </Select>
       </div>
 
       {/* Campaigns Table */}
@@ -567,7 +643,6 @@ const CampaignManagement: React.FC = () => {
               <th className="px-4 py-4 font-bold text-slate-500">
                 Campaign Details
               </th>
-              <th className="px-4 py-4 font-bold text-slate-500">Category</th>
               <th className="px-4 py-4 font-bold text-slate-500">Volunteers</th>
               <th className="px-4 py-4 font-bold text-slate-500">
                 Actual Progress
@@ -580,7 +655,7 @@ const CampaignManagement: React.FC = () => {
             {campaigns.length === 0 ? (
               <tr>
                 <td
-                  colSpan={6}
+                  colSpan={5}
                   className="px-8 py-10 text-center text-slate-400 font-medium"
                 >
                   No campaigns found.
@@ -596,10 +671,12 @@ const CampaignManagement: React.FC = () => {
                     ? Math.round((currentVolunteers / camp.maxVolunteers) * 100)
                     : 0;
                 const progress =
-                  progressById[camp.campaignId] ??
-                  (camp as unknown as { actualProgress?: number })
-                    .actualProgress ??
-                  0;
+                  (camp.status || "").toUpperCase() === "COMPLETED"
+                    ? 100
+                    : (progressById[camp.campaignId] ??
+                      (camp as unknown as { actualProgress?: number })
+                        .actualProgress ??
+                      0);
                 const statusOptions = Array.from(
                   new Set([camp.status, ...CAMPAIGN_STATUSES]),
                 );
@@ -624,17 +701,6 @@ const CampaignManagement: React.FC = () => {
                           </span>
                         </div>
                       </div>
-                    </td>
-                    <td className="px-4 py-4">
-                      <span className="px-3 py-1 bg-slate-100 text-slate-500 rounded-lg text-[10px] font-bold uppercase tracking-wider">
-                        {camp.category === 1
-                          ? "Environment"
-                          : camp.category === 2
-                            ? "Education"
-                            : camp.category === 3
-                              ? "Health"
-                              : `Category ${camp.category}`}
-                      </span>
                     </td>
                     <td className="px-4 py-4">
                       <div className="flex flex-col gap-2 w-28">
@@ -1190,6 +1256,14 @@ const CampaignManagement: React.FC = () => {
                           key={String(key)}
                           className="aspect-square bg-slate-100 rounded-2xl overflow-hidden border border-slate-100 relative group shadow-sm"
                         >
+                          <button
+                            type="button"
+                            onClick={() => handleDeletePhoto(p.photoId)}
+                            title="Delete photo"
+                            className="absolute top-2 right-2 z-10 bg-white/90 hover:bg-white text-red-500 p-1.5 rounded-full shadow opacity-0 group-hover:opacity-100 transition-opacity active:scale-95"
+                          >
+                            <Trash2 size={14} />
+                          </button>
                           {displaySrc ? (
                             <img
                               src={displaySrc}

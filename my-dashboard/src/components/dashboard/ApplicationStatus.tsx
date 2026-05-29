@@ -21,6 +21,7 @@ import {
 } from "@/components/layout/Avaert";
 import Select from "@/components/layout/Select";
 import SegmentedToggle from "@/components/layout/SegmentedToggle";
+import { toast } from "@/store/toast.store";
 import { cn } from "@/pages/lib/utils";
 import {
   getApplications,
@@ -267,13 +268,31 @@ function ApplicationStatus() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    const motivation = formData.motivationLetter.trim();
+    if (!formData.student) {
+      toast.error("Please select a student.");
+      return;
+    }
+    if (!formData.campaign) {
+      toast.error("Please select a campaign.");
+      return;
+    }
+    if (!motivation) {
+      toast.error("Please write a motivation letter.");
+      return;
+    }
+    if (motivation.length > 500) {
+      toast.error("Motivation letter must be 500 characters or fewer.");
+      return;
+    }
+
     try {
       setLoading(true);
 
       const payload: ICreateApplicationInput = {
-        motivationLetter: formData.motivationLetter.trim(),
-        student: parseInt(formData.student, 10) || 1,
-        campaign: parseInt(formData.campaign, 10) || 1,
+        motivationLetter: motivation,
+        student: parseInt(formData.student, 10),
+        campaign: parseInt(formData.campaign, 10),
         status: "PENDING",
         appliedAt: new Date().toISOString(),
       };
@@ -283,9 +302,10 @@ function ApplicationStatus() {
       setFormData({ motivationLetter: "", student: "", campaign: "" });
       setShowModal(false);
       setAllApplications((current) => [result, ...current]);
+      toast.success("Application created.");
     } catch (error) {
       console.error("Error:", error);
-      alert("Failed to create application");
+      toast.error("Failed to create application.");
     } finally {
       setLoading(false);
     }
@@ -308,7 +328,7 @@ function ApplicationStatus() {
       setAllApplications((cur) => cur.map((a) => (a.id === id ? updated : a)));
     } catch (err) {
       console.error(err);
-      alert("Failed to accept application");
+      toast.error("Failed to accept application.");
     } finally {
       setUpdatingIds((s) => s.filter((x) => x !== id));
     }
@@ -331,7 +351,7 @@ function ApplicationStatus() {
       setAllApplications((cur) => cur.map((a) => (a.id === id ? updated : a)));
     } catch (err) {
       console.error(err);
-      alert("Failed to reject application");
+      toast.error("Failed to reject application.");
     } finally {
       setUpdatingIds((s) => s.filter((x) => x !== id));
     }
@@ -755,34 +775,50 @@ function ApplicationStatus() {
             <form onSubmit={handleSubmit} className="p-6 space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Student ID
+                  Student
                 </label>
-                <input
-                  type="number"
+                <Select
                   required
+                  wrapperClassName="block w-full"
+                  className="border-gray-300 rounded-2xl py-2"
                   value={formData.student}
                   onChange={(e) =>
                     setFormData({ ...formData, student: e.target.value })
                   }
-                  placeholder="Enter student ID"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#5D3FD3]/50 text-sm"
-                />
+                >
+                  <option value="" disabled>
+                    Select a student…
+                  </option>
+                  {users.map((u) => (
+                    <option key={u.userId} value={u.userId}>
+                      {u.firstName} {u.lastName}
+                    </option>
+                  ))}
+                </Select>
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Campaign ID
+                  Campaign
                 </label>
-                <input
-                  type="number"
+                <Select
                   required
+                  wrapperClassName="block w-full"
+                  className="border-gray-300 rounded-2xl py-2"
                   value={formData.campaign}
                   onChange={(e) =>
                     setFormData({ ...formData, campaign: e.target.value })
                   }
-                  placeholder="Enter campaign ID"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#5D3FD3]/50 text-sm"
-                />
+                >
+                  <option value="" disabled>
+                    Select a campaign…
+                  </option>
+                  {campaigns.map((c) => (
+                    <option key={c.campaignId} value={c.campaignId}>
+                      {c.title}
+                    </option>
+                  ))}
+                </Select>
               </div>
 
               <div>
@@ -791,6 +827,7 @@ function ApplicationStatus() {
                 </label>
                 <textarea
                   required
+                  maxLength={500}
                   value={formData.motivationLetter}
                   onChange={(e) =>
                     setFormData({
@@ -798,10 +835,13 @@ function ApplicationStatus() {
                       motivationLetter: e.target.value,
                     })
                   }
-                  placeholder="Enter your motivation letter..."
+                  placeholder="Enter your motivation letter…"
                   rows={4}
                   className="w-full px-3 py-2 border border-gray-300 rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#5D3FD3]/50 text-sm resize-none"
                 />
+                <p className="mt-1 text-xs text-slate-400 text-right">
+                  {formData.motivationLetter.length}/500
+                </p>
               </div>
 
               <div className="flex gap-3 pt-4">

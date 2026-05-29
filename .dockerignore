@@ -1,0 +1,9 @@
+# keep the backend build context small (Dockerfile only needs pom.xml + src)
+my-dashboard
+target
+uploads
+.git
+.idea
+.vscode
+HELP.md
+*.log

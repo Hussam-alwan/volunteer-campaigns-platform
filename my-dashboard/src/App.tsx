@@ -8,6 +8,7 @@ import {
 import useAuthStore from "./store/auth.store";
 // Layout Components
 import Sidebar from "./components/layout/Sidebar";
+import Toaster from "./components/layout/Toaster";
 
 // Pages
 import Dashboard from "./pages/Dashboard";
@@ -16,6 +17,7 @@ import Dashboard from "./pages/Dashboard";
 import CampaignManagement from "./components/dashboard/CampaignManagement";
 import AttendanceProgress from "./components/dashboard/AttendanceProgress";
 import Colleges from "./components/dashboard/Colleges";
+import Categories from "./components/dashboard/Categories";
 import Reports from "./components/dashboard/Reports";
 import ApplicationStatus from "./components/dashboard/ApplicationStatus";
 
@@ -50,6 +52,7 @@ const PublicLayout = () => {
 function App() {
   return (
     <Router>
+      <Toaster />
       <Routes>
         <Route element={<PublicLayout />}>
           <Route path="/login" element={<LoginPage />} />
@@ -64,6 +67,7 @@ function App() {
           {/* <Route path="/students" element={<StudentsPage />} /> */}
           <Route path="/users" element={<UserManagement />} />
           <Route path="/colleges" element={<Colleges />} />
+          <Route path="/categories" element={<Categories />} />
           <Route path="/reports" element={<Reports />} />
         </Route>
 

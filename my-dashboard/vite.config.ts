@@ -13,14 +13,13 @@ export default defineConfig({
   },
   server: {
     proxy: {
-      // الـ Proxy بيلقط أي طلب بيبدأ بـ /api-railway
-      "/api-railway": {
-        target: "https://sbc-production.up.railway.app/",
+      // Dev proxy to the local backend (docker compose) so requests stay same-origin
+      "/api-backend": {
+        target: "http://localhost:8080",
         changeOrigin: true,
-        secure: true,
-        // بنحذف كلمة /api-railway قبل ما نبعت الطلب للسيرفر ليروح المسار للباك-إند صح (/api/v1/...)
-        rewrite: (path) => path.replace(/^\/api-railway/, ""),
-        // تجريد الـ Domain من كوكي الجلسة لتصبح host-only على localhost فيرسلها المتصفح
+        secure: false,
+        rewrite: (path) => path.replace(/^\/api-backend/, ""),
+        // make the session cookie host-only on localhost so the browser sends it
         cookieDomainRewrite: "",
       },
     },

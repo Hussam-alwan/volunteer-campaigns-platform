@@ -14,6 +14,7 @@ import java.time.LocalDateTime;
 @Setter
 public class ApplicationRequestDTO {
 
+    @Size(max = 500)
     private String motivationLetter;
 
     @NotNull

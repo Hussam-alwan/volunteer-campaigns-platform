@@ -1,11 +1,15 @@
-// الروابط الخاصة بمشروعك الحالي (Railway)
-const DEVELOPMENT_BASE_URL = "https://sbc-production.up.railway.app";
-const DEVELOPMENT_API_BASE_URL = "https://sbc-production.up.railway.app/api/v1";
+// Local backend (run via docker compose). Overridable at build time with
+// VITE_API_BASE_URL / VITE_SERVER_BASE_URL.
+const LOCAL_SERVER = "http://localhost:8080";
+const LOCAL_API = "http://localhost:8080/api/v1";
 
-export const SERVER_BASE_URL = DEVELOPMENT_BASE_URL;
+// Origin used for assets like uploaded photos.
+export const SERVER_BASE_URL =
+  import.meta.env.VITE_SERVER_BASE_URL ?? LOCAL_SERVER;
 
-// في وضع التطوير نمرّ عبر بروكسي Vite (/api-railway) ليصبح الطلب من نفس الـ Origin،
-// فتُرسل كوكي الجلسة تلقائياً. في الإنتاج نستخدم رابط Railway المباشر.
+// In `vite dev` we proxy through /api-backend so requests stay same-origin and the
+// session cookie is sent. In the production/Docker build we call the backend directly
+// (the backend CORS allows http://localhost:* with credentials).
 export const API_BASE_URL = import.meta.env.DEV
-  ? "/api-railway/api/v1"
-  : DEVELOPMENT_API_BASE_URL;
+  ? "/api-backend/api/v1"
+  : (import.meta.env.VITE_API_BASE_URL ?? LOCAL_API);

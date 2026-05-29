@@ -59,4 +59,7 @@ export const campaignService = {
   // إضافة صورة للحملة عن طريق رابط خارجي URL
   addPhotoByUrl: (campaignId: number, photoUrl: string) =>
     API.post<CampaignPhoto>(`/campaigns/${campaignId}/photos`, { photoUrl }),
+
+  // حذف صورة من الحملة
+  deletePhoto: (photoId: number) => API.delete(`/campaign-photos/${photoId}`),
 };

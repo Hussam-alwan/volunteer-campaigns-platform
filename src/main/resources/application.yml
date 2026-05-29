@@ -1,6 +1,12 @@
 spring:
   application:
     name: impact
+  # We orchestrate Postgres via the top-level docker-compose.yml ourselves, so
+  # disable Spring Boot's docker-compose lifecycle (would otherwise try to run
+  # `docker compose` from inside the backend container / on every mvn run).
+  docker:
+    compose:
+      enabled: false
   datasource:
     url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5433/impact}
     username: ${SPRING_DATASOURCE_USERNAME:postgres}

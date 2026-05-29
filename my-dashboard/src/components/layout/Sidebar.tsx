@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { NavLink } from "react-router-dom";
 import authApis from "@/API/Authorization/authorization.apis";
 import useAuthStore from "../../store/auth.store";
+import type { IUser } from "../../API/Authorization/authorization.interface";
 import {
   LayoutGrid,
   Users,
@@ -11,6 +12,7 @@ import {
   LogOut,
   CalendarCheck,
   School,
+  Tags,
   X, // أيقونة للإغلاق
   AlertCircle, // أيقونة للتنبيه
 } from "lucide-react";
@@ -18,6 +20,20 @@ import {
 const Sidebar = () => {
   // 1. حالة للتحكم في ظهور النافذة
   const [showLogoutModal, setShowLogoutModal] = useState(false);
+
+  // المستخدم الحالي (من المتجر مبدئياً ثم نحدّثه من /me)
+  const [currentUser, setCurrentUser] = useState<IUser | null>(
+    useAuthStore.getState().user,
+  );
+
+  useEffect(() => {
+    authApis
+      .me()
+      .then(setCurrentUser)
+      .catch(() => {
+        /* not logged in / offline — keep store value */
+      });
+  }, []);
 
   // const primaryPurple = "#5D3FD3";
 
@@ -31,6 +47,7 @@ const Sidebar = () => {
     },
     { title: "Campaigns", icon: <Target size={20} />, path: "/campaigns" },
     { title: "Colleges", icon: <School size={20} />, path: "/colleges" },
+    { title: "Categories", icon: <Tags size={20} />, path: "/categories" },
     {
       title: "Attendance",
       icon: <CalendarCheck size={20} />,
@@ -93,11 +110,27 @@ const Sidebar = () => {
           ))}
         </nav>
 
-        {/* 3. تعديل زر Log Out لفتح النافذة */}
-        <div className="mt-auto pb-10 px-6">
+        {/* Current user (from /me) + Log Out */}
+        <div className="mt-auto px-3 pb-6 space-y-1">
+          {currentUser && (
+            <div className="flex items-center gap-3 rounded-xl px-3 py-2.5 bg-slate-50">
+              <div className="w-9 h-9 shrink-0 rounded-full bg-[#5D3FD3] text-white flex items-center justify-center text-sm font-semibold uppercase">
+                {(currentUser.firstName?.[0] ?? "") +
+                  (currentUser.lastName?.[0] ?? "")}
+              </div>
+              <div className="min-w-0">
+                <p className="text-[13px] font-semibold text-slate-800 truncate">
+                  {currentUser.firstName} {currentUser.lastName}
+                </p>
+                <p className="text-[11px] text-slate-400 truncate">
+                  {currentUser.email}
+                </p>
+              </div>
+            </div>
+          )}
           <button
             onClick={() => setShowLogoutModal(true)}
-            className="flex items-center gap-3 text-[#64748B] hover:text-red-600 transition-all font-medium group w-full"
+            className="flex items-center gap-3 text-[#64748B] hover:text-red-600 transition-all font-medium group w-full px-3 py-2.5 rounded-xl hover:bg-red-50"
           >
             <LogOut
               size={20}

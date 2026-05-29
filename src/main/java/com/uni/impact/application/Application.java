@@ -25,7 +25,7 @@ public class Application {
     @SequenceGenerator(name = "application_id_gen", sequenceName = "application_id_seq", initialValue = 101, allocationSize = 1)
     private Long id;
 
-    @Column(length = 200)
+    @Column(length = 500)
     private String motivationLetter;
 
     @Column(nullable = false, length = 20)
