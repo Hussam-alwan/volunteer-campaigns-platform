@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState, type FormEvent } from "react";
 import { useParams } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import {
@@ -17,6 +17,11 @@ import attendanceQueries from "@/API/Attendance/Attendancequeries";
 import campaignQueries from "@/API/Campaingns/Campaingnqueries";
 import Select from "@/components/layout/Select";
 import type { ICampaign } from "@/API/Campaingns/Campaign.interfaces";
+import type {
+  IAttendance,
+  IProgress,
+  TAttendanceStatus,
+} from "@/API/Attendance/Attendance.interfaces";
 
 const AttendanceProgress = () => {
   // الحملة المختارة (افتراضياً من الـ URL أو الحملة رقم 1) ويمكن تغييرها من القائمة
@@ -29,7 +34,7 @@ const AttendanceProgress = () => {
   const [query, setQuery] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingLogId, setEditingLogId] = useState(null);
+  const [editingLogId, setEditingLogId] = useState<number | null>(null);
 
   // تحديث الـ Initial State لتشمل الـ recordedBy الافتراضي من نظام الـ Auth عندكِ
   const initialFormState = {
@@ -68,18 +73,25 @@ const AttendanceProgress = () => {
   campaignsList.forEach((c) => campaignNameById.set(c.campaignId, c.title));
 
   // 🔥 استخراج المصفوفة الخام وعكسها لتظهر السجلات الجديدة في الأعلى دائماً ومباشرة
-  const rawAttendanceLogs =
-    attendanceData?.content ||
-    attendanceData?.data?.content ||
-    attendanceData?.data ||
+  // الرد قد يأتي بصيغة { content } من Spring Boot أو { data } حسب الـ endpoint
+  const attRes = attendanceData as
+    | { content?: IAttendance[]; data?: { content?: IAttendance[] } | IAttendance[] }
+    | undefined;
+  const rawAttendanceLogs: IAttendance[] =
+    attRes?.content ||
+    (attRes?.data as { content?: IAttendance[] })?.content ||
+    (attRes?.data as IAttendance[]) ||
     [];
 
   const attendanceLogs = [...rawAttendanceLogs].reverse();
 
-  const progressLogs =
-    progressData?.content ||
-    progressData?.data?.content ||
-    progressData?.data ||
+  const progRes = progressData as
+    | { content?: IProgress[]; data?: { content?: IProgress[] } | IProgress[] }
+    | undefined;
+  const progressLogs: IProgress[] =
+    progRes?.content ||
+    (progRes?.data as { content?: IProgress[] })?.content ||
+    (progRes?.data as IProgress[]) ||
     [];
 
   // --- تأمين قائمة الطلاب ---
@@ -159,7 +171,7 @@ const AttendanceProgress = () => {
     log.studentName?.toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
-  const getStatusStyle = (status) => {
+  const getStatusStyle = (status?: string) => {
     switch (status?.toUpperCase()) {
       case "PRESENT":
         return "bg-emerald-50 text-emerald-600 border-emerald-100 w-20 inline-block text-center";
@@ -172,7 +184,7 @@ const AttendanceProgress = () => {
     }
   };
 
-  const handleEditClick = (log) => {
+  const handleEditClick = (log: IAttendance & { id?: number }) => {
     setEditingLogId(log.attendanceId || log.id || null);
     setFormData({
       student: log.student ? log.student.toString() : "",
@@ -186,7 +198,7 @@ const AttendanceProgress = () => {
     setIsModalOpen(true);
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
 
     const studentId = parseInt(formData.student);
@@ -212,7 +224,7 @@ const AttendanceProgress = () => {
       return;
     }
 
-    const status = formData.status.toUpperCase();
+    const status = formData.status.toUpperCase() as TAttendanceStatus;
 
     const payload = {
       attendanceDate: formData.attendanceDate,
@@ -223,7 +235,7 @@ const AttendanceProgress = () => {
       recordedBy: formData.recordedBy,
     };
 
-    const handleSuccess = (message) => {
+    const handleSuccess = (message: string) => {
       alert(message);
 
       // تصفير الكاش بالأسماء الصريحة المتوافقة مع ملف الـ Queries المحسّن
@@ -238,11 +250,14 @@ const AttendanceProgress = () => {
       handleSuccessClose();
     };
 
-    const handleError = (error) => {
+    const handleError = (error: unknown) => {
       console.error("API Error Details:", error);
+      const err = error as {
+        response?: { data?: { message?: string; code?: string } };
+      };
       const serverMessage =
-        error?.response?.data?.message ||
-        error?.response?.data?.code ||
+        err?.response?.data?.message ||
+        err?.response?.data?.code ||
         "Internal Server Error";
       alert(`Operation failed: ${serverMessage}`);
     };

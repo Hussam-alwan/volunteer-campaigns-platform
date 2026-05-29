@@ -1,4 +1,3 @@
-import React from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   BarChart,
@@ -218,7 +217,7 @@ function Reports() {
                   }}
                 />
                 <Bar dataKey="students" radius={[10, 10, 0, 0]} barSize={35}>
-                  {collegeData.map((entry, index) => (
+                  {collegeData.map((_, index) => (
                     <Cell
                       key={`cell-${index}`}
                       fill={barColors[index % barColors.length]}

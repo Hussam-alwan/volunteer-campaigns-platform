@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
 import { Search, Plus, SquarePen, Trash2, X, Tags } from "lucide-react";
-import { cn } from "@/pages/lib/utils";
 import Pagination from "@/components/layout/Pagination";
 import {
   getCategories,

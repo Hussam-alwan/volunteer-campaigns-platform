@@ -1,7 +1,4 @@
-import React from "react";
 import { Search, MessageSquare, Bell, MoreVertical } from "lucide-react";
-import LoginPage from "../auth/LoginPage";
-import RegisterPage from "../auth/RegisterPage";
 import {
   Avatar,
   AvatarImage,

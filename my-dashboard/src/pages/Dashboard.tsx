@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import {
   BarChart,
   Bar,
@@ -9,10 +9,10 @@ import {
 } from "recharts";
 import { Plus, CheckCircle, Users, Clock, Target } from "lucide-react";
 // import Navbar from "../components/layout/Navbar";
+import { useQueries, useQuery } from "@tanstack/react-query";
 import dashboardApi from "@/API/Dasgboard/Dashboard.apis";
-import campaignApis from "@/API/Campaingns/Campaign.apis";
 import attendanceApis from "@/API/Attendance/Attendance.apis";
-import type { IDashboardSummary } from "@/API/Dasgboard/Dashboard.interfaces";
+import campaignQueries from "@/API/Campaingns/Campaingnqueries";
 import type { ICampaign } from "@/API/Campaingns/Campaign.interfaces";
 import type { IProgress } from "@/API/Attendance/Attendance.interfaces";
 import { useNavigate } from "react-router-dom";
@@ -20,85 +20,70 @@ import { useNavigate } from "react-router-dom";
 // chart and pie data are populated from backend
 
 const Dashboard = () => {
-  const [summary, setSummary] = useState<IDashboardSummary | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [requiresAuth, setRequiresAuth] = useState(false);
-  const [campaignsForChart, setCampaignsForChart] = useState<ICampaign[]>([]);
-  const [progressByCampaign, setProgressByCampaign] = useState<
-    Record<number, number>
-  >({});
   const [selectedMonth, setSelectedMonth] = useState<string>(""); // "YYYY-MM"، فارغ = كل الشهور
-
   const navigate = useNavigate();
 
-  useEffect(() => {
-    let mounted = true;
-    const load = async () => {
-      try {
-        const s = await dashboardApi.getDashboardSummary();
-        if (!mounted) return;
-        setSummary(s);
-        setRequiresAuth(false);
-      } catch (err: unknown) {
-        if (!mounted) return;
-        if ((err as { isAuth?: boolean })?.isAuth) setRequiresAuth(true);
-        setSummary(null);
-      } finally {
-        if (mounted) setLoading(false);
-      }
-    };
+  // 1. ملخص الداشبورد (الكروت + حالات الطلبات) — مع كاش React Query
+  const {
+    data: summary,
+    isLoading: loading,
+    error: summaryError,
+  } = useQuery({
+    queryKey: ["dashboard-summary"],
+    queryFn: () => dashboardApi.getDashboardSummary(),
+    retry: false, // لا تُعد المحاولة عند خطأ المصادقة (401)
+  });
 
-    const loadCampaigns = async () => {
-      try {
-        const res = await campaignApis.getAllCampaigns({ page: 0, size: 100 });
-        const list = (res as { content?: ICampaign[] })?.content ?? [];
-        if (!mounted) return;
-        setCampaignsForChart(list);
+  const requiresAuth =
+    (summaryError as { isAuth?: boolean } | null)?.isAuth ?? false;
 
-        // التقدّم لا يأتي مع بيانات الحملة، فنجلبه من endpoint التقدّم لكل حملة جارية
-        const running = list.filter((c) =>
-          ["ONGOING", "ACTIVE"].includes((c.status || "").toUpperCase()),
-        );
+  // 2. قائمة الحملات (نفس الهوك المستخدم في صفحة الحملات → كاش مشترك)
+  const { data: campaignsResp } = campaignQueries.useGetAllCampaigns({
+    page: 0,
+    size: 100,
+  });
 
-        const entries = await Promise.all(
-          running.map(async (c) => {
-            try {
-              const pr = await attendanceApis.getProgress(c.campaignId, {
-                page: 0,
-                size: 100,
-              });
-              const items =
-                (pr as { content?: IProgress[] })?.content ??
-                (pr as { data?: IProgress[] })?.data ??
-                [];
-              const sorted = [...items].sort(
-                (a, b) =>
-                  new Date(a.createdAt).getTime() -
-                  new Date(b.createdAt).getTime(),
-              );
-              const latest = sorted.length
-                ? sorted[sorted.length - 1].percentage
-                : 0;
-              return [c.campaignId, latest] as const;
-            } catch {
-              return [c.campaignId, 0] as const;
-            }
-          }),
-        );
+  const campaignsForChart: ICampaign[] = useMemo(() => {
+    const r = campaignsResp as
+      | { content?: ICampaign[]; data?: ICampaign[] }
+      | ICampaign[]
+      | undefined;
+    if (!r) return [];
+    if (Array.isArray(r)) return r;
+    return r.content ?? r.data ?? [];
+  }, [campaignsResp]);
 
-        if (mounted) setProgressByCampaign(Object.fromEntries(entries));
-      } catch (err: unknown) {
-        if ((err as { isAuth?: boolean })?.isAuth) setRequiresAuth(true);
-      }
-    };
+  const runningCampaigns = useMemo(
+    () =>
+      campaignsForChart.filter((c) =>
+        ["ONGOING", "ACTIVE"].includes((c.status || "").toUpperCase()),
+      ),
+    [campaignsForChart],
+  );
 
-    void load();
-    void loadCampaigns();
+  // 3. التقدّم لكل حملة جارية — استعلامات متوازية مع كاش بدل الجلب اليدوي في useEffect
+  const progressResults = useQueries({
+    queries: runningCampaigns.map((c) => ({
+      queryKey: ["get-progress", c.campaignId, { page: 0, size: 100 }],
+      queryFn: () =>
+        attendanceApis.getProgress(c.campaignId, { page: 0, size: 100 }),
+    })),
+  });
 
-    return () => {
-      mounted = false;
-    };
-  }, []);
+  const progressByCampaign: Record<number, number> = {};
+  runningCampaigns.forEach((c, i) => {
+    const data = progressResults[i]?.data;
+    const items = ((data as { content?: IProgress[] })?.content ??
+      (data as { data?: IProgress[] })?.data ??
+      []) as IProgress[];
+    const sorted = [...items].sort(
+      (a, b) =>
+        new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+    );
+    progressByCampaign[c.campaignId] = sorted.length
+      ? sorted[sorted.length - 1].percentage
+      : 0;
+  });
 
   const pieData = useMemo(() => {
     return [

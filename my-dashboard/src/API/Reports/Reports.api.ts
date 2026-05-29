@@ -9,7 +9,6 @@ import type {
   ICampaignApplicationsPaginatedResponse,
   IPageableParams,
   ICreateCampaignProgressInput,
-  ICreateCampaignAttendanceInput,
 } from "./Reports.interfaces";
 
 const ReportsService = {

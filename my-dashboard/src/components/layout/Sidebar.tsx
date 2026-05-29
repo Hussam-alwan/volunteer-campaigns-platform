@@ -78,13 +78,9 @@ const Sidebar = () => {
     <>
       <aside className="w-64 h-screen bg-white flex flex-col border-r border-gray-200 overflow-hidden">
         {/* Header Area */}
-        <div className="flex items-center gap-3 px-6 py-8 mb-4 text-[#5D3FD3]">
-          <div className="p-1.5">
-            <div className="w-5 h-5 border-2 border-[#5D3FD3] rotate-45 flex items-center justify-center">
-              <div className="w-2 h-2 bg-[#5D3FD3]" />
-            </div>
-          </div>
-          <span className="text-xl font-semibold tracking-tight">Volunteer</span>
+        <div className="flex items-center justify-center px-6 py-8 mb-4">
+
+          <img src="/logo.png" alt="Volunteer logo" className="h-20 object-contain" />
         </div>
 
         <nav className="flex-1 space-y-1">

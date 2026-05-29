@@ -1,5 +1,3 @@
-import { TAutoComplete } from "hooks/use-generic-form/types";
-
 export const AttendanceStatus = {
   PRESENT: "PRESENT",
   ABSENT: "ABSENT",

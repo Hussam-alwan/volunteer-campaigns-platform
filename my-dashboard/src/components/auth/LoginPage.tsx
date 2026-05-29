@@ -38,11 +38,11 @@ const LoginPage = () => {
       <div className="bg-white p-8 rounded-[32px] shadow-[0_8px_30px_rgb(0,0,0,0.02)] border border-gray-100 w-full max-w-md">
         {/* Header/Logo section matching Sidebar Header */}
         <div className="text-center mb-8">
-          <div className="bg-[#5D3FD3] inline-flex p-3 rounded-2xl text-white mb-4 shadow-lg shadow-indigo-100">
-            <div className="w-6 h-6 border-2 border-white rotate-45 flex items-center justify-center">
-              <div className="w-2 h-2 bg-white" />
-            </div>
-          </div>
+          <img
+            src="/logo.png"
+            alt="Volunteer logo"
+            className="w-16 h-16 mx-auto mb-4 object-contain"
+          />
           <h2 className="text-2xl font-bold text-slate-800 tracking-tight">
             Welcome Back
           </h2>

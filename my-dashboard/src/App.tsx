@@ -1,3 +1,4 @@
+import { lazy, Suspense } from "react";
 import {
   BrowserRouter as Router,
   Routes,
@@ -6,25 +7,38 @@ import {
   Outlet,
 } from "react-router-dom";
 import useAuthStore from "./store/auth.store";
-// Layout Components
+// Layout Components (part of the app shell — kept eager)
 import Sidebar from "./components/layout/Sidebar";
 import Toaster from "./components/layout/Toaster";
 
-// Pages
-import Dashboard from "./pages/Dashboard";
-// import StudentsPage from "./components/dashboard/StudentsPage";
-
-import CampaignManagement from "./components/dashboard/CampaignManagement";
-import AttendanceProgress from "./components/dashboard/AttendanceProgress";
-import Colleges from "./components/dashboard/Colleges";
-import Categories from "./components/dashboard/Categories";
-import Reports from "./components/dashboard/Reports";
-import ApplicationStatus from "./components/dashboard/ApplicationStatus";
+// Pages — lazy-loaded so each route (and heavy libs like recharts) only
+// downloads when the user actually navigates to it.
+const Dashboard = lazy(() => import("./pages/Dashboard"));
+const CampaignManagement = lazy(
+  () => import("./components/dashboard/CampaignManagement"),
+);
+const AttendanceProgress = lazy(
+  () => import("./components/dashboard/AttendanceProgress"),
+);
+const Colleges = lazy(() => import("./components/dashboard/Colleges"));
+const Categories = lazy(() => import("./components/dashboard/Categories"));
+const Reports = lazy(() => import("./components/dashboard/Reports"));
+const ApplicationStatus = lazy(
+  () => import("./components/dashboard/ApplicationStatus"),
+);
+const UserManagement = lazy(
+  () => import("./components/dashboard/UserManagement"),
+);
 
 // Auth Pages
-import LoginPage from "./components/auth/LoginPage";
-import RegisterPage from "./components/auth/RegisterPage";
-import UserManagement from "./components/dashboard/UserManagement";
+const LoginPage = lazy(() => import("./components/auth/LoginPage"));
+const RegisterPage = lazy(() => import("./components/auth/RegisterPage"));
+
+const PageFallback = () => (
+  <div className="flex h-screen w-full items-center justify-center text-slate-400">
+    Loading…
+  </div>
+);
 
 const ProtectedLayout = () => {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
@@ -53,27 +67,29 @@ function App() {
   return (
     <Router>
       <Toaster />
-      <Routes>
-        <Route element={<PublicLayout />}>
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/register" element={<RegisterPage />} />
-        </Route>
+      <Suspense fallback={<PageFallback />}>
+        <Routes>
+          <Route element={<PublicLayout />}>
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/register" element={<RegisterPage />} />
+          </Route>
 
-        <Route element={<ProtectedLayout />}>
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/campaigns" element={<CampaignManagement />} />
-          <Route path="/applications" element={<ApplicationStatus />} />
-          <Route path="/attendance" element={<AttendanceProgress />} />
-          {/* <Route path="/students" element={<StudentsPage />} /> */}
-          <Route path="/users" element={<UserManagement />} />
-          <Route path="/colleges" element={<Colleges />} />
-          <Route path="/categories" element={<Categories />} />
-          <Route path="/reports" element={<Reports />} />
-        </Route>
+          <Route element={<ProtectedLayout />}>
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/campaigns" element={<CampaignManagement />} />
+            <Route path="/applications" element={<ApplicationStatus />} />
+            <Route path="/attendance" element={<AttendanceProgress />} />
+            {/* <Route path="/students" element={<StudentsPage />} /> */}
+            <Route path="/users" element={<UserManagement />} />
+            <Route path="/colleges" element={<Colleges />} />
+            <Route path="/categories" element={<Categories />} />
+            <Route path="/reports" element={<Reports />} />
+          </Route>
 
-        <Route path="/" element={<Navigate to="/dashboard" replace />} />
-        <Route path="*" element={<Navigate to="/dashboard" replace />} />
-      </Routes>
+          <Route path="/" element={<Navigate to="/dashboard" replace />} />
+          <Route path="*" element={<Navigate to="/dashboard" replace />} />
+        </Routes>
+      </Suspense>
     </Router>
   );
 }
