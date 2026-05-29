@@ -14,7 +14,7 @@ import {
   Upload,
   Link2,
   Trash2,
-  Edit,
+  SquarePen,
   BarChart3,
 } from "lucide-react";
 
@@ -467,14 +467,14 @@ const CampaignManagement: React.FC = () => {
 
   if (hasError) {
     return (
-      <div className="w-full p-8 text-center bg-red-50 text-red-600 rounded-3xl border border-red-100">
+      <div className="w-full p-8 text-center bg-red-50 text-red-600 rounded-[18px] border border-red-100">
         <p className="font-bold">Failed to fetch campaigns from the server</p>
       </div>
     );
   }
 
   return (
-    <div className="w-full space-y-8 animate-in fade-in duration-700 p-2">
+    <div className="w-full space-y-8 animate-in fade-in duration-700 px-6 md:px-10 py-8">
       {/* Header Section */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
@@ -488,7 +488,7 @@ const CampaignManagement: React.FC = () => {
         <button
           onClick={openCreateModal}
           style={{ backgroundColor: primaryPurple }}
-          className="flex items-center gap-2 text-white px-6 py-3 rounded-2xl font-bold shadow-lg shadow-indigo-100 transition-all active:scale-95 hover:opacity-90"
+          className="flex items-center gap-2 text-white px-6 py-3 rounded-full font-medium transition-all active:scale-95 hover:opacity-90"
         >
           <Plus size={20} />
           Create New Campaign
@@ -500,7 +500,7 @@ const CampaignManagement: React.FC = () => {
         {stats.map((stat, i) => (
           <div
             key={i}
-            className="bg-white p-6 rounded-[30px] border border-gray-100 shadow-[0_8px_30px_rgb(0,0,0,0.02)] group hover:border-[#5D3FD3]/20 transition-all flex items-center gap-4"
+            className="bg-white p-6 rounded-[18px] border border-gray-200 group hover:border-[#5D3FD3]/20 transition-all flex items-center gap-4"
           >
             <div
               className={`p-4 rounded-2xl ${stat.bg} group-hover:scale-110 transition-transform`}
@@ -520,7 +520,7 @@ const CampaignManagement: React.FC = () => {
       </div>
 
       {/* Filters & Search */}
-      <div className="flex flex-wrap gap-4 bg-white p-4 rounded-3xl border border-gray-100 shadow-sm">
+      <div className="flex flex-wrap gap-4 bg-white p-4 rounded-[18px] border border-gray-200">
         <div className="relative flex-1 min-w-70 flex items-center gap-2">
           <Search
             className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
@@ -534,18 +534,20 @@ const CampaignManagement: React.FC = () => {
             onKeyDown={(e) => {
               if (e.key === "Enter") runSearch();
             }}
-            className="w-full pl-12 pr-4 py-3 bg-slate-50 border-none rounded-xl outline-none focus:ring-2 focus:ring-[#5D3FD3]/10 text-sm"
+            className="w-full pl-12 pr-4 py-3 bg-slate-50 border-none rounded-full outline-none focus:ring-2 focus:ring-[#5D3FD3]/10 text-sm"
           />
           <button
+            type="button"
             onClick={runSearch}
-            className="px-3 py-2 bg-[#5D3FD3] text-white rounded-xl text-sm hover:opacity-90"
+            className="px-4 py-2 bg-[#5D3FD3] text-white rounded-full text-sm hover:opacity-90 active:scale-95 transition-all"
             title="Search"
           >
             Search
           </button>
           <button
+            type="button"
             onClick={clearSearch}
-            className="px-3 py-2 bg-white border border-slate-200 text-slate-600 rounded-xl text-sm hover:bg-slate-50"
+            className="px-4 py-2 bg-white border border-slate-200 text-slate-600 rounded-full text-sm hover:bg-slate-50 active:scale-95 transition-all"
             title="Clear"
           >
             Clear
@@ -558,7 +560,7 @@ const CampaignManagement: React.FC = () => {
       </div>
 
       {/* Campaigns Table */}
-      <div className="bg-white rounded-[30px] border border-gray-100 shadow-sm overflow-hidden">
+      <div className="bg-white rounded-[18px] border border-gray-200 overflow-hidden">
         <table className="w-full text-left">
           <thead>
             <tr className="bg-slate-50/50 text-slate-400 text-[11px] uppercase tracking-wider">
@@ -691,7 +693,7 @@ const CampaignManagement: React.FC = () => {
                           title="Edit Campaign"
                           className="p-2 text-slate-400 hover:text-[#5D3FD3] hover:bg-slate-50 rounded-xl transition-all"
                         >
-                          <Edit size={18} />
+                          <SquarePen size={18} />
                         </button>
                         <button
                           onClick={() => openProgressModal(camp)}
@@ -738,7 +740,7 @@ const CampaignManagement: React.FC = () => {
       {/* Modal - Create Campaign */}
       {showCreateModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-300">
-          <div className="bg-white w-full max-w-2xl rounded-4xl shadow-2xl overflow-hidden animate-in zoom-in-95">
+          <div className="bg-white w-full max-w-2xl rounded-[18px] shadow-2xl overflow-hidden animate-in zoom-in-95">
             <div
               style={{ backgroundColor: primaryPurple }}
               className="p-8 flex justify-between items-center text-white"
@@ -937,14 +939,14 @@ const CampaignManagement: React.FC = () => {
                 <button
                   type="button"
                   onClick={closeCreateModal}
-                  className="flex-1 px-6 py-4 border border-slate-100 text-slate-500 font-bold rounded-2xl hover:bg-slate-50 transition-all text-sm"
+                  className="flex-1 px-6 py-4 border border-slate-100 text-slate-500 font-medium rounded-full hover:bg-slate-50 transition-all text-sm"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   style={{ backgroundColor: primaryPurple }}
-                  className="flex-1 px-6 py-4 text-white font-bold rounded-2xl shadow-lg shadow-indigo-100 hover:opacity-90 transition-all text-sm"
+                  className="flex-1 px-6 py-4 text-white font-bold rounded-full hover:opacity-90 transition-all text-sm"
                 >
                   {editingCampaignId ? "Save Changes" : "Confirm & Create"}
                 </button>
@@ -959,7 +961,7 @@ const CampaignManagement: React.FC = () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-300">
           <form
             onSubmit={handleProgressSubmit}
-            className="bg-white w-full max-w-md rounded-4xl shadow-2xl overflow-hidden animate-in zoom-in-95"
+            className="bg-white w-full max-w-md rounded-[18px] shadow-2xl overflow-hidden animate-in zoom-in-95"
           >
             <div
               style={{ backgroundColor: primaryPurple }}
@@ -1012,7 +1014,7 @@ const CampaignManagement: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setProgressCampaign(null)}
-                  className="flex-1 px-6 py-3 border border-slate-100 text-slate-500 font-bold rounded-2xl hover:bg-slate-50 transition-all text-sm"
+                  className="flex-1 px-6 py-3 border border-slate-100 text-slate-500 font-medium rounded-full hover:bg-slate-50 transition-all text-sm"
                 >
                   Cancel
                 </button>
@@ -1020,7 +1022,7 @@ const CampaignManagement: React.FC = () => {
                   type="submit"
                   disabled={createProgressMutation.isPending}
                   style={{ backgroundColor: primaryPurple }}
-                  className="flex-1 px-6 py-3 text-white font-bold rounded-2xl shadow-lg shadow-indigo-100 hover:opacity-90 transition-all text-sm disabled:opacity-50"
+                  className="flex-1 px-6 py-3 text-white font-bold rounded-full hover:opacity-90 transition-all text-sm disabled:opacity-50"
                 >
                   {createProgressMutation.isPending
                     ? "Saving..."
@@ -1035,7 +1037,7 @@ const CampaignManagement: React.FC = () => {
       {/* Modal - Photos Management */}
       {showPhotosModal && selectedCampaign && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-300">
-          <div className="bg-white w-full max-w-3xl rounded-4xl shadow-2xl overflow-hidden animate-in zoom-in-95">
+          <div className="bg-white w-full max-w-3xl rounded-[18px] shadow-2xl overflow-hidden animate-in zoom-in-95">
             <div
               style={{ backgroundColor: primaryPurple }}
               className="p-8 flex justify-between items-center text-white"

@@ -55,7 +55,7 @@ function Reports() {
         </p>
         <button
           onClick={() => refetch()}
-          className="px-5 py-2 text-white bg-red-500 rounded-xl font-bold text-sm shadow-md hover:bg-red-600 transition-all"
+          className="px-5 py-2 text-white bg-red-500 rounded-full font-medium text-sm hover:bg-red-600 transition-all active:scale-95"
         >
           Try Again
         </button>
@@ -102,7 +102,7 @@ function Reports() {
   ];
 
   return (
-    <div className="w-full space-y-8 p-6 bg-slate-50/50 min-h-screen animate-in fade-in duration-700">
+    <div className="w-full space-y-8 px-6 md:px-10 py-8 bg-slate-50/50 min-h-screen animate-in fade-in duration-700">
       {/* Header Section */}
       <div className="flex justify-between items-end">
         <div>
@@ -149,7 +149,7 @@ function Reports() {
         ].map((stat, i) => (
           <div
             key={i}
-            className="bg-white p-6 rounded-[24px] border border-slate-100 shadow-sm hover:shadow-md transition-all"
+            className="bg-white p-6 rounded-[18px] border border-gray-200 transition-all"
           >
             <div className="flex justify-between items-start">
               <div className={`${stat.bg} ${stat.color} p-3 rounded-2xl`}>
@@ -173,7 +173,7 @@ function Reports() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* 1. Bar Chart - Students per College */}
-        <div className="bg-white p-8 rounded-[32px] border border-slate-100 shadow-sm">
+        <div className="bg-white p-8 rounded-[18px] border border-gray-200">
           <div className="flex items-center gap-3 mb-8">
             <div className="p-2 bg-orange-50 text-orange-500 rounded-lg">
               <School size={20} />
@@ -231,7 +231,7 @@ function Reports() {
         </div>
 
         {/* 2. Pie Chart - Application Status */}
-        <div className="bg-white p-8 rounded-[32px] border border-slate-100 shadow-sm">
+        <div className="bg-white p-8 rounded-[18px] border border-gray-200">
           <div className="flex items-center gap-3 mb-8">
             <div className="p-2 bg-green-50 text-green-500 rounded-lg">
               <FileText size={20} />

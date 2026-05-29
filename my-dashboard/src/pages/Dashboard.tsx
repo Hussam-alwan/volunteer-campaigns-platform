@@ -183,30 +183,28 @@ const Dashboard = () => {
     <div className="w-full bg-[#F8FAFC] min-h-screen">
       {/* <Navbar /> */}
 
-      <div className="p-8 space-y-8">
+      <div className="px-6 md:px-12 py-10 space-y-12">
         <div className="flex justify-between items-center">
-          <h2 className="text-3xl font-bold text-slate-800 tracking-tight">
-            Dashboard
-          </h2>
+          <h2 className="text-4xl font-semibold text-slate-800">Dashboard</h2>
           <div className="flex gap-3">
             <input
               type="month"
               value={selectedMonth}
               onChange={(e) => setSelectedMonth(e.target.value)}
-              className="bg-white px-4 py-2 rounded-xl border border-slate-200 text-sm font-semibold text-slate-600 shadow-sm outline-none focus:ring-2 focus:ring-[#5D3FD3]/10"
+              className="bg-white px-5 py-2.5 rounded-full border border-gray-200 text-sm font-medium text-slate-600 outline-none focus:ring-2 focus:ring-[#5D3FD3]/10"
               title="Filter dashboard by month"
             />
             {selectedMonth && (
               <button
                 onClick={() => setSelectedMonth("")}
-                className="bg-white px-4 py-2 rounded-xl border border-slate-200 text-sm font-semibold text-slate-500 shadow-sm hover:bg-slate-50"
+                className="bg-white px-5 py-2.5 rounded-full border border-gray-200 text-sm font-medium text-slate-500 hover:bg-gray-50 active:scale-95 transition-all"
               >
                 Clear
               </button>
             )}
             <button
               onClick={() => navigate("/campaigns")}
-              className="bg-[#5D3FD3] text-white px-5 py-2 rounded-xl font-semibold flex items-center gap-2 shadow-lg shadow-indigo-100"
+              className="bg-[#5D3FD3] text-white px-5 py-2.5 rounded-full font-medium flex items-center gap-2 hover:opacity-90 active:scale-95 transition-all"
             >
               <Plus size={18} /> Create New Campaign
             </button>
@@ -234,21 +232,23 @@ const Dashboard = () => {
           {cards.map((card, i) => (
             <div
               key={i}
-              className="bg-white p-6 rounded-3xl shadow-sm border border-slate-50 flex flex-col gap-3"
+              className="bg-white p-6 rounded-[18px] border border-gray-200 flex flex-col gap-3"
             >
               <div className="bg-slate-50 w-10 h-10 rounded-xl flex items-center justify-center">
                 {card.icon}
               </div>
               <p className="text-slate-500 text-sm font-medium">{card.label}</p>
-              <h4 className="text-2xl font-bold text-slate-900">{card.val}</h4>
+              <h4 className="text-2xl font-semibold text-slate-900">
+                {card.val}
+              </h4>
             </div>
           ))}
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 bg-white p-8 rounded-4xl border border-slate-50 shadow-sm relative">
+          <div className="lg:col-span-2 bg-white p-8 rounded-[18px] border border-gray-200 relative">
             <div className="flex justify-between items-center mb-8">
-              <h3 className="font-bold text-slate-800 text-lg">
+              <h3 className="font-semibold text-slate-800 text-lg">
                 Campaign Progress
               </h3>
               {selectedMonth && (
@@ -304,8 +304,8 @@ const Dashboard = () => {
             </div>
           </div>
 
-          <div className="bg-white p-8 rounded-4xl border border-slate-50 shadow-sm">
-            <h3 className="font-bold text-slate-800 text-lg mb-2">
+          <div className="bg-white p-8 rounded-[18px] border border-gray-200">
+            <h3 className="font-semibold text-slate-800 text-lg mb-2">
               Application Summary
             </h3>
             <p className="text-slate-400 text-xs mb-6">
@@ -338,7 +338,9 @@ const Dashboard = () => {
                     />
                     <span className="text-slate-600">{item.name}</span>
                   </div>
-                  <span className="text-slate-900 font-bold">{item.value}</span>
+                  <span className="text-slate-900 font-semibold">
+                    {item.value}
+                  </span>
                 </div>
               ))}
             </div>

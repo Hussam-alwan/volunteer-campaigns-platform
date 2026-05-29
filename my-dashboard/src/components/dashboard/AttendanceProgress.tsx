@@ -4,7 +4,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import {
   Users,
   TrendingUp,
-  MoreHorizontal,
+  SquarePen,
   Search,
   Plus,
   X,
@@ -212,10 +212,12 @@ const AttendanceProgress = () => {
       return;
     }
 
+    const status = formData.status.toUpperCase();
+
     const payload = {
       attendanceDate: formData.attendanceDate,
-      status: formData.status.toUpperCase(),
-      hoursThatDay: hours,
+      status,
+      hoursThatDay: status === "ABSENT" ? 0 : hours,
       notes: formData.notes.trim() || "No notes",
       student: studentId,
       recordedBy: formData.recordedBy,
@@ -281,11 +283,11 @@ const AttendanceProgress = () => {
   }
 
   return (
-    <div className="w-full space-y-8 p-2 animate-in fade-in duration-700">
+    <div className="w-full space-y-8 px-6 md:px-10 py-8 animate-in fade-in duration-700">
       {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-end gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900 tracking-tight">
+          <h1 className="text-3xl font-semibold text-slate-900 tracking-tight">
             Attendance & <span className="text-[#5D3FD3]">Progress</span>
           </h1>
           <p className="text-slate-500 mt-1 font-medium">
@@ -315,7 +317,7 @@ const AttendanceProgress = () => {
               setFormData(initialFormState);
               setIsModalOpen(true);
             }}
-            className="flex items-center gap-2 px-6 py-3 bg-[#5D3FD3] text-white rounded-2xl font-semibold hover:bg-[#4C32B3] transition-all shadow-lg shadow-indigo-100"
+            className="flex items-center gap-2 px-6 py-3 bg-[#5D3FD3] text-white rounded-full font-medium hover:bg-[#4C32B3] transition-all active:scale-95"
           >
             <Plus size={18} />
             Log Attendance
@@ -328,7 +330,7 @@ const AttendanceProgress = () => {
         {stats.map((stat, i) => (
           <div
             key={i}
-            className="bg-white p-6 rounded-[30px] border border-gray-100 shadow-sm group hover:shadow-md transition-all"
+            className="bg-white p-6 rounded-[18px] border border-gray-200 group transition-all"
           >
             <div className="flex justify-between items-start">
               <div
@@ -338,10 +340,10 @@ const AttendanceProgress = () => {
               </div>
             </div>
             <div className="mt-5">
-              <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">
+              <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest">
                 {stat.label}
               </p>
-              <p className="text-3xl font-bold text-slate-900 mt-1">
+              <p className="text-3xl font-semibold text-slate-900 mt-1">
                 {stat.value}
               </p>
             </div>
@@ -350,9 +352,9 @@ const AttendanceProgress = () => {
       </div>
 
       {/* Attendance Table */}
-      <div className="bg-white rounded-[30px] border border-gray-100 shadow-sm overflow-hidden">
+      <div className="bg-white rounded-[18px] border border-gray-200 overflow-hidden">
         <div className="p-8 border-b border-gray-50 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <h3 className="text-xl font-bold text-slate-900">
+          <h3 className="text-xl font-semibold text-slate-900">
             Recent Attendance Logs
           </h3>
           <div className="relative w-full sm:w-auto flex items-center gap-2">
@@ -368,12 +370,12 @@ const AttendanceProgress = () => {
               onKeyDown={(e) => {
                 if (e.key === "Enter") setSearchTerm(query.trim());
               }}
-              className="pl-9 pr-4 py-2 bg-slate-50 border-none rounded-xl text-sm focus:ring-2 focus:ring-[#5D3FD3]/10 outline-none w-full sm:w-64"
+              className="pl-9 pr-4 py-2 bg-slate-50 border-none rounded-full text-sm focus:ring-2 focus:ring-[#5D3FD3]/10 outline-none w-full sm:w-64"
             />
             <button
               type="button"
               onClick={() => setSearchTerm(query.trim())}
-              className="px-3 py-2 bg-[#5D3FD3] text-white rounded-xl text-sm hover:opacity-90"
+              className="px-4 py-2 bg-[#5D3FD3] text-white rounded-full text-sm hover:opacity-90 active:scale-95 transition-all"
               title="Search"
             >
               Search
@@ -384,7 +386,7 @@ const AttendanceProgress = () => {
                 setQuery("");
                 setSearchTerm("");
               }}
-              className="px-3 py-2 bg-white border border-slate-200 text-slate-600 rounded-xl text-sm hover:bg-slate-50"
+              className="px-4 py-2 bg-white border border-slate-200 text-slate-600 rounded-full text-sm hover:bg-slate-50 active:scale-95 transition-all"
               title="Clear"
             >
               Clear
@@ -396,10 +398,10 @@ const AttendanceProgress = () => {
           <table className="w-full text-left">
             <thead>
               <tr className="bg-slate-50/50 text-slate-400 text-[11px] uppercase tracking-wider">
-                <th className="px-8 py-4 font-bold">Student Name</th>
-                <th className="px-8 py-4 font-bold">Campaign</th>
-                <th className="px-8 py-4 font-bold text-center">Hours</th>
-                <th className="px-8 py-4 font-bold">Status</th>
+                <th className="px-8 py-4 font-semibold">Student Name</th>
+                <th className="px-8 py-4 font-semibold">Campaign</th>
+                <th className="px-8 py-4 font-semibold text-center">Hours</th>
+                <th className="px-8 py-4 font-semibold">Status</th>
                 <th className="px-8 py-4"></th>
               </tr>
             </thead>
@@ -427,12 +429,12 @@ const AttendanceProgress = () => {
                     <td className="px-8 py-5 text-slate-500 text-sm">
                       {campaignNameById.get(log.campaign) ?? `#${log.campaign}`}
                     </td>
-                    <td className="px-8 py-5 text-center font-bold text-[#5D3FD3]">
+                    <td className="px-8 py-5 text-center font-semibold text-[#5D3FD3]">
                       {log.hoursThatDay}h
                     </td>
                     <td className="px-8 py-5">
                       <span
-                        className={`px-3 py-1 rounded-lg text-[10px] font-bold border ${getStatusStyle(log.status)}`}
+                        className={`px-3 py-1 rounded-lg text-[10px] font-semibold border ${getStatusStyle(log.status)}`}
                       >
                         {log.status}
                       </span>
@@ -442,7 +444,7 @@ const AttendanceProgress = () => {
                         onClick={() => handleEditClick(log)}
                         className="text-slate-600 hover:text-[#5D3FD3] transition-colors p-1 rounded-lg hover:bg-slate-100"
                       >
-                        <MoreHorizontal size={20} />
+                        <SquarePen size={18} />
                       </button>
                     </td>
                   </tr>
@@ -456,9 +458,9 @@ const AttendanceProgress = () => {
       {/* Modal - تسجيل وتعديل الحضور */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-slate-900/30 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-in fade-in duration-200">
-          <div className="bg-white rounded-[24px] w-full max-w-md p-6 shadow-xl space-y-4 animate-in zoom-in-95 duration-150">
+          <div className="bg-white rounded-[18px] w-full max-w-md p-6 shadow-xl space-y-4 animate-in zoom-in-95 duration-150">
             <div className="flex justify-between items-center">
-              <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+              <h3 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
                 <UserPlus size={20} className="text-[#5D3FD3]" />{" "}
                 {editingLogId
                   ? "Edit Attendance Record"
@@ -477,7 +479,7 @@ const AttendanceProgress = () => {
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="block text-xs font-bold text-slate-400 uppercase mb-1.5 tracking-wider">
+                <label className="block text-xs font-semibold text-slate-400 uppercase mb-1.5 tracking-wider">
                   Select Student *
                 </label>
                 <Select
@@ -501,7 +503,7 @@ const AttendanceProgress = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-400 uppercase mb-1.5 tracking-wider">
+                <label className="block text-xs font-semibold text-slate-400 uppercase mb-1.5 tracking-wider">
                   Date *
                 </label>
                 <input
@@ -517,16 +519,23 @@ const AttendanceProgress = () => {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-slate-400 uppercase mb-1.5 tracking-wider">
+                  <label className="block text-xs font-semibold text-slate-400 uppercase mb-1.5 tracking-wider">
                     Status
                   </label>
                   <Select
                     wrapperClassName="block w-full"
                     className="bg-slate-50 border-slate-100"
                     value={formData.status}
-                    onChange={(e) =>
-                      setFormData({ ...formData, status: e.target.value })
-                    }
+                    onChange={(e) => {
+                      const status = e.target.value;
+                      setFormData((prev) => ({
+                        ...prev,
+                        status,
+                        // غياب = صفر ساعات
+                        hoursThatDay:
+                          status === "ABSENT" ? "0" : prev.hoursThatDay,
+                      }));
+                    }}
                   >
                     <option value="PRESENT">PRESENT</option>
                     <option value="ABSENT">ABSENT</option>
@@ -534,7 +543,7 @@ const AttendanceProgress = () => {
                   </Select>
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-400 uppercase mb-1.5 tracking-wider">
+                  <label className="block text-xs font-semibold text-slate-400 uppercase mb-1.5 tracking-wider">
                     Hours (max 10)
                   </label>
                   <input
@@ -543,17 +552,18 @@ const AttendanceProgress = () => {
                     min="0"
                     max="10"
                     required
+                    disabled={formData.status === "ABSENT"}
                     value={formData.hoursThatDay}
                     onChange={(e) =>
                       setFormData({ ...formData, hoursThatDay: e.target.value })
                     }
-                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-100 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-[#5D3FD3]/20 font-medium"
+                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-100 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-[#5D3FD3]/20 font-medium disabled:opacity-60 disabled:cursor-not-allowed"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-400 uppercase mb-1.5 tracking-wider">
+                <label className="block text-xs font-semibold text-slate-400 uppercase mb-1.5 tracking-wider">
                   Notes
                 </label>
                 <input
@@ -574,14 +584,14 @@ const AttendanceProgress = () => {
                     setIsModalOpen(false);
                     setEditingLogId(null);
                   }}
-                  className="flex-1 py-2.5 bg-slate-100 text-slate-600 font-semibold rounded-xl text-sm hover:bg-slate-200/70 transition-colors"
+                  className="flex-1 py-2.5 bg-slate-100 text-slate-600 font-medium rounded-full text-sm hover:bg-slate-200/70 transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isSaving}
-                  className="flex-1 py-2.5 bg-[#5D3FD3] text-white font-semibold rounded-xl text-sm hover:bg-[#4C32B3] disabled:opacity-50 transition-all shadow-md shadow-indigo-50"
+                  className="flex-1 py-2.5 bg-[#5D3FD3] text-white font-medium rounded-full text-sm hover:bg-[#4C32B3] disabled:opacity-50 transition-all"
                 >
                   {isSaving ? "Saving..." : "Save Record"}
                 </button>

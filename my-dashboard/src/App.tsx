@@ -30,9 +30,9 @@ const ProtectedLayout = () => {
     return <Navigate to="/login" replace />;
   }
   return (
-    <div className="flex h-screen w-full bg-[#F9F9FB] overflow-hidden p-2">
+    <div className="flex h-screen w-full bg-[#F9F9FB] overflow-hidden">
       <Sidebar />
-      <main className="flex-1 overflow-y-auto p-10">
+      <main className="flex-1 overflow-y-auto">
         <Outlet />
       </main>
     </div>

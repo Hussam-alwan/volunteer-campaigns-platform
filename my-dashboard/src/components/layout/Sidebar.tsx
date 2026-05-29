@@ -22,7 +22,7 @@ const Sidebar = () => {
   // const primaryPurple = "#5D3FD3";
 
   const mainMenuItems = [
-    { title: "Dashboard", icon: <LayoutGrid size={20} />, path: "/" },
+    { title: "Dashboard", icon: <LayoutGrid size={20} />, path: "/dashboard" },
     { title: "Users", icon: <Users size={20} />, path: "/users" },
     {
       title: "Applications",
@@ -40,9 +40,9 @@ const Sidebar = () => {
   ];
 
   const activeLinkClass =
-    "relative w-full flex items-center gap-3 px-6 py-3 text-[#5D3FD3] font-semibold bg-[#F5F3FF] transition-all";
+    "mx-3 flex items-center gap-3 px-3 py-2.5 rounded-xl text-[#5D3FD3] font-semibold bg-[#F5F3FF] transition-all";
   const inactiveLinkClass =
-    "w-full flex items-center gap-3 px-6 py-3 text-[#64748B] hover:text-[#5D3FD3] transition-all font-medium";
+    "mx-3 flex items-center gap-3 px-3 py-2.5 rounded-xl text-[#64748B] hover:text-[#5D3FD3] hover:bg-gray-50 transition-all font-medium";
 
   // 2. دالة تنفيذ تسجيل الخروج الفعلي
   const handleFinalLogout = async () => {
@@ -59,15 +59,15 @@ const Sidebar = () => {
 
   return (
     <>
-      <aside className="w-64 h-[95vh] bg-white flex flex-col my-auto ml-4 rounded-[30px] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100 overflow-hidden">
+      <aside className="w-64 h-screen bg-white flex flex-col border-r border-gray-200 overflow-hidden">
         {/* Header Area */}
-        <div className="flex items-center gap-3 px-6 py-8 mb-4 bg-[#5D3FD3] text-white">
-          <div className="bg-white/20 p-1.5 rounded-lg">
-            <div className="w-5 h-5 border-2 border-white rotate-45 flex items-center justify-center">
-              <div className="w-2 h-2 bg-white" />
+        <div className="flex items-center gap-3 px-6 py-8 mb-4 text-[#5D3FD3]">
+          <div className="p-1.5">
+            <div className="w-5 h-5 border-2 border-[#5D3FD3] rotate-45 flex items-center justify-center">
+              <div className="w-2 h-2 bg-[#5D3FD3]" />
             </div>
           </div>
-          <span className="text-xl font-bold tracking-tight">Volunteer</span>
+          <span className="text-xl font-semibold tracking-tight">Volunteer</span>
         </div>
 
         <nav className="flex-1 space-y-1">
@@ -81,9 +81,6 @@ const Sidebar = () => {
             >
               {({ isActive }) => (
                 <>
-                  {isActive && (
-                    <div className="absolute left-0 w-1.5 h-7 bg-[#5D3FD3] rounded-r-full" />
-                  )}
                   <span
                     className={isActive ? "text-[#5D3FD3]" : "text-[#94A3B8]"}
                   >
@@ -114,7 +111,7 @@ const Sidebar = () => {
       {/* 4. نافذة التأكيد (Logout Confirmation Modal) */}
       {showLogoutModal && (
         <div className="fixed inset-0 z-999 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white w-full max-w-sm rounded-32px shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300">
+          <div className="bg-white w-full max-w-sm rounded-[18px] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300">
             {/* الجزء العلوي */}
             <div className="bg-[#5D3FD3] p-6 flex justify-between items-center text-white">
               <div className="flex items-center gap-3">

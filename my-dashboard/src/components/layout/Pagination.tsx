@@ -77,7 +77,7 @@ export default function Pagination({
               type="button"
               onClick={() => onPageChange(page)}
               className={cn(
-                "w-8 h-8 rounded-2xl text-sm font-medium transition-colors",
+                "w-8 h-8 rounded-full text-sm font-medium transition-colors",
                 safe === page
                   ? "bg-[#5D3FD3] text-white"
                   : "hover:bg-gray-100 text-gray-600",

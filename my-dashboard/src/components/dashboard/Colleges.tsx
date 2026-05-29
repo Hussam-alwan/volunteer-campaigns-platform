@@ -6,7 +6,7 @@ import {
   Search,
   Calendar,
   Clock,
-  Edit2,
+  SquarePen,
   Trash2,
   X,
   School,
@@ -161,12 +161,12 @@ const Colleges: React.FC = () => {
 
   if (hasError) {
     return (
-      <div className="w-full p-8 text-center bg-red-50 text-red-600 rounded-[24px] border border-red-100">
-        <p className="font-bold">Failed to fetch colleges from the server</p>
+      <div className="w-full p-8 text-center bg-red-50 text-red-600 rounded-[18px] border border-red-100">
+        <p className="font-semibold">Failed to fetch colleges from the server</p>
         <button
           onClick={() => window.location.reload()}
           style={{ backgroundColor: primaryPurple }}
-          className="mt-4 px-4 py-2 text-white rounded-xl text-xs font-bold shadow-md animate-pulse"
+          className="mt-4 px-4 py-2 text-white rounded-full text-xs font-medium animate-pulse"
         >
           Try Again
         </button>
@@ -175,11 +175,11 @@ const Colleges: React.FC = () => {
   }
 
   return (
-    <div className="w-full space-y-8 p-2 animate-in fade-in duration-700">
+    <div className="w-full space-y-8 px-6 md:px-10 py-8 animate-in fade-in duration-700">
       {/* Header Section */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900 tracking-tight">
+          <h1 className="text-3xl font-semibold text-slate-900 tracking-tight">
             University <span style={{ color: primaryPurple }}>Colleges</span>
           </h1>
           <p className="text-slate-500 mt-1 font-medium">
@@ -189,7 +189,7 @@ const Colleges: React.FC = () => {
         <button
           onClick={() => setShowCreateModal(true)}
           style={{ backgroundColor: primaryPurple }}
-          className="flex items-center gap-2 text-white px-6 py-3 rounded-2xl font-bold shadow-lg shadow-indigo-100 transition-all active:scale-95 hover:opacity-90"
+          className="flex items-center gap-2 text-white px-6 py-3 rounded-full font-medium transition-all active:scale-95 hover:opacity-90"
         >
           <Plus size={20} />
           Add New College
@@ -197,7 +197,7 @@ const Colleges: React.FC = () => {
       </div>
 
       {/* Search Area */}
-      <div className="flex flex-wrap gap-4 bg-white p-4 rounded-[24px] border border-gray-100 shadow-sm">
+      <div className="flex flex-wrap gap-4 bg-white p-4 rounded-[18px] border border-gray-200">
         <div className="relative flex-1 min-w-70 flex items-center gap-2">
           <Search
             className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
@@ -211,12 +211,12 @@ const Colleges: React.FC = () => {
               if (e.key === "Enter") runSearch();
             }}
             placeholder="Search by college name..."
-            className="w-full pl-12 pr-4 py-3 bg-slate-50 border-none rounded-xl outline-none focus:ring-2 focus:ring-[#5D3FD3]/10 text-sm"
+            className="w-full pl-12 pr-4 py-3 bg-slate-50 border-none rounded-full outline-none focus:ring-2 focus:ring-[#5D3FD3]/10 text-sm"
           />
           <button
             type="button"
             onClick={runSearch}
-            className="px-3 py-2 bg-[#5D3FD3] text-white rounded-xl text-sm hover:opacity-90"
+            className="px-4 py-2 bg-[#5D3FD3] text-white rounded-full text-sm hover:opacity-90 active:scale-95 transition-all"
             title="Search"
           >
             Search
@@ -224,7 +224,7 @@ const Colleges: React.FC = () => {
           <button
             type="button"
             onClick={clearSearch}
-            className="px-3 py-2 bg-white border border-slate-200 text-slate-600 rounded-xl text-sm hover:bg-slate-50"
+            className="px-4 py-2 bg-white border border-slate-200 text-slate-600 rounded-full text-sm hover:bg-slate-50 active:scale-95 transition-all"
             title="Clear"
           >
             Clear
@@ -240,25 +240,25 @@ const Colleges: React.FC = () => {
 
       {/* Table Area */}
       <div
-        className={`bg-white rounded-[30px] border border-gray-100 shadow-sm overflow-hidden transition-opacity duration-300 ${isActionLoading || loading || fetching ? "opacity-50 pointer-events-none" : ""}`}
+        className={`bg-white rounded-[18px] border border-gray-200 overflow-hidden transition-opacity duration-300 ${isActionLoading || loading || fetching ? "opacity-50 pointer-events-none" : ""}`}
       >
         <div>
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-slate-50/50">
-                <th className="px-6 py-5 font-extrabold text-slate-800 text-[13px] uppercase tracking-wider">
+                <th className="px-6 py-5 text-xs font-medium text-slate-500 uppercase tracking-wider">
                   College Name
                 </th>
-                <th className="px-6 py-5 font-extrabold text-slate-800 text-[13px] uppercase tracking-wider">
+                <th className="px-6 py-5 text-xs font-medium text-slate-500 uppercase tracking-wider">
                   Description
                 </th>
-                <th className="px-6 py-5 font-extrabold text-slate-800 text-[13px] uppercase tracking-wider">
+                <th className="px-6 py-5 text-xs font-medium text-slate-500 uppercase tracking-wider">
                   Created At
                 </th>
-                <th className="px-6 py-5 font-extrabold text-slate-800 text-[13px] uppercase tracking-wider">
+                <th className="px-6 py-5 text-xs font-medium text-slate-500 uppercase tracking-wider">
                   Updated At
                 </th>
-                <th className="px-6 py-5 font-extrabold text-slate-800 text-[13px] uppercase tracking-wider text-center">
+                <th className="px-6 py-5 text-xs font-medium text-slate-500 uppercase tracking-wider text-center">
                   Actions
                 </th>
               </tr>
@@ -269,7 +269,7 @@ const Colleges: React.FC = () => {
                 <tr>
                   <td
                     colSpan={5}
-                    className="text-center py-10 font-bold text-slate-400"
+                    className="text-center py-10 font-semibold text-slate-400"
                   >
                     No colleges found matching your search.
                   </td>
@@ -285,21 +285,18 @@ const Colleges: React.FC = () => {
                       className="hover:bg-slate-50/30 transition-colors group"
                     >
                       <td className="px-6 py-6">
-                        <span
-                          style={{ color: "black" }}
-                          className="font-bold text-base"
-                        >
+                        <span className="font-semibold text-slate-800 text-sm">
                           {college.name}
                         </span>
                       </td>
                       <td className="px-6 py-6">
-                        <p className="text-slate-700 text-base max-w-xs line-clamp-1 font-medium">
+                        <p className="text-slate-600 text-sm max-w-xs line-clamp-1">
                           {college.description}
                         </p>
                       </td>
                       <td className="px-6 py-6">
                         <div className="space-y-1">
-                          <div className="flex items-center gap-1.5 text-indigo-700 text-xs font-semibold">
+                          <div className="flex items-center gap-1.5 text-indigo-700 text-xs font-medium">
                             <Calendar size={13} className="text-indigo-600" />
                             {created.date}
                           </div>
@@ -313,7 +310,7 @@ const Colleges: React.FC = () => {
                       </td>
                       <td className="px-6 py-6">
                         <div className="space-y-1">
-                          <div className="flex items-center gap-1.5 text-indigo-700 text-xs font-semibold">
+                          <div className="flex items-center gap-1.5 text-indigo-700 text-xs font-medium">
                             <Calendar size={13} className="text-indigo-600" />
                             {updated.date}
                           </div>
@@ -332,7 +329,7 @@ const Colleges: React.FC = () => {
                             title="Edit College"
                             className="p-2 text-green-500 hover:text-amber-600 hover:bg-amber-50 rounded-xl transition-all"
                           >
-                            <Edit2 size={16} />
+                            <SquarePen size={16} />
                           </button>
                           <button
                             onClick={() =>
@@ -369,7 +366,7 @@ const Colleges: React.FC = () => {
       {/* Modal - Create / Edit College */}
       {showCreateModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-300">
-          <div className="bg-white w-full max-w-xl rounded-[32px] shadow-2xl overflow-hidden animate-in zoom-in-95">
+          <div className="bg-white w-full max-w-xl rounded-[18px] shadow-2xl overflow-hidden animate-in zoom-in-95">
             <div
               style={{ backgroundColor: primaryPurple }}
               className="p-8 flex justify-between items-center text-white"
@@ -379,7 +376,7 @@ const Colleges: React.FC = () => {
                   <School size={24} />
                 </div>
                 <div>
-                  <h2 className="text-xl font-bold tracking-tight">
+                  <h2 className="text-xl font-semibold tracking-tight">
                     {isEditMode ? "Modify College Details" : "Add New College"}
                   </h2>
                   <p className="text-indigo-100 text-xs mt-0.5 opacity-80">
@@ -399,7 +396,7 @@ const Colleges: React.FC = () => {
 
             <form onSubmit={handleFormSubmit} className="p-8 space-y-5">
               <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">
+                <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider ml-1">
                   College Name
                 </label>
                 <input
@@ -415,7 +412,7 @@ const Colleges: React.FC = () => {
               </div>
 
               <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">
+                <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider ml-1">
                   Description
                 </label>
                 <textarea
@@ -433,7 +430,7 @@ const Colleges: React.FC = () => {
               {isEditMode && (
                 <div className="grid grid-cols-2 gap-4 pt-2 animate-in fade-in duration-400">
                   <div className="space-y-2">
-                    <label className="text-xs font-bold text-indigo-600 uppercase tracking-wider ml-1">
+                    <label className="text-xs font-semibold text-indigo-600 uppercase tracking-wider ml-1">
                       Created At
                     </label>
                     <div className="flex items-center gap-2 px-4 py-3 bg-indigo-50/30 border border-indigo-100/50 rounded-xl text-indigo-800 text-xs font-semibold select-none cursor-not-allowed">
@@ -441,14 +438,14 @@ const Colleges: React.FC = () => {
                       <span>
                         {formatDateTime(editTimestamps.createdAt).date}
                       </span>
-                      <span className="text-[10px] text-indigo-600 bg-indigo-100/70 px-1.5 py-0.5 rounded-md ml-auto font-bold">
+                      <span className="text-[10px] text-indigo-600 bg-indigo-100/70 px-1.5 py-0.5 rounded-md ml-auto font-semibold">
                         {formatDateTime(editTimestamps.createdAt).time}
                       </span>
                     </div>
                   </div>
 
                   <div className="space-y-2">
-                    <label className="text-xs font-bold text-indigo-600 uppercase tracking-wider ml-1">
+                    <label className="text-xs font-semibold text-indigo-600 uppercase tracking-wider ml-1">
                       Last Updated
                     </label>
                     <div className="flex items-center gap-2 px-4 py-3 bg-indigo-50/30 border border-indigo-100/50 rounded-xl text-indigo-800 text-xs font-semibold select-none cursor-not-allowed">
@@ -456,7 +453,7 @@ const Colleges: React.FC = () => {
                       <span>
                         {formatDateTime(editTimestamps.updatedAt).date}
                       </span>
-                      <span className="text-[10px] text-indigo-600 bg-indigo-100/70 px-1.5 py-0.5 rounded-md ml-auto font-bold">
+                      <span className="text-[10px] text-indigo-600 bg-indigo-100/70 px-1.5 py-0.5 rounded-md ml-auto font-semibold">
                         {formatDateTime(editTimestamps.updatedAt).time}
                       </span>
                     </div>
@@ -468,7 +465,7 @@ const Colleges: React.FC = () => {
                 <button
                   type="button"
                   onClick={handleCloseModal}
-                  className="flex-1 px-6 py-4 border border-slate-100 text-slate-500 font-bold rounded-2xl hover:bg-slate-50 transition-all text-sm"
+                  className="flex-1 px-6 py-4 border border-slate-100 text-slate-500 font-medium rounded-full hover:bg-slate-50 transition-all text-sm"
                 >
                   Cancel
                 </button>
@@ -476,7 +473,7 @@ const Colleges: React.FC = () => {
                   type="submit"
                   disabled={isActionLoading}
                   style={{ backgroundColor: primaryPurple }}
-                  className="flex-1 px-6 py-4 text-white font-bold rounded-2xl shadow-lg shadow-indigo-100 hover:opacity-90 transition-all text-sm disabled:opacity-50"
+                  className="flex-1 px-6 py-4 text-white font-medium rounded-full hover:opacity-90 transition-all text-sm disabled:opacity-50"
                 >
                   {isActionLoading
                     ? "Saving..."

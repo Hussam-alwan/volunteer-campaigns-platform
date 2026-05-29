@@ -3,7 +3,7 @@
 import {
   Search,
   Plus,
-  Edit,
+  SquarePen,
   Trash2,
   Ban,
   X,
@@ -352,14 +352,14 @@ function UserManagement() {
   };
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="px-6 md:px-10 py-8 space-y-6">
       {/* HEADER */}
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-gray-900">User Management</h1>
 
         <button
           onClick={openCreateModal}
-          className="flex items-center gap-2 px-4 py-2 bg-[#5D3FD3] text-white rounded-2xl"
+          className="flex items-center gap-2 px-4 py-2 bg-[#5D3FD3] text-white rounded-full active:scale-95 transition-all"
         >
           <Plus className="w-4 h-4" />
           Add New User
@@ -368,39 +368,39 @@ function UserManagement() {
 
       {/* STATS */}
       <div className="grid grid-cols-3 gap-4">
-        <div className="p-6 bg-white rounded-2xl border border-gray-300">
-          <div className="flex items-center gap-3">
+        <div className="p-6 bg-white rounded-[18px] border border-gray-200">
+          <div className="flex items-center gap-4">
             <Users className="text-indigo-600" />
             <div>
               <p className="text-sm text-gray-500">Total Users</p>
-              <p className="text-xl font-bold">{totalUsers}</p>
+              <p className="text-2xl font-semibold mt-0.5">{totalUsers}</p>
             </div>
           </div>
         </div>
 
-        <div className="p-4 bg-white rounded-2xl border border-gray-300">
-          <div className="flex items-center gap-3">
+        <div className="p-6 bg-white rounded-[18px] border border-gray-200">
+          <div className="flex items-center gap-4">
             <UserCheck className="text-green-600" />
             <div>
               <p className="text-sm text-gray-500">Active Users</p>
-              <p className="text-xl font-bold">{activeUsers}</p>
+              <p className="text-2xl font-semibold mt-0.5">{activeUsers}</p>
             </div>
           </div>
         </div>
 
-        <div className="p-4 bg-white rounded-2xl border border-gray-300">
-          <div className="flex items-center gap-3">
+        <div className="p-6 bg-white rounded-[18px] border border-gray-200">
+          <div className="flex items-center gap-4">
             <UserX className="text-red-600" />
             <div>
               <p className="text-sm text-gray-500">Banned Users</p>
-              <p className="text-xl font-bold">{bannedUsers}</p>
+              <p className="text-2xl font-semibold mt-0.5">{bannedUsers}</p>
             </div>
           </div>
         </div>
       </div>
 
       {/* SEARCH */}
-      <div className="flex flex-wrap gap-4 bg-white p-4 rounded-2xl border border-gray-200 shadow-sm">
+      <div className="flex flex-wrap gap-4 bg-white p-4 rounded-[18px] border border-gray-200">
         <div className="relative flex-1 min-w-70 flex items-center gap-2">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
           <input
@@ -414,7 +414,7 @@ function UserManagement() {
                 setCurrentPage(1);
               }
             }}
-            className="w-full pl-12 pr-4 py-3 bg-gray-50 border-none rounded2xl outline-none focus:ring-2 focus:ring-[#5D3FD3]/10 text-sm"
+            className="w-full pl-12 pr-4 py-3 bg-gray-50 border-none rounded-full outline-none focus:ring-2 focus:ring-[#5D3FD3]/10 text-sm"
           />
           <button
             type="button"
@@ -422,7 +422,7 @@ function UserManagement() {
               setSearchTerm(searchQuery.trim());
               setCurrentPage(1);
             }}
-            className="px-3 py-2 bg-[#5D3FD3] text-white rounded-2xl text-sm hover:opacity-90"
+            className="px-4 py-2 bg-[#5D3FD3] text-white rounded-full text-sm hover:opacity-90 active:scale-95 transition-all"
             title="Search"
           >
             Search
@@ -434,7 +434,7 @@ function UserManagement() {
               setSearchTerm("");
               setCurrentPage(1);
             }}
-            className="px-3 py-2 bg-white border border-gray-200 text-gray-600 rounded-2xl text-sm hover:bg-gray-50"
+            className="px-4 py-2 bg-white border border-gray-200 text-gray-600 rounded-full text-sm hover:bg-gray-50 active:scale-95 transition-all"
             title="Clear"
           >
             Clear
@@ -476,31 +476,31 @@ function UserManagement() {
 
       {/* TABLE */}
 
-      <div className="bg-white rounded-xl border border-gray-300 overflow-hidden ">
+      <div className="bg-white rounded-[18px] border border-gray-200 overflow-hidden ">
         <div className="flex items-center justify-between p-4 border-b border-gray-200">
           <h2 className="text-lg font-semibold text-gray-900">Users</h2>
         </div>
         <table className="w-full text-sm">
           <thead className="bg-white">
             <tr>
-              <th className="p-3 text-left text-xs text-gray-500 ">Student</th>
-              <th className="p-3 text-left text-gray-500 text-xs ">Email</th>
-              <th className="p-3 text-left text-xs text-gray-500">Phone</th>
-              <th className=" p-3 text-left text-xs text-gray-500">Year</th>
-              <th className="text-xs text-gray-500">Status</th>
-              <th className=" p-3 text-left text-xs text-gray-500">Actions</th>
+              <th className="px-4 py-3 text-left text-xs text-gray-500 ">Student</th>
+              <th className="px-4 py-3 text-left text-gray-500 text-xs ">Email</th>
+              <th className="px-4 py-3 text-left text-xs text-gray-500">Phone</th>
+              <th className="px-4 py-3 text-left text-xs text-gray-500">Year</th>
+              <th className="px-4 py-3 text-left text-xs text-gray-500">Status</th>
+              <th className="px-4 py-3 text-left text-xs text-gray-500">Actions</th>
             </tr>
           </thead>
 
           <tbody>
             {paginated.map((u) => (
               <tr key={u.userId} className="border-t border-gray-300">
-                <td className="p-3">{getFullName(u)}</td>
-                <td>{u.email}</td>
-                <td>{u.phone}</td>
-                <td>{u.academicYear}</td>
+                <td className="px-4 py-3">{getFullName(u)}</td>
+                <td className="px-4 py-3">{u.email}</td>
+                <td className="px-4 py-3">{u.phone}</td>
+                <td className="px-4 py-3">{u.academicYear}</td>
 
-                <td>
+                <td className="px-4 py-3">
                   <span
                     className={cn(
                       "px-2 py-1 rounded-full text-xs",
@@ -513,11 +513,11 @@ function UserManagement() {
                   </span>
                 </td>
 
-                <td className="flex gap-2 p-2">
+                <td className="flex gap-2 px-4 py-3">
                   <button
                     type="button"
                     onClick={() => toggleBan(u)}
-                    className="p-2 bg-gray-100 rounded"
+                    className="p-2 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-all active:scale-95"
                     title={u.isBanned ? "Unban user" : "Ban user"}
                   >
                     <Ban className="w-4 h-4" />
@@ -526,16 +526,16 @@ function UserManagement() {
                   <button
                     type="button"
                     onClick={() => openEditModal(u)}
-                    className="p-2 bg-gray-100 rounded"
+                    className="p-2 text-slate-400 hover:text-[#5D3FD3] hover:bg-slate-100 rounded-lg transition-all active:scale-95"
                     title="Edit user"
                   >
-                    <Edit className="w-4 h-4" />
+                    <SquarePen className="w-4 h-4" />
                   </button>
 
                   <button
                     type="button"
                     onClick={() => handleDeleteUser(u)}
-                    className="p-2 bg-red-100 text-red-600 rounded"
+                    className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all active:scale-95"
                     title="Delete user"
                   >
                     <Trash2 className="w-4 h-4" />
@@ -562,7 +562,7 @@ function UserManagement() {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center">
           <form
             onSubmit={editingUserId ? handleUpdate : handleCreate}
-            className="bg-white p-6 rounded-xl w-full max-w-md space-y-3"
+            className="bg-white p-6 rounded-[18px] w-full max-w-md space-y-3"
           >
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-semibold text-gray-900">
@@ -587,7 +587,7 @@ function UserManagement() {
             <input
               placeholder="Student Number"
               value={formData.studentNumber}
-              className="w-full border border-gray-300 p-2 rounded"
+              className="w-full border border-gray-300 p-2 rounded-lg"
               onChange={(e) =>
                 setFormData({ ...formData, studentNumber: e.target.value })
               }
@@ -596,7 +596,7 @@ function UserManagement() {
             <input
               placeholder="First Name"
               value={formData.firstName}
-              className="w-full border border-gray-300 p-2 rounded"
+              className="w-full border border-gray-300 p-2 rounded-lg"
               onChange={(e) =>
                 setFormData({ ...formData, firstName: e.target.value })
               }
@@ -605,7 +605,7 @@ function UserManagement() {
             <input
               placeholder="Last Name"
               value={formData.lastName}
-              className="w-full border border-gray-300 p-2 rounded"
+              className="w-full border border-gray-300 p-2 rounded-lg"
               onChange={(e) =>
                 setFormData({ ...formData, lastName: e.target.value })
               }
@@ -615,7 +615,7 @@ function UserManagement() {
               placeholder="Email"
               type="email"
               value={formData.email}
-              className="w-full border p-2 rounded"
+              className="w-full border p-2 rounded-lg"
               onChange={(e) =>
                 setFormData({ ...formData, email: e.target.value })
               }
@@ -626,7 +626,7 @@ function UserManagement() {
                 placeholder="Password"
                 type="password"
                 value={formData.password}
-                className="w-full border border-gray-300 p-2 rounded"
+                className="w-full border border-gray-300 p-2 rounded-lg"
                 onChange={(e) =>
                   setFormData({ ...formData, password: e.target.value })
                 }
@@ -639,7 +639,7 @@ function UserManagement() {
               inputMode="numeric"
               maxLength={10}
               value={formData.phone}
-              className="w-full border border-gray-300 p-2 rounded"
+              className="w-full border border-gray-300 p-2 rounded-lg"
               onChange={(e) =>
                 setFormData({
                   ...formData,
@@ -651,7 +651,7 @@ function UserManagement() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-[#5D3FD3] text-white p-2 rounded disabled:opacity-60"
+              className="w-full bg-[#5D3FD3] text-white p-2 rounded-full disabled:opacity-60"
             >
               {loading
                 ? editingUserId

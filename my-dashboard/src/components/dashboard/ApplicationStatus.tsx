@@ -12,6 +12,7 @@ import {
   TrendingUp,
   Calendar,
   Plus,
+  Eye,
 } from "lucide-react";
 import {
   Avatar,
@@ -336,17 +337,45 @@ function ApplicationStatus() {
     }
   };
 
-  const pendingCount = searchedApplications.filter(
+  // الإحصائيات تتبع نطاق العرض (الشهر/الحملة/البحث) لكن لا تتأثر بفلتر الحالة
+  const statsApplications = useMemo(() => {
+    const q = searchTerm.trim().toLowerCase();
+
+    return allApplications.filter((application) => {
+      const monthOk =
+        selectedMonth === "all" ||
+        (() => {
+          const date = getApplicationDate(application);
+          if (Number.isNaN(date.getTime())) return false;
+          return getMonthKey(date) === selectedMonth;
+        })();
+
+      const campaignOk =
+        campaignFilter === "all" ||
+        String(application.campaign) === campaignFilter;
+
+      const searchOk =
+        !q ||
+        `student ${application.student}`.toLowerCase().includes(q) ||
+        `campaign ${application.campaign}`.toLowerCase().includes(q) ||
+        application.status.toLowerCase().includes(q) ||
+        application.motivationLetter.toLowerCase().includes(q);
+
+      return monthOk && campaignOk && searchOk;
+    });
+  }, [allApplications, selectedMonth, campaignFilter, searchTerm]);
+
+  const pendingCount = statsApplications.filter(
     (application) => application.status === "PENDING",
   ).length;
 
-  const approvedCount = searchedApplications.filter(
+  const approvedCount = statsApplications.filter(
     (application) => application.status === "APPROVED",
   ).length;
 
   const acceptanceRate =
-    searchedApplications.length > 0
-      ? ((approvedCount / searchedApplications.length) * 100).toFixed(1)
+    statsApplications.length > 0
+      ? ((approvedCount / statsApplications.length) * 100).toFixed(1)
       : "0";
 
   const stats = [
@@ -381,7 +410,7 @@ function ApplicationStatus() {
 
   return (
     <div>
-      <main className="flex-1 p-2">
+      <main className="flex-1 px-6 md:px-10 py-8">
         <div className="flex gap-6">
           <div className="flex-1 space-y-6">
             <div className="flex items-center justify-between">
@@ -408,7 +437,7 @@ function ApplicationStatus() {
                   <button
                     type="button"
                     onClick={() => setShowMonthMenu((current) => !current)}
-                    className="flex items-center gap-2 px-4 py-2 border border-gray-200 rounded-2xl text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors"
+                    className="flex items-center gap-2 px-4 py-2 border border-gray-200 rounded-full text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors"
                   >
                     <Calendar className="w-4 h-4" />
                     {selectedMonthLabel}
@@ -416,7 +445,7 @@ function ApplicationStatus() {
                   </button>
 
                   {showMonthMenu && (
-                    <div className="absolute right-0 mt-2 w-56 rounded-2xl border border-gray-200 bg-white shadow-lg z-20 overflow-hidden">
+                    <div className="absolute right-0 mt-2 w-56 rounded-[18px] border border-gray-200 bg-white shadow-lg z-20 overflow-hidden">
                       <button
                         type="button"
                         onClick={() => {
@@ -446,7 +475,7 @@ function ApplicationStatus() {
 
                 <button
                   onClick={() => setShowModal(true)}
-                  className="flex items-center gap-2 px-4 py-2 bg-[#5D3FD3] text-white rounded-2xl text-sm font-medium hover:bg-[#5D3FD3] transition-colors"
+                  className="flex items-center gap-2 px-4 py-2 bg-[#5D3FD3] text-white rounded-full text-sm font-medium hover:bg-[#5D3FD3] transition-colors"
                 >
                   <Plus className="w-4 h-4" />
                   New Opportunity
@@ -458,7 +487,7 @@ function ApplicationStatus() {
               {stats.map((stat) => (
                 <div
                   key={stat.title}
-                  className="bg-white rounded-xl border border-gray-200 p-5"
+                  className="bg-white rounded-[18px] border border-gray-200 p-5"
                 >
                   <div className="flex items-start gap-4">
                     <div className={`p-3 rounded-xl ${stat.iconBg}`}>
@@ -475,7 +504,7 @@ function ApplicationStatus() {
               ))}
             </div>
 
-            <div className="flex flex-wrap gap-4 bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
+            <div className="flex flex-wrap gap-4 bg-white p-4 rounded-[18px] border border-gray-200">
               <div className="relative flex-1 min-w-70 flex items-center gap-2">
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
                 <input
@@ -489,7 +518,7 @@ function ApplicationStatus() {
                       setCurrentPage(1);
                     }
                   }}
-                  className="w-full pl-12 pr-4 py-3 bg-gray-50 border-none rounded-xl outline-none focus:ring-2 focus:ring-[#5D3FD3]/10 text-sm"
+                  className="w-full pl-12 pr-4 py-3 bg-gray-50 border-none rounded-full outline-none focus:ring-2 focus:ring-[#5D3FD3]/10 text-sm"
                 />
                 <button
                   type="button"
@@ -497,7 +526,7 @@ function ApplicationStatus() {
                     setSearchTerm(searchQuery.trim());
                     setCurrentPage(1);
                   }}
-                  className="px-3 py-2 bg-[#5D3FD3] text-white rounded-xl text-sm hover:opacity-90"
+                  className="px-4 py-2 bg-[#5D3FD3] text-white rounded-full text-sm hover:opacity-90 active:scale-95 transition-all"
                   title="Search"
                 >
                   Search
@@ -509,7 +538,7 @@ function ApplicationStatus() {
                     setSearchTerm("");
                     setCurrentPage(1);
                   }}
-                  className="px-3 py-2 bg-white border border-gray-200 text-gray-600 rounded-xl text-sm hover:bg-gray-50"
+                  className="px-4 py-2 bg-white border border-gray-200 text-gray-600 rounded-full text-sm hover:bg-gray-50 active:scale-95 transition-all"
                   title="Clear"
                 >
                   Clear
@@ -532,7 +561,7 @@ function ApplicationStatus() {
               />
             </div>
 
-            <div className="bg-white rounded-xl border border-gray-200">
+            <div className="bg-white rounded-[18px] border border-gray-200">
               <div className="flex items-center justify-between p-4 border-b border-gray-200">
                 <h2 className="text-lg font-semibold text-gray-900">
                   Applications
@@ -545,7 +574,7 @@ function ApplicationStatus() {
                         s === "newest" ? "oldest" : "newest",
                       )
                     }
-                    className="flex items-center gap-2 px-4 py-2 border border-gray-200 rounded-2xl text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+                    className="flex items-center gap-2 px-4 py-2 border border-gray-200 rounded-full text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
                   >
                     Sort: {sortOrder === "newest" ? "Newest" : "Oldest"}
                     <ChevronDown className="w-4 h-4" />
@@ -553,7 +582,7 @@ function ApplicationStatus() {
                 </div>
               </div>
 
-              <div className="overflow-x-auto">
+              <div>
                 <table className="w-full">
                   <thead>
                     <tr className="border-b border-gray-200">
@@ -619,16 +648,17 @@ function ApplicationStatus() {
                               type="button"
                               onClick={() => setLetterApp(application)}
                               title="View motivation letter"
-                              className="p-1.5 bg-gray-100 text-gray-600 rounded-md hover:bg-gray-200 transition-colors"
+                              className="p-2 text-slate-400 hover:text-[#5D3FD3] hover:bg-slate-100 rounded-lg transition-all active:scale-95"
                             >
-                              <FileText className="w-4 h-4" />
+                              <Eye className="w-4 h-4" />
                             </button>
                             <button
                               disabled={
                                 loading || updatingIds.includes(application.id)
                               }
                               onClick={() => acceptApplication(application.id)}
-                              className="p-1.5 bg-green-500 text-white rounded-md hover:bg-green-600 transition-colors disabled:opacity-50"
+                              title="Approve"
+                              className="p-2 text-green-500 hover:text-green-600 hover:bg-green-50 rounded-lg transition-all active:scale-95 disabled:opacity-50"
                             >
                               <Check className="w-4 h-4" />
                             </button>
@@ -637,7 +667,8 @@ function ApplicationStatus() {
                                 loading || updatingIds.includes(application.id)
                               }
                               onClick={() => rejectApplication(application.id)}
-                              className="p-1.5 bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors disabled:opacity-50"
+                              title="Reject"
+                              className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all active:scale-95 disabled:opacity-50"
                             >
                               <X className="w-4 h-4" />
                             </button>
@@ -708,7 +739,7 @@ function ApplicationStatus() {
 
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md">
+          <div className="bg-white rounded-[18px] shadow-2xl w-full max-w-md">
             <div className="flex items-center justify-between p-6 border-b border-gray-200">
               <h2 className="text-lg font-semibold text-gray-900">
                 Create New Opportunity
@@ -777,14 +808,14 @@ function ApplicationStatus() {
                 <button
                   type="button"
                   onClick={() => setShowModal(false)}
-                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 font-medium rounded-2xl hover:bg-gray-50 transition-colors text-sm"
+                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 font-medium rounded-full hover:bg-gray-50 transition-colors text-sm"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={loading}
-                  className="flex-1 px-4 py-2 bg-[#5D3FD3] text-white font-medium rounded-2xl hover:bg-[#5D3FD3]/90 transition-colors text-sm disabled:opacity-50"
+                  className="flex-1 px-4 py-2 bg-[#5D3FD3] text-white font-medium rounded-full hover:bg-[#5D3FD3]/90 transition-colors text-sm disabled:opacity-50"
                 >
                   {loading ? "Creating..." : "Create"}
                 </button>
@@ -796,7 +827,7 @@ function ApplicationStatus() {
 
       {letterApp && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg">
+          <div className="bg-white rounded-[18px] shadow-2xl w-full max-w-lg">
             <div className="flex items-center justify-between p-6 border-b border-gray-200">
               <div>
                 <h2 className="text-lg font-semibold text-gray-900">
@@ -821,7 +852,7 @@ function ApplicationStatus() {
             <div className="flex justify-end p-4 border-t border-gray-200">
               <button
                 onClick={() => setLetterApp(null)}
-                className="px-4 py-2 bg-[#5D3FD3] text-white rounded-2xl text-sm font-medium hover:opacity-90"
+                className="px-4 py-2 bg-[#5D3FD3] text-white rounded-full text-sm font-medium hover:opacity-90"
               >
                 Close
               </button>
