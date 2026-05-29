@@ -1,0 +1,54 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap");
+@import "tailwindcss";
+
+/*
+  Apple-style design language (typography only).
+  Fonts, sizes, leading and tracking follow the Apple spec.
+  Colors are intentionally left untouched.
+*/
+@theme {
+  /* SF Pro on Apple devices via -apple-system; Inter elsewhere (documented substitute) */
+  --font-sans:
+    -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Inter",
+    system-ui, "Segoe UI", Roboto, sans-serif;
+}
+
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    font-family: var(--font-sans);
+    /* Apple reads at 17px, not 16px — the brand reading pace */
+    font-size: 17px;
+    line-height: 1.47;
+    letter-spacing: -0.011em;
+  }
+
+  /* "Apple tight" headline cadence — negative tracking at display sizes */
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    letter-spacing: -0.022em;
+  }
+
+  /* Tailwind v4 defaults buttons to the arrow cursor — restore pointer on interactive elements */
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  a[href],
+  select:not(:disabled),
+  summary {
+    cursor: pointer;
+  }
+
+  button:disabled,
+  [aria-disabled="true"] {
+    cursor: not-allowed;
+  }
+}
