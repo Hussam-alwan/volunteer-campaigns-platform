@@ -2,7 +2,15 @@
 FROM node:20-alpine AS build
 WORKDIR /app
 COPY package*.json ./
-RUN npm ci
+# Drop the Windows-generated lockfile and force npm to install the Linux/musl
+# optional native deps (e.g. Vite 8's @rolldown/binding-linux-x64-musl). Without
+# the explicit --os/--cpu/--libc flags, npm skips that binary on Alpine and
+# `vite build` crashes with "Cannot find native binding" (npm #4828).
+# The cache mount persists npm's download cache across builds so a slow connection
+# doesn't re-download every package on each rebuild.
+RUN --mount=type=cache,target=/root/.npm \
+    rm -f package-lock.json && \
+    npm install --include=optional --os=linux --cpu=x64 --libc=musl
 COPY . .
 
 # API the browser will call (host-published backend port). Overridable at build.
