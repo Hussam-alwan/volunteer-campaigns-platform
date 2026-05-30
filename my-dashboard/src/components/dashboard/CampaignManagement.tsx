@@ -39,6 +39,7 @@ import type {
   CampaignStatus,
 } from "../../Types2/campaign";
 import type { ICampaign } from "../../API/Campaingns/Campaign.interfaces";
+import { getCategories, type ICategory } from "../../API/Category/Category.apis";
 
 type ApiErrorShape = {
   message?: string;
@@ -182,11 +183,28 @@ const CampaignManagement: React.FC = () => {
     title: "",
     description: "",
     location: "",
-    categoryId: 1,
+    categoryId: 0,
     max_volunteers: 0,
     start_date: "",
     end_date: "",
   });
+
+  // التصنيفات الحقيقية من قاعدة البيانات (المعرّفات تبدأ من 101 وليست 1..3)
+  const [categories, setCategories] = useState<ICategory[]>([]);
+  useEffect(() => {
+    getCategories(0, 100)
+      .then((res) => {
+        const list = res?.content ?? [];
+        setCategories(list);
+        // اضبط تصنيفاً افتراضياً صالحاً إن لم يكن المختار موجوداً
+        setFormData((prev) =>
+          list.some((c) => c.categoryId === prev.categoryId)
+            ? prev
+            : { ...prev, categoryId: list[0]?.categoryId ?? 0 },
+        );
+      })
+      .catch((err) => console.error(err));
+  }, []);
 
   const primaryPurple = "#5D3FD3";
 
@@ -370,7 +388,7 @@ const CampaignManagement: React.FC = () => {
       title: "",
       description: "",
       location: "",
-      categoryId: 1,
+      categoryId: categories[0]?.categoryId ?? 0,
       max_volunteers: 0,
       start_date: "",
       end_date: "",
@@ -395,7 +413,7 @@ const CampaignManagement: React.FC = () => {
       title: camp.title ?? "",
       description: camp.description ?? "",
       location: camp.location ?? "",
-      categoryId: Number(camp.category) || 1,
+      categoryId: Number(camp.category) || categories[0]?.categoryId || 0,
       max_volunteers: Number(camp.maxVolunteers) || 0,
       start_date: camp.startDate ?? "",
       end_date: camp.endDate ?? "",
@@ -456,7 +474,7 @@ const CampaignManagement: React.FC = () => {
           startDate: camp.startDate,
           endDate: camp.endDate,
           maxVolunteers: Number(camp.maxVolunteers) || 0,
-          category: Number(camp.category) || 1,
+          category: Number(camp.category) || categories[0]?.categoryId || 0,
           status: newStatus,
           proposedBy: camp.proposedBy ?? currentUserId,
           createdAt: camp.createdAt ?? new Date().toISOString(),
@@ -925,9 +943,16 @@ const CampaignManagement: React.FC = () => {
                     })
                   }
                 >
-                  <option value={1}>Environment</option>
-                  <option value={2}>Education</option>
-                  <option value={3}>Health</option>
+                  {categories.length === 0 && (
+                    <option value={formData.categoryId}>
+                      Loading categories…
+                    </option>
+                  )}
+                  {categories.map((c) => (
+                    <option key={c.categoryId} value={c.categoryId}>
+                      {c.name}
+                    </option>
+                  ))}
                 </Select>
               </div>
 
