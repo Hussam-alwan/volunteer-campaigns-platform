@@ -108,8 +108,8 @@ function UserManagement() {
     return users.filter((u) => {
       const matchesSearch =
         !q ||
-        u.studentNumber.toLowerCase().includes(q) ||
-        u.email.toLowerCase().includes(q) ||
+        (u.studentNumber ?? "").toLowerCase().includes(q) ||
+        (u.email ?? "").toLowerCase().includes(q) ||
         getFullName(u).toLowerCase().includes(q);
 
       const matchesStatus =

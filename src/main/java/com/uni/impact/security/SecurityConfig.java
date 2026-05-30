@@ -1,6 +1,7 @@
 package com.uni.impact.security;
 
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.http.HttpMethod;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -33,6 +34,9 @@ public class SecurityConfig {
                 .cors(withDefaults())
                 .csrf(CsrfConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
+                        // Public so the (unauthenticated) registration page can populate
+                        // its college dropdown with real college IDs.
+                        .requestMatchers(HttpMethod.GET, "/api/v1/colleges").permitAll()
                         .requestMatchers(
                                 "/api/v1/auth/login",
                                 "/api/v1/auth/register",

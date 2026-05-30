@@ -195,6 +195,38 @@ function ApplicationStatus() {
     });
   }, [allApplications, selectedMonth, sortOrder, campaignFilter, statusFilter]);
 
+  const campaignTitleById = useMemo(() => {
+    const map = new Map<number, string>();
+    campaigns.forEach((c) => map.set(c.campaignId, c.title));
+    return map;
+  }, [campaigns]);
+
+  const matchesSearch = useMemo(
+    () => (application: IApplication, query: string) => {
+      if (!query) return true;
+
+      const studentText = getStudentName(application.student).toLowerCase();
+      const collegeText = getStudentCollege(application.student).toLowerCase();
+      const campaignText = (
+        campaignTitleById.get(application.campaign) ??
+        `campaign ${application.campaign}`
+      ).toLowerCase();
+      const statusText = (application.status ?? "").toLowerCase();
+      const motivationText = (application.motivationLetter ?? "").toLowerCase();
+
+      return (
+        studentText.includes(query) ||
+        collegeText.includes(query) ||
+        campaignText.includes(query) ||
+        statusText.includes(query) ||
+        motivationText.includes(query)
+      );
+    },
+    // getStudentName/getStudentCollege read from userMap & collegeNameById
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [userMap, collegeNameById, campaignTitleById],
+  );
+
   const searchedApplications = useMemo(() => {
     const normalizedSearch = searchTerm.trim().toLowerCase();
 
@@ -202,20 +234,10 @@ function ApplicationStatus() {
       return visibleApplications;
     }
 
-    return visibleApplications.filter((application) => {
-      const studentText = `student ${application.student}`.toLowerCase();
-      const campaignText = `campaign ${application.campaign}`.toLowerCase();
-      const statusText = application.status.toLowerCase();
-      const motivationText = application.motivationLetter.toLowerCase();
-
-      return (
-        studentText.includes(normalizedSearch) ||
-        campaignText.includes(normalizedSearch) ||
-        statusText.includes(normalizedSearch) ||
-        motivationText.includes(normalizedSearch)
-      );
-    });
-  }, [searchTerm, visibleApplications]);
+    return visibleApplications.filter((application) =>
+      matchesSearch(application, normalizedSearch),
+    );
+  }, [searchTerm, visibleApplications, matchesSearch]);
 
   const itemsPerPage = 10;
   const totalPages = Math.max(
@@ -374,16 +396,11 @@ function ApplicationStatus() {
         campaignFilter === "all" ||
         String(application.campaign) === campaignFilter;
 
-      const searchOk =
-        !q ||
-        `student ${application.student}`.toLowerCase().includes(q) ||
-        `campaign ${application.campaign}`.toLowerCase().includes(q) ||
-        application.status.toLowerCase().includes(q) ||
-        application.motivationLetter.toLowerCase().includes(q);
+      const searchOk = matchesSearch(application, q);
 
       return monthOk && campaignOk && searchOk;
     });
-  }, [allApplications, selectedMonth, campaignFilter, searchTerm]);
+  }, [allApplications, selectedMonth, campaignFilter, searchTerm, matchesSearch]);
 
   const pendingCount = statsApplications.filter(
     (application) => application.status === "PENDING",

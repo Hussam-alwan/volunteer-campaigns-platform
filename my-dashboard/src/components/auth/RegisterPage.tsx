@@ -1,8 +1,10 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import authApis from "@/API/Authorization/authorization.apis";
+import collegesApis from "@/API/Colleges/Colleges.apis";
 import Select from "@/components/layout/Select";
 import type { IRegisterPayload } from "../../API/Authorization/authorization.interface";
+import type { ICollege } from "@/API/Colleges/Colleges.interfaces";
 
 const RegisterPage = () => {
   const navigate = useNavigate();
@@ -14,11 +16,30 @@ const RegisterPage = () => {
     password: "",
     phone: "",
     academicYear: 1,
-    college: 1,
+    college: 0,
     isBanned: false,
   });
+  const [colleges, setColleges] = useState<ICollege[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  // الكليات تُحمَّل من الباك-إند لأن معرّفاتها (collegeId) تبدأ من 101 وليست 1..4
+  useEffect(() => {
+    const loadColleges = async () => {
+      try {
+        const res = await collegesApis.getAllColleges({ page: 0, size: 100 });
+        const list = res?.content ?? [];
+        setColleges(list);
+        if (list.length > 0) {
+          setFormData((prev) => ({ ...prev, college: list[0].collegeId }));
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    };
+
+    loadColleges();
+  }, []);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
@@ -34,6 +55,12 @@ const RegisterPage = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+
+    if (!formData.college) {
+      setError("Please select a college.");
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -191,10 +218,14 @@ const RegisterPage = () => {
               value={formData.college}
               onChange={handleChange}
             >
-              <option value={1}>Information Technology Engineering</option>
-              <option value={2}>Architecture Engineering</option>
-              <option value={3}>Faculty of Science</option>
-              <option value={4}>Faculty of Economics</option>
+              {colleges.length === 0 && (
+                <option value={0}>Loading colleges…</option>
+              )}
+              {colleges.map((c) => (
+                <option key={c.collegeId} value={c.collegeId}>
+                  {c.name}
+                </option>
+              ))}
             </Select>
           </div>
 
