@@ -1,6 +1,10 @@
-import { useState, type FormEvent } from "react";
+import { useState, useEffect, type FormEvent } from "react";
 import { useParams } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
+import { getUsers } from "@/API/User/user.api";
+import useAuthStore from "@/store/auth.store";
+import { toast } from "@/store/toast.store";
+import type { IUser } from "@/API/User/User.interfaces";
 import {
   Users,
   TrendingUp,
@@ -26,9 +30,14 @@ import type {
 const AttendanceProgress = () => {
   // الحملة المختارة (افتراضياً من الـ URL أو الحملة رقم 1) ويمكن تغييرها من القائمة
   const { campaignId } = useParams();
+  // 0 = "not chosen yet"; the query is disabled for 0 and we pick the first real
+  // campaign once the list loads (campaign IDs start at 101, so a hardcoded 1 was wrong).
   const [currentCampaignId, setCurrentCampaignId] = useState<number>(
-    campaignId ? parseInt(campaignId) : 1,
+    campaignId ? parseInt(campaignId) : 0,
   );
+
+  // المستخدم الحالي (المشرف) — يُستخدم كـ recordedBy عند تسجيل الحضور
+  const currentUser = useAuthStore((s) => s.user);
 
   const queryClient = useQueryClient();
   const [query, setQuery] = useState("");
@@ -36,17 +45,25 @@ const AttendanceProgress = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingLogId, setEditingLogId] = useState<number | null>(null);
 
-  // تحديث الـ Initial State لتشمل الـ recordedBy الافتراضي من نظام الـ Auth عندكِ
+  // recordedBy = الـ ID الخاص بالمستخدم الحالي (المشرف) المسجَّل دخوله
   const initialFormState = {
     student: "",
     status: "PRESENT",
     hoursThatDay: "1",
     notes: "",
     attendanceDate: new Date().toISOString().split("T")[0],
-    recordedBy: 2, // يمكنكِ مستقبلاً جلب الـ ID الخاص بالمشرف الحالي من الـ Auth Context/Zustand 🌟
+    recordedBy: currentUser?.userId ?? 0,
   };
 
   const [formData, setFormData] = useState(initialFormState);
+
+  // قائمة المستخدمين الحقيقية لاختيار الطالب (المعرّفات تبدأ من 101)
+  const [users, setUsers] = useState<IUser[]>([]);
+  useEffect(() => {
+    getUsers(0, 1000)
+      .then((res) => setUsers(res?.content ?? []))
+      .catch((err) => console.error(err));
+  }, []);
 
   // 1. 🔥 الاستدعاء النظيف والمعدل هنا: تم إلغاء تمرير الكائن المعقد لأن ملف الـ API صار يتعامل معه تلقائياً
   const { data: attendanceData, isLoading: isAttendanceLoading } =
@@ -72,6 +89,15 @@ const AttendanceProgress = () => {
   const campaignNameById = new Map<number, string>();
   campaignsList.forEach((c) => campaignNameById.set(c.campaignId, c.title));
 
+  // عند تحميل قائمة الحملات: إذا لم تكن الحملة المختارة موجودة (مثلاً القيمة 0 الافتراضية)
+  // نختار أول حملة حقيقية تلقائياً حتى تظهر البيانات بدون الحاجة لتحديث الصفحة.
+  useEffect(() => {
+    if (campaignsList.length === 0) return;
+    const exists = campaignsList.some((c) => c.campaignId === currentCampaignId);
+    if (!exists) setCurrentCampaignId(campaignsList[0].campaignId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [campaignsResp]);
+
   // 🔥 استخراج المصفوفة الخام وعكسها لتظهر السجلات الجديدة في الأعلى دائماً ومباشرة
   // الرد قد يأتي بصيغة { content } من Spring Boot أو { data } حسب الـ endpoint
   const attRes = attendanceData as
@@ -94,19 +120,19 @@ const AttendanceProgress = () => {
     (progRes?.data as IProgress[]) ||
     [];
 
-  // --- تأمين قائمة الطلاب ---
-  const staticStudents = [
-    { id: 1, name: "Aisha Rahman" },
-    { id: 2, name: "Yousef Nabil" },
-    { id: 3, name: "Hana Sami" },
-    { id: 5, name: "Noor Fawzy" },
-    { id: 11, name: "Lina Khaled" },
-    { id: 12, name: "Ziad Helmy" },
-  ];
+  // --- قائمة الطلاب الحقيقية من قاعدة البيانات (معرّفات صحيحة 101+) ---
+  const dynamicStudentsMap = new Map<number, { id: number; name: string }>();
 
-  const dynamicStudentsMap = new Map();
-  staticStudents.forEach((st) => dynamicStudentsMap.set(st.id, st));
+  // الطلاب = المستخدمون الذين لديهم رقم طالب؛ إن لم يوجد أي طالب نعرض كل المستخدمين.
+  const studentUsers = users.filter((u) => u.studentNumber);
+  (studentUsers.length > 0 ? studentUsers : users).forEach((u) =>
+    dynamicStudentsMap.set(u.userId, {
+      id: u.userId,
+      name: `${u.firstName} ${u.lastName}`,
+    }),
+  );
 
+  // ندمج أي أسماء واردة في سجلات الحضور كاحتياط
   attendanceLogs.forEach((log) => {
     if (log.student && log.studentName) {
       dynamicStudentsMap.set(log.student, {
@@ -193,7 +219,7 @@ const AttendanceProgress = () => {
       notes: log.notes && log.notes !== "No notes" ? log.notes : "",
       attendanceDate:
         log.attendanceDate || new Date().toISOString().split("T")[0],
-      recordedBy: log.recordedBy || 2,
+      recordedBy: log.recordedBy || currentUser?.userId || 0,
     });
     setIsModalOpen(true);
   };
@@ -201,26 +227,38 @@ const AttendanceProgress = () => {
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
 
+    // الحملة يجب أن تكون محمّلة ومختارة (المعرّفات تبدأ من 101) وإلا فشل الطلب بـ "campaign not found"
+    if (!currentCampaignId || !campaignNameById.has(currentCampaignId)) {
+      toast.error("Please select a valid campaign first.");
+      return;
+    }
+
     const studentId = parseInt(formData.student);
     const hours = parseFloat(formData.hoursThatDay);
+    const recordedById = currentUser?.userId ?? formData.recordedBy;
+
+    if (!recordedById) {
+      toast.error("You must be logged in to record attendance.");
+      return;
+    }
 
     if (isNaN(studentId)) {
-      alert("Please select a valid student from the list.");
+      toast.error("Please select a valid student from the list.");
       return;
     }
 
     if (isNaN(hours)) {
-      alert("Please enter a valid number for hours.");
+      toast.error("Please enter a valid number for hours.");
       return;
     }
 
     if (hours < 0 || hours > 10) {
-      alert("Hours that day cannot be more than 10.");
+      toast.error("Hours that day cannot be more than 10.");
       return;
     }
 
     if (!formData.attendanceDate) {
-      alert("Please select a date.");
+      toast.error("Please select a date.");
       return;
     }
 
@@ -232,11 +270,11 @@ const AttendanceProgress = () => {
       hoursThatDay: status === "ABSENT" ? 0 : hours,
       notes: formData.notes.trim() || "No notes",
       student: studentId,
-      recordedBy: formData.recordedBy,
+      recordedBy: recordedById,
     };
 
     const handleSuccess = (message: string) => {
-      alert(message);
+      toast.success(message);
 
       // تصفير الكاش بالأسماء الصريحة المتوافقة مع ملف الـ Queries المحسّن
       queryClient.invalidateQueries({
@@ -259,7 +297,7 @@ const AttendanceProgress = () => {
         err?.response?.data?.message ||
         err?.response?.data?.code ||
         "Internal Server Error";
-      alert(`Operation failed: ${serverMessage}`);
+      toast.error(`Operation failed: ${serverMessage}`);
     };
 
     if (editingLogId && updateAttendanceMutation.mutate) {

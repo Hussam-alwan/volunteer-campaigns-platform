@@ -47,7 +47,8 @@ public class AttendanceCampaignController {
             @PathVariable Long id,
             @PathVariable Long attendanceId,
             @RequestBody AttendanceRequestDTO attendanceDTO) {
-        Attendance updated = attendanceService.update(id, attendanceId, attendanceDTO);
+        // service signature is update(attendanceId, campaignId, dto) — pass in that order
+        Attendance updated = attendanceService.update(attendanceId, id, attendanceDTO);
         return ResponseEntity.ok(attendanceMapper.toDto(updated));
     }
 }

@@ -13,6 +13,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.DisabledException;
+import org.springframework.security.authentication.LockedException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
@@ -54,6 +56,9 @@ public class AuthController {
 
             User user = userService.findByEmail(loginDTO.getEmail());
             return ResponseEntity.ok(userMapper.toDto(user));
+        } catch (LockedException | DisabledException e) {
+            // Banned user (accountNonLocked == false). Block login with 403.
+            return ResponseEntity.status(403).build();
         } catch (BadCredentialsException e) {
             return ResponseEntity.status(401).build();
         }

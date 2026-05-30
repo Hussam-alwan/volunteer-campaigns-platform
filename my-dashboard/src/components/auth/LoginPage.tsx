@@ -28,7 +28,13 @@ const LoginPage = () => {
       loginToStore(user);
       navigate("/dashboard", { replace: true });
     } catch (err: any) {
-      setError(err?.response?.data?.message || "Invalid email or password.");
+      if (err?.response?.status === 403) {
+        setError(
+          "Your account has been banned. Please contact the administrator.",
+        );
+      } else {
+        setError(err?.response?.data?.message || "Invalid email or password.");
+      }
     } finally {
       setLoading(false);
     }
