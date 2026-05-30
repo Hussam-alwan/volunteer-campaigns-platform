@@ -17,7 +17,6 @@ import {
   Target,
   Image as ImageIcon,
   Upload,
-  Link2,
   Trash2,
   SquarePen,
   BarChart3,
@@ -165,7 +164,6 @@ const CampaignManagement: React.FC = () => {
   const [selectedCampaign, setSelectedCampaign] = useState<Campaign | null>(
     null,
   );
-  const [photoUrlInput, setPhotoUrlInput] = useState<string>("");
   const [progressCampaign, setProgressCampaign] = useState<ICampaign | null>(
     null,
   );
@@ -368,20 +366,6 @@ const CampaignManagement: React.FC = () => {
     }
   };
 
-  const handleUrlSubmit = async () => {
-    if (!photoUrlInput || !selectedCampaign) return;
-    try {
-      await campaignService.addPhotoByUrl(
-        selectedCampaign.campaignId,
-        photoUrlInput,
-      );
-      setPhotoUrlInput("");
-      openPhotosManagement(selectedCampaign);
-    } catch (err) {
-      console.error("Add photo by URL error:", err);
-      toast.error("Failed to add photo URL");
-    }
-  };
 
   const resetForm = () => {
     setFormData({
@@ -1155,7 +1139,7 @@ const CampaignManagement: React.FC = () => {
             </div>
 
             <div className="p-8 space-y-6 max-h-[70vh] overflow-y-auto">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4">
                 <div className="p-6 border-2 border-dashed border-slate-200 hover:border-[#5D3FD3]/40 rounded-2xl transition-colors relative flex flex-col items-center justify-center gap-2 group cursor-pointer">
                   <input
                     type="file"
@@ -1175,29 +1159,6 @@ const CampaignManagement: React.FC = () => {
                   <span className="text-xs text-slate-400">
                     Supports multiple PNG, JPG images
                   </span>
-                </div>
-
-                <div className="p-6 bg-slate-50/50 border border-slate-100 rounded-2xl flex flex-col gap-3 justify-center">
-                  <span className="text-sm font-bold text-slate-700 flex items-center gap-2">
-                    <Link2 size={16} style={{ color: primaryPurple }} /> Add
-                    Photo via URL
-                  </span>
-                  <div className="flex gap-2">
-                    <input
-                      type="url"
-                      placeholder="https://example.com/image.jpg"
-                      value={photoUrlInput}
-                      onChange={(e) => setPhotoUrlInput(e.target.value)}
-                      className="flex-1 px-4 py-2.5 bg-white border border-slate-200 rounded-xl outline-none focus:border-[#5D3FD3]/40 text-xs"
-                    />
-                    <button
-                      onClick={handleUrlSubmit}
-                      style={{ backgroundColor: primaryPurple }}
-                      className="px-4 py-2.5 text-white font-bold rounded-xl text-xs active:scale-95 transition-transform"
-                    >
-                      Add
-                    </button>
-                  </div>
                 </div>
               </div>
 
